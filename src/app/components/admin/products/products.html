@@ -1,12 +1,153 @@
 <div class="products-container">
+  <!-- Global Messages (Upload Progress, Success, Errors) -->
+  <div *ngIf="message()" class="global-message alert alert-dismissible fade show" 
+       [class.alert-success]="messageType() === 'success'"
+       [class.alert-danger]="messageType() === 'error'"
+       [class.alert-info]="messageType() === 'info'"
+       role="alert">
+    <div class="d-flex align-items-center">
+      <i class="bi me-2" 
+         [class.bi-check-circle-fill]="messageType() === 'success'"
+         [class.bi-exclamation-triangle-fill]="messageType() === 'error'"
+         [class.bi-info-circle-fill]="messageType() === 'info'"></i>
+      <span>{{ message() }}</span>
+      <button type="button" class="btn-close ms-auto" (click)="message.set(''); messageType.set('')" aria-label="Close"></button>
+    </div>
+  </div>
+
   <div class="products-header">
-    <button class="btn btn-primary ms-auto" data-bs-toggle="modal" data-bs-target="#addProductModal">
-      <i class="bi bi-plus circle me-2"></i>
+    <h2>Product Catalog</h2>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
+      <i class="bi bi-plus-circle me-2"></i>
       Add Product
     </button>
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="product-tabs">
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab() === 'active'"
+      (click)="activeTab.set('active')">
+      Active Products ({{ activeCount() }})
+    </button>
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab() === 'archived'"
+      (click)="activeTab.set('archived')">
+      Archived Products ({{ archivedCount() }})
+    </button>
+  </div>
+
+  <!-- Products Grid -->
+  <div class="products-grid">
+    <!-- Active Products Tab -->
+    <div *ngIf="activeTab() === 'active'">
+      <div *ngIf="activeProducts().length === 0" class="empty-state">
+        <i class="bi bi-inbox"></i>
+        <p>No active products yet</p>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
+          <i class="bi bi-plus-circle me-2"></i>
+          Add Your First Product
+        </button>
+      </div>
+
+      <!-- Table-style product list -->
+      <div class="product-table" *ngIf="activeProducts().length > 0">
+        <!-- Table Header -->
+        <div class="table-header">
+          <div class="col-img">Image</div>
+          <div class="col-id">ID</div>
+          <div class="col-name">Product Name</div>
+          <div class="col-category">Category</div>
+          <div class="col-price">Price</div>
+          <div class="col-stock">Stock</div>
+          <div class="col-cloudinary">Cloudinary ID</div>
+          <div class="col-actions">Actions</div>
+        </div>
+        
+        <!-- Table Rows -->
+        <div class="table-row" *ngFor="let product of activeProducts()">
+          <div class="col-img">
+            <img [src]="product.image_url" [alt]="product.product_name" />
+          </div>
+          <div class="col-id">{{ product.product_id }}</div>
+          <div class="col-name" [title]="product.product_name">{{ product.product_name }}</div>
+          <div class="col-category">{{ product.category }}</div>
+          <div class="col-price">₱{{ product.base_price.toFixed(2) }}</div>
+          <div class="col-stock">{{ product.stock_quantity || 0 }}</div>
+          <div class="col-cloudinary" [title]="product.cloudinary_public_id || 'N/A'">
+            {{ product.cloudinary_public_id || '-' }}
+          </div>
+          <div class="col-actions">
+            <button class="btn btn-sm btn-outline-info" (click)="viewProductDetails(product)" title="View Details">
+              <i class="bi bi-eye"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-primary" (click)="editProduct(product)" title="Edit">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-warning" (click)="archiveProduct(product.product_id!)" title="Archive">
+              <i class="bi bi-archive"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Archived Products Tab -->
+    <div *ngIf="activeTab() === 'archived'">
+      <div *ngIf="archivedProducts().length === 0" class="empty-state">
+        <i class="bi bi-archive"></i>
+        <p>No archived products</p>
+      </div>
+
+      <!-- Table-style archived list -->
+      <div class="product-table" *ngIf="archivedProducts().length > 0">
+        <!-- Table Header -->
+        <div class="table-header">
+          <div class="col-img">Image</div>
+          <div class="col-id">ID</div>
+          <div class="col-name">Product Name</div>
+          <div class="col-category">Category</div>
+          <div class="col-price">Price</div>
+          <div class="col-stock">Stock</div>
+          <div class="col-cloudinary">Cloudinary ID</div>
+          <div class="col-actions">Actions</div>
+        </div>
+        
+        <!-- Table Rows (Archived) -->
+        <div class="table-row archived" *ngFor="let product of archivedProducts()">
+          <div class="col-img">
+            <img [src]="product.image_url" [alt]="product.product_name" />
+            <span class="archived-badge">ARCHIVED</span>
+          </div>
+          <div class="col-id">{{ product.product_id }}</div>
+          <div class="col-name" [title]="product.product_name">{{ product.product_name }}</div>
+          <div class="col-category">{{ product.category }}</div>
+          <div class="col-price">₱{{ product.base_price.toFixed(2) }}</div>
+          <div class="col-stock">{{ product.stock_quantity || 0 }}</div>
+          <div class="col-cloudinary" [title]="product.cloudinary_public_id || 'N/A'">
+            {{ product.cloudinary_public_id || '-' }}
+          </div>
+          <div class="col-actions">
+            <button class="btn btn-sm btn-outline-info" (click)="viewProductDetails(product)" title="View Details">
+              <i class="bi bi-eye"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-success" (click)="restoreProduct(product.product_id!)" title="Restore">
+              <i class="bi bi-arrow-counterclockwise"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-danger" (click)="deleteProductPermanently(product.product_id!)" title="Delete Forever">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
     <!-- Add Product Modal -->
     <div class="modal fade" id="addProductModal" tabindex="-1" aria-labelledby="addProductModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="addProductModalLabel">Add Product</h5>
@@ -18,36 +159,273 @@
               <!-- Product Name -->
               <div class="mb-3">
                 <label class="form-label">Product Name</label>
-                <input type="text" class="form-control" placeholder="Enter product name" required>
+                <input 
+                  type="text" 
+                  class="form-control" 
+                  placeholder="Enter product name" 
+                  [(ngModel)]="productForm.name"
+                  name="productName"
+                  required>
               </div>
     
               <!-- Category -->
               <div class="mb-3">
                 <label class="form-label">Category</label>
-                <input type="text" class="form-control" placeholder="Enter category" required>
+                <select 
+                  class="form-select" 
+                  [(ngModel)]="productForm.category"
+                  name="category"
+                  required>
+                  <option value="">Select clothing category</option>
+                  <option *ngFor="let category of clothingCategories" [value]="category">
+                    {{ category }}
+                  </option>
+                </select>
               </div>
     
               <!-- Base Price -->
               <div class="mb-3">
                 <label class="form-label">Base Price</label>
-                <input type="number" class="form-control" placeholder="Enter base price" required>
+                <div class="input-group">
+                  <span class="input-group-text">₱</span>
+                  <input 
+                    type="text" 
+                    class="form-control" 
+                    placeholder="0.00" 
+                    name="basePrice"
+                    (input)="onPriceInput($event)"
+                    (focus)="onPriceFocus($event)"
+                    (blur)="onPriceBlur($event)"
+                    required>
+                </div>
+                <small class="form-text text-muted">Enter amount in Philippine Peso (e.g., 25.00)</small>
               </div>
     
               <!-- Description -->
               <div class="mb-3">
                 <label class="form-label">Description</label>
-                <textarea class="form-control" rows="3" placeholder="Enter description"></textarea>
+                <textarea 
+                  class="form-control" 
+                  rows="3" 
+                  placeholder="Enter description"
+                  [(ngModel)]="productForm.description"
+                  name="description"></textarea>
               </div>
 
+              <!-- Stock Quantity -->
+              <div class="mb-3">
+                <label class="form-label">Stock Quantity</label>
+                <input 
+                  type="number" 
+                  class="form-control" 
+                  placeholder="0" 
+                  [(ngModel)]="productForm.stockQuantity"
+                  name="stockQuantity"
+                  min="0"
+                  step="1">
+                <small class="form-text text-muted">Number of units available</small>
+              </div>
+
+              <!-- SKU (Optional) -->
+              <div class="mb-3">
+                <label class="form-label">SKU (Optional)</label>
+                <input 
+                  type="text" 
+                  class="form-control" 
+                  placeholder="e.g., SHIRT-BLU-001" 
+                  [(ngModel)]="productForm.sku"
+                  name="sku">
+                <small class="form-text text-muted">Stock Keeping Unit for inventory tracking</small>
+              </div>
+
+              <!-- Sizes/Variants -->
+              <div class="mb-3">
+                <label class="form-label">Available Sizes</label>
+                <div class="d-flex flex-wrap gap-2">
+                  <div class="form-check" *ngFor="let size of availableSizes">
+                    <input 
+                      class="form-check-input" 
+                      type="checkbox" 
+                      [value]="size"
+                      [id]="'size-' + size"
+                      (change)="onSizeChange($event, size)">
+                    <label class="form-check-label" [for]="'size-' + size">
+                      {{ size }}
+                    </label>
+                  </div>
+                </div>
+                <small class="form-text text-muted">Select all applicable sizes for this product</small>
+              </div>
+
+              <!-- Upload Product Image -->
               <div class="mb-3">
                 <label class="form-label">Upload Product Image</label>
-                <input type="file" class="form-control" accept="image/*">
+                
+                <!-- Upload Area -->
+                <div *ngIf="!uploadedImageUrl()" class="upload-area">
+                  <input 
+                    type="file" 
+                    class="form-control" 
+                    accept="image/*"
+                    (change)="onFileSelected($event)"
+                    [disabled]="isUploading()">
+                  
+                  <!-- Upload Progress -->
+                  <div *ngIf="isUploading()" class="upload-progress mt-2">
+                    <div class="d-flex align-items-center">
+                      <div class="spinner-border spinner-border-sm me-2" role="status">
+                        <span class="visually-hidden">Uploading...</span>
+                      </div>
+                      <span>Uploading image to Cloudinary...</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Image Preview -->
+                <div *ngIf="uploadedImageUrl()" class="uploaded-image-preview">
+                  <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center">
+                      <img [src]="uploadedImageUrl()" alt="Image preview" class="img-thumbnail me-2" style="width: 50px; height: 50px; object-fit: cover;">
+                      <div>
+                        <small class="text-primary">
+                          <i class="bi bi-image-fill me-1"></i>
+                          Image selected - ready to upload
+                        </small>
+                        <br>
+                        <small class="text-muted">{{ selectedFile() }}</small>
+                      </div>
+                    </div>
+                    <button 
+                      type="button" 
+                      class="btn btn-sm btn-outline-danger" 
+                      (click)="removeSelectedImage()">
+                      <i class="bi bi-x"></i>
+                    </button>
+                  </div>
+                </div>
               </div>
             </form>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-primary">Save Product</button>
+            <button 
+              type="button" 
+              class="btn btn-primary" 
+              (click)="onSaveProduct()"
+              [disabled]="isUploading()">
+              <span *ngIf="isUploading()" class="spinner-border spinner-border-sm me-2"></span>
+              {{ isUploading() ? 'Saving...' : 'Save Product' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  <!-- Product Details Modal -->
+  <div class="modal fade" id="productDetailsModal" tabindex="-1" aria-labelledby="productDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="productDetailsModalLabel">
+            <i class="bi bi-info-circle me-2"></i>Product Details
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        
+        <div class="modal-body">
+          <div *ngIf="!selectedProduct()" class="text-center p-5">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3">Loading product details...</p>
+          </div>
+          
+          <div *ngIf="selectedProduct()" class="product-details-container">
+            <!-- Product Image -->
+            <div class="details-image-section">
+              <img [src]="selectedProduct()?.image_url" [alt]="selectedProduct()?.product_name" class="details-image" />
+              <span class="badge bg-primary mt-2">{{ selectedProduct()?.status }}</span>
+            </div>
+            
+            <!-- Product Information -->
+            <div class="details-info-section">
+              <div class="info-group">
+                <label>Product ID</label>
+                <p class="info-value id-badge">{{ selectedProduct()?.product_id }}</p>
+              </div>
+              
+              <div class="info-group">
+                <label>Product Name</label>
+                <p class="info-value">{{ selectedProduct()?.product_name }}</p>
+              </div>
+              
+              <div class="info-group">
+                <label>Category</label>
+                <p class="info-value">{{ selectedProduct()?.category }}</p>
+              </div>
+              
+              <div class="info-group">
+                <label>Base Price</label>
+                <p class="info-value price-highlight">₱{{ selectedProduct()?.base_price?.toFixed(2) }}</p>
+              </div>
+              
+              <div class="info-group">
+                <label>Stock Quantity</label>
+                <p class="info-value">{{ selectedProduct()?.stock_quantity || 0 }} units</p>
+              </div>
+              
+              <div class="info-group">
+                <label>SKU</label>
+                <p class="info-value">{{ selectedProduct()?.sku || 'N/A' }}</p>
+              </div>
+              
+              <div class="info-group">
+                <label>Available Sizes</label>
+                <p class="info-value">
+                  <ng-container *ngIf="selectedProduct()">
+                    <span *ngIf="getProductSizes(selectedProduct()!).length > 0" class="sizes-container">
+                      <span class="size-badge" *ngFor="let size of getProductSizes(selectedProduct()!)">{{ size }}</span>
+                    </span>
+                    <span *ngIf="getProductSizes(selectedProduct()!).length === 0">N/A</span>
+                  </ng-container>
+                </p>
+              </div>
+              
+              <div class="info-group full-width">
+                <label>Description</label>
+                <p class="info-value description">{{ selectedProduct()?.description || 'No description provided' }}</p>
+              </div>
+              
+              <div class="info-group full-width">
+                <label>Cloudinary Public ID</label>
+                <p class="info-value cloudinary-id">{{ selectedProduct()?.cloudinary_public_id || 'N/A' }}</p>
+              </div>
+              
+              <div class="info-group">
+                <label>Image URL</label>
+                <a [href]="selectedProduct()?.image_url" target="_blank" class="info-value link">
+                  <i class="bi bi-box-arrow-up-right me-1"></i>View Full Image
+                </a>
+              </div>
+              
+              <div class="info-group">
+                <label>Created At</label>
+                <p class="info-value">{{ formatDate(selectedProduct()?.created_at) }}</p>
+              </div>
+              
+              <div class="info-group">
+                <label>Last Updated</label>
+                <p class="info-value">{{ formatDate(selectedProduct()?.updated_at) }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" (click)="editProductFromDetails()">
+            <i class="bi bi-pencil me-1"></i>Edit Product
+          </button>
           </div>
         </div>
       </div>

@@ -1,0 +1,1423 @@
+================================================================================
+                    STEP-BY-STEP SETUP GUIDE
+         Render + Cloudinary + Clerk for RFM System
+================================================================================
+
+Last Updated: October 17, 2025
+Estimated Total Time: 3-4 hours
+Difficulty: Medium
+
+Prerequisites:
+- GitHub account (for Render deployment)
+- Credit card (for Cloudinary free tier verification)
+- Your RFM project code ready
+- Basic understanding of Angular and Node.js
+
+================================================================================
+                        TABLE OF CONTENTS
+================================================================================
+
+PART 1: CLOUDINARY SETUP (30-45 minutes)
+PART 2: CLERK SETUP (45-60 minutes)
+PART 3: RENDER SETUP (60-90 minutes)
+PART 4: INTEGRATION & TESTING (30-45 minutes)
+
+================================================================================
+                  PART 1: CLOUDINARY SETUP (30-45 minutes)
+================================================================================
+
+STEP 1: CREATE CLOUDINARY ACCOUNT
+----------------------------------
+Time: 5 minutes
+
+1.1. Go to https://cloudinary.com/users/register/free
+
+1.2. Fill in the registration form:
+     - Email address
+     - Password (strong password recommended)
+     - Full name
+     - Company (optional)
+     
+1.3. Click "Create Account"
+
+1.4. Verify your email address
+     - Check inbox for verification email
+     - Click verification link
+
+1.5. Complete onboarding:
+     - Add credit card for free tier verification
+     - Don't worry - they won't charge you on the free plan!
+     - You get 25GB storage and 25GB bandwidth free
+
+
+STEP 2: GET CLOUDINARY CREDENTIALS
+----------------------------------
+Time: 5 minutes
+
+2.1. After registration, you'll see your Cloudinary dashboard
+
+2.2. Find your credentials in the dashboard:
+     - Look for "Cloud Name", "API Key", and "API Secret"
+     - They're displayed prominently on your dashboard homepage
+
+2.3. Your credentials will look like this:
+     ┌────────────────────────────────────┐
+     │ Cloud Name: your-cloud-name        │
+     │ API Key: 123456789012345           │
+     │ API Secret: your-secret-key        │
+     │ URL Base: https://res.cloudinary.com│
+     └────────────────────────────────────┘
+
+2.4. COPY these values:
+     - Cloud Name (usually short, like "sample")
+     - API Key (numbers only)
+     - API Secret (long string)
+     - You'll need all three for your app!
+
+
+STEP 3: CREATE UPLOAD PRESET (REQUIRED)
+----------------------------------------
+Time: 5 minutes
+
+3.1. Go to Cloudinary Console:
+     - Visit: https://cloudinary.com/console
+     - Log into your dashboard
+
+3.2. Create Upload Preset:
+     - Click "Settings" → "Upload" tab
+     - Click "Add upload preset" button
+     - Preset name: "rfm_uploads"
+     - Signing Mode: "Unsigned" (important!)
+     - Folder: "rfm_images" (optional but recommended)
+     - Click "Save"
+
+3.3. Test the setup:
+     - Go to Media Library in dashboard
+     - You should be able to upload images manually
+     - Verify "25GB Storage" and "25GB Bandwidth" are shown
+
+3.4. IMPORTANT SECURITY:
+     - Never commit API secret to Git
+     - Only use API key in frontend
+     - API secret is for server-side only
+
+
+STEP 4: INSTALL CLOUDINARY IN YOUR PROJECT
+-------------------------------------------
+Time: 10 minutes
+
+4.1. Open terminal in your project root
+
+4.2. Install Cloudinary packages:
+     ```bash
+     npm install cloudinary-core cloudinary-angular
+     ```
+
+4.3. Create environment config file (already created):
+     
+     File: src/environments/environment.ts
+     
+     export const environment = {
+       production: false,
+       cloudinary: {
+         cloudName: 'dpvrv7btt',
+         apiKey: '425947453244552'
+       },
+       api: {
+         baseUrl: 'http://localhost:3001/api'
+       }
+     };
+
+4.4. Create production environment (already created):
+     
+     File: src/environments/environment.prod.ts
+     
+     export const environment = {
+       production: true,
+       cloudinary: {
+         cloudName: 'dpvrv7btt',
+         apiKey: '425947453244552'
+       },
+       api: {
+         baseUrl: 'https://your-render-app.onrender.com/api'
+       }
+     };
+
+4.5. IMPORTANT: Never commit API secret to Git!
+     Only API key is safe for frontend use.
+     API secret should only be used server-side.
+
+
+STEP 5: CREATE CLOUDINARY SERVICE
+-----------------------------------
+Time: 15 minutes
+
+5.1. Cloudinary service already created at: src/app/services/cloudinary.service.ts
+
+5.2. The service includes these methods:
+     - uploadImage(file: File) - Upload images to Cloudinary
+     - getOptimizedUrl(publicId, width, height) - Get optimized URLs
+     - getThumbnailUrl(publicId, size) - Get thumbnail URLs
+     - getOriginalUrl(publicId) - Get original image URLs
+
+5.3. Add the service to your upload component:
+
+     Example usage in upload-panel.component.ts:
+     
+     ┌─────────────────────────────────────────────────────────────┐
+     │ import { CloudinaryService } from '../../services/cloudinary.service';│
+     │                                                              │
+     │ constructor(private cloudinaryService: CloudinaryService) {}│
+     │                                                              │
+     │ async handleFileUpload(file: File): Promise<void> {        │
+     │   try {                                                     │
+     │     this.isUploading.set(true);                             │
+     │     const result = await this.cloudinaryService.uploadImage(file);│
+     │     const imageUrl = this.cloudinaryService.getOptimizedUrl(result.public_id);│
+     │     this.uploadedImageUrl.set(imageUrl);                    │
+     │     this.imageUploaded.emit({ file, url: imageUrl, id: result.public_id });│
+     │   } catch (error) {                                         │
+     │     console.error('Upload failed:', error);                 │
+     │     alert('Upload failed. Please try again.');              │
+     │   } finally {                                               │
+     │     this.isUploading.set(false);                            │
+     │   }                                                         │
+     │ }                                                           │
+     └─────────────────────────────────────────────────────────────┘
+
+5.4. IMPORTANT: You need to create upload preset first!
+     - Go to Cloudinary Console → Settings → Upload
+     - Create preset named "rfm_uploads"
+     - Set to "Unsigned" mode
+     - Update service to use: formData.append('upload_preset', 'rfm_uploads');
+
+
+STEP 6: UPDATE YOUR CANVAS COMPONENT
+-------------------------------------
+Time: 10 minutes
+
+6.1. Update canvas component to use Cloudinary URLs instead of base64:
+
+     File: src/app/canvas/canvas.ts
+     
+     Add this method to process canvas data before saving:
+     
+     ┌─────────────────────────────────────────────────────────────┐
+     │ private processCanvasDataForSaving(canvasData: any): void { │
+     │   if (canvasData.objects) {                                │
+     │     canvasData.objects.forEach((obj: any) => {             │
+     │       if (obj.type === 'image' && obj.src) {               │
+     │         // If it's still a data URL, extract the Cloudinary URL│
+     │         // This should already be handled in upload component│
+     │         if (obj.src.startsWith('data:')) {                 │
+     │           console.warn('Found data URL in canvas - this should be optimized!');│
+     │         }                                                  │
+     │       }                                                    │
+     │     });                                                    │
+     │   }                                                        │
+     │ }                                                          │
+     │                                                              │
+     │ // Update your saveCanvas method:                           │
+     │ saveCanvas(): void {                                        │
+     │   if (!this.fabricCanvas) return;                           │
+     │                                                              │
+     │   this.isLoading.set(true);                                 │
+     │   const canvasData = this.fabricCanvas.toJSON();            │
+     │   this.processCanvasDataForSaving(canvasData);              │
+     │                                                              │
+     │   this.apiService.saveCanvas(canvasData, this.canvasName()).subscribe({│
+     │     // ... existing success/error handling                  │
+     │   });                                                       │
+     │ }                                                           │
+     └─────────────────────────────────────────────────────────────┘
+
+6.2. Test your Cloudinary setup:
+     - Use the test-cloudinary.html file created earlier
+     - Or test directly in your Angular app after integration
+
+CLOUDINARY SETUP COMPLETE! ✓
+Next: Clerk Authentication Setup
+
+================================================================================
+              PART 2: CLERK SETUP (45-60 minutes)
+================================================================================
+
+STEP 7: CREATE CLERK ACCOUNT
+-----------------------------
+Time: 5 minutes
+
+7.1. Go to https://clerk.com
+
+7.2. Click "Start Building for Free"
+
+7.3. Sign up with:
+     - GitHub account (recommended), OR
+     - Email + Password
+
+7.4. Verify your email (if using email signup)
+
+7.5. Complete onboarding questions:
+     - Project name: "RFM Prints System"
+     - Project type: "E-commerce" or "B2B"
+     - Team size: Select appropriate option
+
+
+STEP 8: CREATE CLERK APPLICATION
+---------------------------------
+Time: 5 minutes
+
+8.1. In Clerk Dashboard, click "Create Application"
+
+8.2. Configure application:
+     - Application name: "RFM System"
+     - Environment: Start with "Development"
+     
+8.3. Choose authentication methods:
+     [✓] Email address
+     [✓] Google (we'll configure OAuth next)
+     [ ] Phone number (optional - can add later)
+
+8.4. Click "Create Application"
+
+8.5. You'll see the API Keys page - KEEP THIS OPEN!
+
+
+STEP 9: GET CLERK API KEYS
+---------------------------
+Time: 2 minutes
+
+9.1. On the API Keys page, you'll see:
+     
+     ┌────────────────────────────────────────────┐
+     │ Publishable Key (Frontend)                 │
+     │ pk_test_xxxxxxxxxxxxxx                     │
+     │                                            │
+     │ Secret Key (Backend)                       │
+     │ sk_test_xxxxxxxxxxxxxx                     │
+     └────────────────────────────────────────────┘
+
+9.2. Copy BOTH keys to a safe place
+
+9.3. IMPORTANT:
+     - Publishable key: Safe to use in frontend
+     - Secret key: NEVER expose in frontend!
+
+
+STEP 10: CONFIGURE GOOGLE OAUTH
+--------------------------------
+Time: 15-20 minutes
+
+10.1. Create Google Cloud Project:
+      
+      a) Go to https://console.cloud.google.com
+      
+      b) Click "Select a project" > "New Project"
+      
+      c) Project name: "RFM System Auth"
+      
+      d) Click "Create"
+      
+      e) Wait for project creation (~30 seconds)
+
+10.2. Enable Google OAuth:
+      
+      a) In Google Cloud Console, go to:
+         "APIs & Services" > "OAuth consent screen"
+      
+      b) Select "External" (unless you have Google Workspace)
+      
+      c) Click "Create"
+      
+      d) Fill in OAuth consent screen:
+         - App name: "RFM Prints System"
+         - User support email: your-email@gmail.com
+         - Developer contact: your-email@gmail.com
+      
+      e) Click "Save and Continue"
+      
+      f) Scopes: Click "Save and Continue" (defaults are fine)
+      
+      g) Test users: Click "Save and Continue"
+      
+      h) Review: Click "Back to Dashboard"
+
+10.3. Create OAuth Credentials:
+      
+      a) Go to "APIs & Services" > "Credentials"
+      
+      b) Click "Create Credentials" > "OAuth client ID"
+      
+      c) Application type: "Web application"
+      
+      d) Name: "RFM Clerk Integration"
+      
+      e) Authorized JavaScript origins:
+         - https://your-clerk-domain.clerk.accounts.dev
+         (You'll get this from Clerk - see next step)
+      
+      f) Authorized redirect URIs:
+         - https://your-clerk-domain.clerk.accounts.dev/v1/oauth_callback
+      
+      g) DON'T CREATE YET - we need Clerk domain first
+
+10.4. Get Clerk Redirect URL:
+      
+      a) Go back to Clerk Dashboard
+      
+      b) Navigate to: Configure > SSO Connections > Social
+      
+      c) Click on "Google"
+      
+      d) You'll see:
+         ┌────────────────────────────────────────────────┐
+         │ Authorized redirect URI:                       │
+         │ https://xxx-yyy.clerk.accounts.dev/v1/oauth_callback│
+         └────────────────────────────────────────────────┘
+      
+      e) Copy this URL
+      
+      f) Also note the "Authorized origin" URL
+
+10.5. Complete Google OAuth Setup:
+      
+      a) Go back to Google Cloud Console
+      
+      b) Use the URIs from Clerk in step 10.3.e and 10.3.f
+      
+      c) Click "Create"
+      
+      d) You'll see:
+         ┌────────────────────────────────────┐
+         │ Client ID: xxxx.apps.googleusercontent.com│
+         │ Client Secret: GOCSPX-xxxxxxxxxxxxx│
+         └────────────────────────────────────┘
+      
+      e) Copy both values
+
+10.6. Configure Google in Clerk:
+      
+      a) Go back to Clerk Dashboard > SSO Connections > Google
+      
+      b) Paste:
+         - Client ID: (from Google)
+         - Client Secret: (from Google)
+      
+      c) Click "Save"
+      
+      d) Toggle "Enable" to ON
+      
+      e) Test: Click "Test OAuth Flow" (optional but recommended)
+
+
+STEP 11: INSTALL CLERK IN ANGULAR PROJECT
+------------------------------------------
+Time: 10 minutes
+
+11.1. Install Clerk Angular SDK:
+      npm install @clerk/clerk-angular
+
+11.2. Update environment files:
+      
+      File: src/environments/environment.ts
+      
+      export const environment = {
+        production: false,
+        clerkPublishableKey: 'pk_test_your-key-here',
+        cloudinary: {
+          cloudName: 'your-cloud-name',
+          uploadPreset: 'rfm_canvas_uploads'
+        }
+      };
+
+11.3. Update production environment:
+      
+      File: src/environments/environment.prod.ts
+      
+      export const environment = {
+        production: true,
+        clerkPublishableKey: 'pk_live_your-production-key',
+        cloudinary: {
+          cloudName: 'your-cloud-name',
+          uploadPreset: 'rfm_canvas_uploads'
+        }
+      };
+
+
+STEP 12: CONFIGURE CLERK IN ANGULAR
+------------------------------------
+Time: 10 minutes
+
+12.1. Update app.config.ts:
+      
+      File: src/app/app.config.ts
+      
+      ┌─────────────────────────────────────────────────────────────┐
+      │ import { ApplicationConfig } from '@angular/core';          │
+      │ import { provideRouter } from '@angular/router';            │
+      │ import { provideHttpClient } from '@angular/common/http';   │
+      │ import { provideClerk } from '@clerk/clerk-angular';        │
+      │ import { environment } from '../environments/environment';  │
+      │ import { routes } from './app.routes';                      │
+      │                                                              │
+      │ export const appConfig: ApplicationConfig = {               │
+      │   providers: [                                              │
+      │     provideRouter(routes),                                  │
+      │     provideHttpClient(),                                    │
+      │     provideClerk({                                          │
+      │       publishableKey: environment.clerkPublishableKey       │
+      │     })                                                       │
+      │   ]                                                          │
+      │ };                                                           │
+      └─────────────────────────────────────────────────────────────┘
+
+12.2. Update your login component:
+      
+      File: src/app/components/login/login.ts
+      
+      ┌─────────────────────────────────────────────────────────────┐
+      │ import { Component } from '@angular/core';                  │
+      │ import { SignIn } from '@clerk/clerk-angular';              │
+      │                                                              │
+      │ @Component({                                                │
+      │   selector: 'app-login',                                    │
+      │   standalone: true,                                         │
+      │   imports: [SignIn],                                        │
+      │   template: `                                               │
+      │     <div class="login-container">                           │
+      │       <clerk-sign-in                                        │
+      │         [appearance]="{                                     │
+      │           elements: {                                       │
+      │             rootBox: 'mx-auto',                             │
+      │             card: 'shadow-lg'                               │
+      │           }                                                  │
+      │         }"                                                   │
+      │         [afterSignInUrl]="'/dashboard'"                     │
+      │         [afterSignUpUrl]="'/dashboard'">                    │
+      │       </clerk-sign-in>                                      │
+      │     </div>                                                   │
+      │   `,                                                         │
+      │   styleUrls: ['./login.css']                                │
+      │ })                                                           │
+      │ export class LoginComponent {}                              │
+      └─────────────────────────────────────────────────────────────┘
+
+12.3. Update signup component similarly:
+      
+      File: src/app/components/signup/signup.ts
+      
+      - Import SignUp instead of SignIn
+      - Use <clerk-sign-up> component
+
+
+STEP 13: CONFIGURE CLERK WEBHOOKS (Backend Integration)
+--------------------------------------------------------
+Time: 10 minutes
+
+13.1. In Clerk Dashboard, go to:
+      Configure > Webhooks
+
+13.2. Click "Add Endpoint"
+
+13.3. Configure webhook:
+      - Endpoint URL: https://your-render-backend.onrender.com/api/webhooks/clerk
+        (You'll update this after Render setup)
+      
+      - For now, use: http://localhost:3001/api/webhooks/clerk
+      
+      - Subscribe to events:
+        [✓] user.created
+        [✓] user.updated
+        [✓] user.deleted
+
+13.4. Click "Create"
+
+13.5. Copy the "Signing Secret" (starts with whsec_)
+      You'll need this in backend environment variables
+
+
+STEP 14: UPDATE BACKEND FOR CLERK
+----------------------------------
+Time: 10 minutes
+
+14.1. Install Clerk backend SDK:
+      cd backend
+      npm install @clerk/clerk-sdk-node
+
+14.2. Create webhook route:
+      
+      File: backend/src/routes/clerk-webhook.routes.ts
+      
+      ┌─────────────────────────────────────────────────────────────┐
+      │ import { Router, Request, Response } from 'express';        │
+      │ import { Webhook } from 'svix';                             │
+      │ import { pool } from '../config/database';                  │
+      │                                                              │
+      │ const router = Router();                                    │
+      │                                                              │
+      │ router.post('/clerk', async (req: Request, res: Response) => {│
+      │   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET; │
+      │                                                              │
+      │   if (!WEBHOOK_SECRET) {                                    │
+      │     throw new Error('Missing CLERK_WEBHOOK_SECRET');        │
+      │   }                                                          │
+      │                                                              │
+      │   const svix_id = req.headers['svix-id'] as string;        │
+      │   const svix_timestamp = req.headers['svix-timestamp'] as string;│
+      │   const svix_signature = req.headers['svix-signature'] as string;│
+      │                                                              │
+      │   const wh = new Webhook(WEBHOOK_SECRET);                   │
+      │                                                              │
+      │   let evt: any;                                             │
+      │   try {                                                      │
+      │     evt = wh.verify(JSON.stringify(req.body), {            │
+      │       'svix-id': svix_id,                                   │
+      │       'svix-timestamp': svix_timestamp,                     │
+      │       'svix-signature': svix_signature,                     │
+      │     });                                                      │
+      │   } catch (err) {                                           │
+      │     return res.status(400).json({ success: false });        │
+      │   }                                                          │
+      │                                                              │
+      │   const { id, email_addresses, first_name, last_name } = evt.data;│
+      │   const eventType = evt.type;                               │
+      │                                                              │
+      │   if (eventType === 'user.created') {                       │
+      │     const email = email_addresses[0].email_address;         │
+      │     const fullName = `${first_name} ${last_name}`;          │
+      │                                                              │
+      │     await pool.execute(                                     │
+      │       'INSERT INTO Users (clerk_user_id, Email, FullName, Roles) VALUES (?, ?, ?, ?)',│
+      │       [id, email, fullName, JSON.stringify(['customer'])]   │
+      │     );                                                       │
+      │   }                                                          │
+      │                                                              │
+      │   res.status(200).json({ success: true });                  │
+      │ });                                                          │
+      │                                                              │
+      │ export default router;                                      │
+      └─────────────────────────────────────────────────────────────┘
+
+14.3. Install svix for webhook verification:
+      npm install svix
+
+14.4. Add webhook route to server.ts:
+      
+      import clerkWebhookRoutes from './routes/clerk-webhook.routes';
+      app.use('/api/webhooks', clerkWebhookRoutes);
+
+14.5. Update Users table to include clerk_user_id:
+      
+      ALTER TABLE Users ADD COLUMN clerk_user_id VARCHAR(255) UNIQUE;
+
+
+CLERK SETUP COMPLETE! ✓
+Next: Render Deployment
+
+================================================================================
+              PART 3: RENDER SETUP (60-90 minutes)
+================================================================================
+
+STEP 15: PREPARE PROJECT FOR DEPLOYMENT
+----------------------------------------
+Time: 15 minutes
+
+15.1. Ensure your code is in GitHub:
+      
+      a) Create GitHub repository (if not exists):
+         - Go to github.com
+         - Click "New repository"
+         - Name: "rfm-system"
+         - Visibility: Private (recommended)
+         - Click "Create repository"
+      
+      b) Push your code:
+         git init
+         git add .
+         git commit -m "Prepare for Render deployment"
+         git branch -M main
+         git remote add origin https://github.com/your-username/rfm-system.git
+         git push -u origin main
+
+15.2. Create .gitignore (if not exists):
+      
+      File: .gitignore
+      
+      node_modules/
+      dist/
+      .env
+      .env.local
+      *.log
+      .DS_Store
+
+15.3. Create environment variable template:
+      
+      File: .env.example
+      
+      # Database
+      DB_HOST=your-render-db-host
+      DB_PORT=3306
+      DB_USER=your-db-user
+      DB_PASSWORD=your-db-password
+      DB_NAME=rfm_db
+      
+      # Cloudinary
+      CLOUDINARY_CLOUD_NAME=your-cloud-name
+      CLOUDINARY_API_KEY=your-api-key
+      CLOUDINARY_API_SECRET=your-api-secret
+      
+      # Clerk
+      CLERK_PUBLISHABLE_KEY=pk_test_xxx
+      CLERK_SECRET_KEY=sk_test_xxx
+      CLERK_WEBHOOK_SECRET=whsec_xxx
+      
+      # App
+      PORT=3001
+      NODE_ENV=production
+
+
+STEP 16: CREATE RENDER ACCOUNT
+-------------------------------
+Time: 5 minutes
+
+16.1. Go to https://render.com
+
+16.2. Click "Get Started"
+
+16.3. Sign up with GitHub account (recommended)
+      - Click "Sign up with GitHub"
+      - Authorize Render to access your repositories
+      - Choose "All repositories" or select specific ones
+
+16.4. Verify email address
+
+16.5. Complete profile setup
+
+
+STEP 17: CREATE MYSQL DATABASE ON RENDER
+-----------------------------------------
+Time: 10 minutes
+Cost: $7/month (no free tier for databases)
+
+17.1. In Render Dashboard, click "New +"
+
+17.2. Select "PostgreSQL" 
+      NOTE: Render doesn't offer managed MySQL!
+      
+      OPTIONS:
+      
+      Option A: Use PostgreSQL instead (recommended)
+      - Better performance
+      - Free tier available
+      - Need to migrate your code from MySQL to PostgreSQL
+      
+      Option B: Use external MySQL provider
+      - PlanetScale (free tier available)
+      - Aiven (free tier available)
+      - Keep your MySQL code as-is
+      
+      RECOMMENDED: Option B for now (keep MySQL)
+
+17.3. FOR MYSQL: Set up PlanetScale (free alternative):
+      
+      a) Go to https://planetscale.com
+      
+      b) Sign up with GitHub
+      
+      c) Create database:
+         - Name: "rfm-database"
+         - Region: "AWS ap-southeast-1" (Singapore - closest to PH)
+         - Click "Create database"
+      
+      d) Wait for database creation (~2 minutes)
+      
+      e) Create password:
+         - Go to "Settings" > "Passwords"
+         - Click "New password"
+         - Name: "render-backend"
+         - Click "Create password"
+      
+      f) Copy connection details:
+         ┌────────────────────────────────────┐
+         │ Host: xxx.connect.psdb.cloud       │
+         │ Username: xxxxx                    │
+         │ Password: pscale_pw_xxxxx          │
+         │ Database: rfm-database             │
+         └────────────────────────────────────┘
+      
+      g) IMPORTANT: Copy these NOW! Can't view password again!
+
+17.4. Save database credentials securely
+
+
+STEP 18: DEPLOY BACKEND TO RENDER
+----------------------------------
+Time: 20 minutes
+Cost: $7/month for Starter plan (free tier available but not recommended)
+
+18.1. In Render Dashboard, click "New +" > "Web Service"
+
+18.2. Connect repository:
+      - Select your GitHub repository: "rfm-system"
+      - Click "Connect"
+
+18.3. Configure web service:
+      
+      Name: rfm-backend
+      
+      Region: Singapore (closest to Philippines)
+      
+      Branch: main
+      
+      Root Directory: backend
+      
+      Runtime: Node
+      
+      Build Command: npm install && npm run build
+      
+      Start Command: npm start
+      
+      Instance Type: Starter ($7/month) or Free
+      
+      NOTE: Free tier spins down after 15 min inactivity!
+
+18.4. Add environment variables:
+      Click "Advanced" > "Add Environment Variable"
+      
+      Add each variable:
+      
+      DB_HOST=your-planetscale-host
+      DB_PORT=3306
+      DB_USER=your-planetscale-user
+      DB_PASSWORD=your-planetscale-password
+      DB_NAME=rfm-database
+      DB_SSL=true
+      
+      CLOUDINARY_CLOUD_NAME=your-cloud-name
+      CLOUDINARY_API_KEY=your-api-key
+      CLOUDINARY_API_SECRET=your-api-secret
+      
+      CLERK_PUBLISHABLE_KEY=pk_test_xxx
+      CLERK_SECRET_KEY=sk_test_xxx
+      CLERK_WEBHOOK_SECRET=whsec_xxx
+      
+      PORT=3001
+      NODE_ENV=production
+
+18.5. Click "Create Web Service"
+
+18.6. Wait for deployment (~5-10 minutes)
+      - Render will build and deploy automatically
+      - Watch the logs for any errors
+      - Look for "Server listening on port 3001" message
+
+18.7. Once deployed, note your backend URL:
+      https://rfm-backend.onrender.com
+
+
+STEP 19: UPDATE CLERK WEBHOOK URL
+----------------------------------
+Time: 2 minutes
+
+19.1. Go back to Clerk Dashboard
+
+19.2. Navigate to: Configure > Webhooks
+
+19.3. Edit your webhook endpoint
+
+19.4. Update URL to:
+      https://rfm-backend.onrender.com/api/webhooks/clerk
+
+19.5. Click "Update"
+
+19.6. Test webhook:
+      - Click "Send Example" to test
+      - Check Render logs for incoming webhook
+
+
+STEP 20: DEPLOY FRONTEND TO RENDER
+-----------------------------------
+Time: 15 minutes
+Cost: FREE!
+
+20.1. In Render Dashboard, click "New +" > "Static Site"
+
+20.2. Select same repository: "rfm-system"
+
+20.3. Configure static site:
+      
+      Name: rfm-frontend
+      
+      Branch: main
+      
+      Root Directory: (leave empty for root)
+      
+      Build Command: npm install && npm run build:prod
+      
+      Publish Directory: dist/my-angular-app/browser
+      
+      NOTE: Adjust "dist" path based on your angular.json output path
+
+20.4. Add environment variables (Build-time):
+      
+      CLERK_PUBLISHABLE_KEY=pk_test_xxx
+      CLOUDINARY_CLOUD_NAME=your-cloud-name
+      CLOUDINARY_UPLOAD_PRESET=rfm_canvas_uploads
+
+20.5. Click "Create Static Site"
+
+20.6. Wait for build (~10 minutes)
+      - Angular builds can take time
+      - Watch logs for errors
+
+20.7. Once deployed, note your frontend URL:
+      https://rfm-frontend.onrender.com
+
+
+STEP 21: UPDATE CORS & API URLS
+--------------------------------
+Time: 5 minutes
+
+21.1. Update backend CORS:
+      
+      File: backend/src/server.ts
+      
+      app.use(cors({
+        origin: [
+          'http://localhost:4200',
+          'https://rfm-frontend.onrender.com'
+        ],
+        credentials: true
+      }));
+
+21.2. Update frontend API URL:
+      
+      File: src/environments/environment.prod.ts
+      
+      export const environment = {
+        production: true,
+        apiUrl: 'https://rfm-backend.onrender.com/api',
+        clerkPublishableKey: 'pk_test_xxx',
+        cloudinary: {
+          cloudName: 'your-cloud-name',
+          uploadPreset: 'rfm_canvas_uploads'
+        }
+      };
+
+21.3. Update all services to use environment.apiUrl:
+      
+      Example in auth.service.ts:
+      
+      private baseUrl = environment.apiUrl + '/auth';
+
+21.4. Commit and push changes:
+      git add .
+      git commit -m "Update production URLs"
+      git push
+
+21.5. Render will auto-deploy both services
+
+
+STEP 22: CONFIGURE CUSTOM DOMAIN (OPTIONAL)
+--------------------------------------------
+Time: 10 minutes
+Cost: Domain registration cost (~$10-15/year)
+
+22.1. Purchase domain (if you haven't):
+      - Namecheap, GoDaddy, or Google Domains
+      - Example: "rfmprints.com"
+
+22.2. In Render Dashboard, go to your frontend static site
+
+22.3. Click "Settings" > "Custom Domain"
+
+22.4. Click "Add Custom Domain"
+
+22.5. Enter your domain: www.rfmprints.com
+
+22.6. Render will show DNS records to add:
+      
+      ┌────────────────────────────────────────┐
+      │ Type: CNAME                            │
+      │ Name: www                              │
+      │ Value: rfm-frontend.onrender.com       │
+      └────────────────────────────────────────┘
+
+22.7. Add DNS records in your domain registrar:
+      - Login to Namecheap/GoDaddy/etc
+      - Go to DNS settings
+      - Add CNAME record as shown above
+      - Wait for DNS propagation (5 min - 24 hours)
+
+22.8. Render will automatically provision SSL certificate
+
+22.9. Repeat for backend (optional):
+      - Subdomain: api.rfmprints.com
+      - Point to: rfm-backend.onrender.com
+
+
+RENDER SETUP COMPLETE! ✓
+Next: Integration & Testing
+
+================================================================================
+          PART 4: INTEGRATION & TESTING (30-45 minutes)
+================================================================================
+
+STEP 23: TEST CLOUDINARY INTEGRATION
+-------------------------------------
+Time: 10 minutes
+
+23.1. Start your local development server:
+      npm run start:dev
+
+23.2. Open browser: http://localhost:4200
+
+23.3. Navigate to canvas/customization page
+
+23.4. Test image upload:
+      - Upload a test image
+      - Check browser console for Cloudflare response
+      - Verify image URL is returned
+      - Check Cloudflare Images dashboard for uploaded image
+
+23.5. Test image display:
+      - Use returned URL to display image
+      - Verify image loads correctly
+      - Test different screen sizes
+
+23.6. Test image transformations:
+      - Try different URL parameters
+      - Example: Add /w_300,h_300/ before filename
+      - Verify transformed image loads
+
+23.7. Check Cloudflare Images dashboard:
+      - Go to Images dashboard
+      - Verify image appears in library
+      - Check usage stats
+
+
+STEP 24: TEST CLERK AUTHENTICATION
+-----------------------------------
+Time: 15 minutes
+
+24.1. Test signup flow:
+      
+      a) Navigate to signup page
+      
+      b) Try email signup:
+         - Enter test email
+         - Enter password
+         - Verify email verification is sent
+         - Complete email verification
+         - Verify redirect to dashboard
+      
+      c) Check Clerk dashboard:
+         - Go to Users
+         - Verify new user appears
+
+24.2. Test Google login:
+      
+      a) Click "Continue with Google"
+      
+      b) Select Google account
+      
+      c) Authorize app
+      
+      d) Verify redirect to dashboard
+      
+      e) Check Clerk dashboard for new user
+
+24.3. Test user session:
+      
+      a) Verify user stays logged in on page refresh
+      
+      b) Open browser DevTools > Application > Storage
+      
+      c) Check for Clerk session tokens
+      
+      d) Navigate to different pages
+      
+      e) Verify auth state persists
+
+24.4. Test logout:
+      
+      a) Click logout button
+      
+      b) Verify redirect to home/login
+      
+      c) Verify session cleared
+      
+      d) Try accessing protected route
+      
+      e) Verify redirect to login
+
+24.5. Test webhook:
+      
+      a) Sign up a new user
+      
+      b) Check backend logs on Render
+      
+      c) Verify webhook received
+      
+      d) Check database for new user record
+      
+      e) Verify clerk_user_id is stored
+
+
+STEP 25: TEST FULL DEPLOYMENT
+------------------------------
+Time: 10 minutes
+
+25.1. Test production frontend:
+      - Visit: https://rfm-frontend.onrender.com
+      - Test all pages load
+      - Check browser console for errors
+      - Verify styling is correct
+
+25.2. Test production backend:
+      - Visit: https://rfm-backend.onrender.com
+      - Should see API documentation JSON
+      - Test health endpoint: /api/health
+
+25.3. Test end-to-end flow on production:
+      
+      a) Sign up with test account
+      
+      b) Upload an image to canvas
+      
+      c) Save design
+      
+      d) Logout
+      
+      e) Login again
+      
+      f) Verify design is saved and image loads
+
+25.4. Test from different devices:
+      - Desktop browser
+      - Mobile browser
+      - Different browsers (Chrome, Safari, Firefox)
+
+25.5. Performance check:
+      - Use Chrome DevTools > Lighthouse
+      - Run performance audit
+      - Check load times
+      - Verify images load from Cloudinary CDN
+
+
+STEP 26: MONITORING SETUP
+--------------------------
+Time: 10 minutes
+
+26.1. Set up Render alerts:
+      
+      a) In Render Dashboard, go to each service
+      
+      b) Click "Settings" > "Notifications"
+      
+      c) Add email for alerts:
+         [✓] Deploy failed
+         [✓] Service down
+         [✓] High CPU usage
+         [✓] High memory usage
+
+26.2. Set up Cloudinary alerts:
+      
+      a) In Cloudinary dashboard, go to Settings
+      
+      b) Set usage alerts:
+         - Storage > 20GB
+         - Bandwidth > 20GB/month
+         - Transformations > 20,000/month
+
+26.3. Bookmark monitoring dashboards:
+      - Render: https://dashboard.render.com
+      - Cloudinary: https://cloudinary.com/console
+      - Clerk: https://dashboard.clerk.com
+      - PlanetScale: https://app.planetscale.com
+
+26.4. Set calendar reminders:
+      - Weekly: Check all dashboards for usage
+      - Monthly: Review costs and optimize
+
+
+STEP 27: DOCUMENTATION & HANDOFF
+---------------------------------
+Time: 5 minutes
+
+27.1. Create credentials document:
+      
+      File: CREDENTIALS.txt (DO NOT COMMIT!)
+      
+      ========================================
+      RENDER
+      ========================================
+      Email: your-email@gmail.com
+      Frontend: https://rfm-frontend.onrender.com
+      Backend: https://rfm-backend.onrender.com
+      
+      ========================================
+      CLOUDINARY
+      ========================================
+      Email: your-email@gmail.com
+      Cloud Name: your-cloud-name
+      API Key: xxxxx
+      API Secret: xxxxx
+      Upload Preset: rfm_canvas_uploads
+      
+      ========================================
+      CLERK
+      ========================================
+      Email: your-email@gmail.com
+      Publishable Key: pk_test_xxx
+      Secret Key: sk_test_xxx
+      Webhook Secret: whsec_xxx
+      
+      ========================================
+      PLANETSCALE (Database)
+      ========================================
+      Email: your-email@gmail.com
+      Database: rfm-database
+      Host: xxx.connect.psdb.cloud
+      Username: xxxxx
+      Password: pscale_pw_xxxxx
+
+27.2. Store credentials securely:
+      - Use password manager (1Password, LastPass)
+      - Share with team securely
+      - NEVER commit to Git!
+
+27.3. Update README.md:
+      - Add deployment instructions
+      - Add links to services
+      - Add troubleshooting section
+
+
+SETUP COMPLETE! ✓✓✓
+
+================================================================================
+                        TROUBLESHOOTING GUIDE
+================================================================================
+
+COMMON ISSUES & SOLUTIONS:
+--------------------------
+
+ISSUE: Render deployment fails
+SOLUTION:
+- Check build logs for specific error
+- Verify package.json has correct scripts
+- Ensure all dependencies are in package.json, not devDependencies
+- Check Node version compatibility
+
+ISSUE: Images not uploading to Cloudinary
+SOLUTION:
+- Verify upload preset is "Unsigned"
+- Check CORS settings in Cloudinary
+- Verify cloud name and preset name are correct
+- Check browser console for specific error
+- Test with smaller image file
+
+ISSUE: Google login not working
+SOLUTION:
+- Verify OAuth credentials are correct
+- Check authorized redirect URIs match exactly
+- Ensure Google Cloud project is not in "Testing" mode
+- Clear browser cookies and try again
+- Check Clerk dashboard for error logs
+
+ISSUE: Clerk webhook not received
+SOLUTION:
+- Verify webhook URL is correct (HTTPS required)
+- Check webhook signing secret is correct
+- Test webhook from Clerk dashboard
+- Check Render logs for incoming requests
+- Verify endpoint is not protected by CORS
+
+ISSUE: Database connection fails
+SOLUTION:
+- Verify all connection credentials
+- Check if database is active (PlanetScale)
+- Verify SSL is enabled for PlanetScale
+- Test connection locally first
+- Check firewall/IP restrictions
+
+ISSUE: CORS errors in browser
+SOLUTION:
+- Add frontend URL to backend CORS config
+- Verify credentials: true is set if using cookies
+- Check if using HTTP instead of HTTPS
+- Clear browser cache
+- Test with CORS disabled browser extension
+
+ISSUE: Environment variables not loading
+SOLUTION:
+- Verify variables are set in Render dashboard
+- Check spelling and case sensitivity
+- Restart service after adding variables
+- Use process.env['VAR_NAME'] syntax
+- Check if using dotenv in production
+
+ISSUE: Free tier Render service is slow
+SOLUTION:
+- This is normal - free tier spins down after 15 min
+- First request after spin down takes 30-60 seconds
+- Upgrade to $7/month Starter plan for always-on
+- Use UptimeRobot to ping service every 10 minutes (keeps awake)
+
+ISSUE: Cloudinary bandwidth exceeded
+SOLUTION:
+- Check Media Library for unused images
+- Delete old test images
+- Implement aggressive caching
+- Use smaller image sizes
+- Consider upgrading plan ($99/month)
+
+
+GETTING HELP:
+-------------
+
+Render Support:
+- Email: support@render.com
+- Docs: https://render.com/docs
+- Community: https://community.render.com
+
+Cloudinary Support:
+- Email: support@cloudinary.com
+- Docs: https://cloudinary.com/documentation
+- Live chat: Available in dashboard
+
+Clerk Support:
+- Email: support@clerk.com
+- Docs: https://clerk.com/docs
+- Discord: https://clerk.com/discord
+
+PlanetScale Support:
+- Docs: https://planetscale.com/docs
+- Discord: https://planetscale.com/discord
+
+
+================================================================================
+                        MAINTENANCE CHECKLIST
+================================================================================
+
+DAILY:
+[ ] Check Render logs for errors
+[ ] Monitor app performance
+[ ] Verify critical features working
+
+WEEKLY:
+[ ] Review Cloudinary bandwidth usage
+[ ] Check Clerk active user count
+[ ] Review database storage usage
+[ ] Check for failed deployments
+[ ] Update dependencies if needed
+
+MONTHLY:
+[ ] Review all costs and optimize
+[ ] Clean up unused Cloudinary images
+[ ] Review Clerk user analytics
+[ ] Check for security updates
+[ ] Backup database manually
+[ ] Review error logs for patterns
+[ ] Update documentation
+
+QUARTERLY:
+[ ] Full security audit
+[ ] Performance optimization review
+[ ] Consider plan upgrades if needed
+[ ] Review user feedback
+[ ] Update this guide with lessons learned
+
+
+================================================================================
+                        COST MONITORING
+================================================================================
+
+EXPECTED MONTHLY COSTS:
+-----------------------
+
+Minimum (Free Tier - Testing Only):
+- Render: $0 (limited functionality)
+- Cloudinary: $0 (25GB storage/bandwidth)
+- Clerk: $0 (10,000 MAU)
+- PlanetScale: $0 (5GB storage)
+Total: $0/month
+
+Recommended (Production):
+- Render Web Service: $7/month
+- Render Static Site: $0/month
+- Cloudinary: $0/month (monitor usage)
+- Clerk: $0/month (monitor MAU)
+- PlanetScale: $0/month (monitor storage)
+Total: $7/month
+
+Growing Business:
+- Render Web Service: $25/month (upgraded performance)
+- Cloudinary: $0-99/month (if exceeded free tier)
+- Clerk: $0-25/month (if exceeded 10,000 MAU)
+- PlanetScale: $29/month (if need >5GB)
+Total: $54-178/month
+
+
+USAGE LIMITS TO MONITOR:
+-------------------------
+
+Cloudinary Free Tier:
+- Storage: ___ / 25GB
+- Bandwidth: ___ / 25GB per month
+- Transformations: ___ / 25,000 per month
+
+Clerk Free Tier:
+- Monthly Active Users: ___ / 10,000
+
+PlanetScale Free Tier:
+- Storage: ___ / 5GB
+- Reads: ___ / 1 billion per month
+- Writes: ___ / 50 million per month
+
+
+================================================================================
+                        NEXT STEPS AFTER SETUP
+================================================================================
+
+1. [ ] Test all features thoroughly
+2. [ ] Set up automatic backups
+3. [ ] Configure monitoring and alerts
+4. [ ] Document custom configurations
+5. [ ] Train team on platform dashboards
+6. [ ] Set up staging environment (optional)
+7. [ ] Implement error tracking (Sentry, Rollbar)
+8. [ ] Set up analytics (Google Analytics, Mixpanel)
+9. [ ] Create disaster recovery plan
+10. [ ] Schedule regular maintenance windows
+
+
+================================================================================
+                        CONGRATULATIONS!
+================================================================================
+
+You have successfully set up:
+
+✓ Cloudinary - Image storage and optimization
+✓ Clerk - Authentication with Google OAuth
+✓ Render - Full-stack hosting (frontend + backend)
+✓ PlanetScale - MySQL database hosting
+
+Your RFM System is now live and ready for production!
+
+Next: Start onboarding users and monitor usage closely.
+
+Questions? Refer to the HOSTING_STACK_GUIDE.txt for detailed explanations.
+
+================================================================================
+                        END OF SETUP GUIDE
+================================================================================
+
+Document Version: 1.0
+Last Updated: October 17, 2025
+Estimated Setup Time: 3-4 hours
+Total Cost: $7-14/month for production
+
+Good luck with your deployment! 🚀
+
+================================================================================
+

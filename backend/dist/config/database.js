@@ -38,8 +38,8 @@ exports.testConnection = testConnection;
 exports.initializeDatabase = initializeDatabase;
 exports.closeDatabase = closeDatabase;
 const dotenv = __importStar(require("dotenv"));
-const mysql = __importStar(require("mysql2/promise"));
 const fs = __importStar(require("fs"));
+const mysql = __importStar(require("mysql2/promise"));
 const path = __importStar(require("path"));
 dotenv.config();
 exports.dbConfig = {
@@ -51,6 +51,7 @@ exports.dbConfig = {
     connectionLimit: 10,
     acquireTimeout: 60000,
     timeout: 60000,
+    decimalNumbers: true,
 };
 if (process.env['DB_HOST']?.includes('aivencloud.com')) {
     const certPath = path.join(__dirname, '../../certs/ca.pem');
@@ -95,6 +96,7 @@ async function initializeDatabase() {
         INDEX idx_created_at (created_at)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `;
+        await connection.execute(createCanvasesTable);
         const createUsersTable = `
       CREATE TABLE IF NOT EXISTS Users (
         UserId INT AUTO_INCREMENT PRIMARY KEY,
@@ -115,6 +117,28 @@ async function initializeDatabase() {
     `;
         await connection.execute(createCanvasesTable);
         await connection.execute(createUsersTable);
+        const createCatalogClothingTable = `
+      CREATE TABLE IF NOT EXISTS catalog_clothing (
+        product_id INT AUTO_INCREMENT PRIMARY KEY,
+        product_name VARCHAR(255) NOT NULL UNIQUE,
+        category VARCHAR(100) NOT NULL,
+        base_price DECIMAL(10, 2) NOT NULL,
+        description TEXT,
+        image_url VARCHAR(500) NOT NULL,
+        cloudinary_public_id VARCHAR(255),
+        status ENUM('Active', 'Inactive', 'Archived') DEFAULT 'Active',
+        stock_quantity INT DEFAULT 0,
+        sku VARCHAR(100) UNIQUE,
+        sizes JSON DEFAULT NULL,
+        tags JSON DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_category (category),
+        INDEX idx_status (status),
+        INDEX idx_product_name (product_name)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `;
+        await connection.execute(createCatalogClothingTable);
         const [rows] = await connection.execute('SELECT COUNT(*) as count FROM Users');
         const userCount = rows[0].count;
         if (userCount === 0) {

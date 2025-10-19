@@ -1,0 +1,122 @@
+===============================================================================
+                    GIT WORKFLOW GUIDE - Upstream vs Origin
+===============================================================================
+
+PROBLEM: VS Code "Sync Changes" tries to push to upstream (which you don't have permission to)
+SOLUTION: Change branch tracking from upstream to origin (your fork)
+
+===============================================================================
+WHAT HAPPENED TODAY:
+===============================================================================
+
+1. PROBLEM IDENTIFIED:
+   - Your admin-dev branch was tracking upstream/admin-dev
+   - When you clicked "Sync Changes" in VS Code, it tried to push to upstream
+   - You got permission error: "You don't have permissions to push to euniquecorn/rfm"
+
+2. SOLUTION APPLIED:
+   - Changed branch tracking from upstream to origin
+   - Now VS Code pushes to your fork (m-cagatin/rfm) instead
+
+===============================================================================
+COMMANDS TO FIX THE ISSUE:
+===============================================================================
+
+1. Check current branch tracking:
+   git branch -vv
+
+2. Change tracking to your fork (origin):
+   git branch --set-upstream-to=origin/admin-dev admin-dev
+
+3. Verify the change:
+   git branch -vv
+
+4. Check status:
+   git status
+
+===============================================================================
+YOUR CORRECT WORKFLOW:
+===============================================================================
+
+FOR REGULAR DEVELOPMENT:
+1. Make changes in your code
+2. Commit your changes: git commit -m "Your commit message"
+3. Push to YOUR fork: git push origin admin-dev
+   OR click "Sync Changes" in VS Code (now works correctly!)
+4. Go to GitHub and create Pull Request to upstream
+
+FOR KEEPING UP TO DATE WITH UPSTREAM:
+1. Fetch latest from upstream: git fetch upstream
+2. Pull changes: git pull upstream admin-dev
+   OR merge: git merge upstream/admin-dev
+
+===============================================================================
+REMOTE CONFIGURATION:
+===============================================================================
+
+Your remotes are:
+- origin    = https://github.com/m-cagatin/rfm.git (YOUR FORK)
+- upstream  = https://github.com/euniquecorn/rfm.git (MAIN REPO)
+
+ALWAYS:
+✅ Push to origin (your fork)
+✅ Create PRs from origin to upstream
+❌ Never push directly to upstream
+
+===============================================================================
+COMMON COMMANDS REFERENCE:
+===============================================================================
+
+Check what remotes you have:
+git remote -v
+
+Check branch tracking:
+git branch -vv
+
+Change tracking for any branch:
+git branch --set-upstream-to=origin/BRANCH_NAME BRANCH_NAME
+
+Fetch from upstream:
+git fetch upstream
+
+Pull from upstream:
+git pull upstream BRANCH_NAME
+
+Push to your fork:
+git push origin BRANCH_NAME
+
+Check status:
+git status
+
+===============================================================================
+VS CODE INTEGRATION:
+===============================================================================
+
+- "Sync Changes" button now pushes to origin (your fork) ✅
+- No more permission errors ✅
+- You can still fetch/pull from upstream manually when needed ✅
+
+===============================================================================
+TROUBLESHOOTING:
+===============================================================================
+
+If you get permission errors again:
+1. Check tracking: git branch -vv
+2. If it shows upstream, change it: git branch --set-upstream-to=origin/admin-dev admin-dev
+3. Try pushing again: git push origin admin-dev
+
+If your branch gets out of sync with upstream:
+1. git fetch upstream
+2. git merge upstream/admin-dev
+3. git push origin admin-dev
+
+===============================================================================
+SUMMARY:
+===============================================================================
+
+✅ Your admin-dev branch now tracks origin/admin-dev
+✅ VS Code "Sync Changes" pushes to your fork
+✅ No more permission errors
+✅ Correct workflow: Push to fork → Create PR to upstream
+
+Remember: Always push to YOUR fork (origin), never directly to upstream!

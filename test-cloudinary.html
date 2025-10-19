@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Cloudinary Upload</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .upload-box {
+            border: 2px dashed #ccc;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 8px;
+        }
+        .upload-box:hover {
+            border-color: #3498db;
+            background: #f0f8ff;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        img {
+            max-width: 100%;
+            margin-top: 20px;
+        }
+        .url-box {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: monospace;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Cloudinary Upload</h1>
+    
+    <div class="upload-box" onclick="document.getElementById('fileInput').click()">
+        <p>📸 Click here to select an image</p>
+        <p style="color: #666; font-size: 14px;">JPG, PNG, or SVG (max 10MB)</p>
+    </div>
+    
+    <input type="file" id="fileInput" accept="image/*" style="display: none;">
+    
+    <button id="uploadBtn" style="display: none;" disabled>Upload to Cloudinary</button>
+    
+    <div id="result"></div>
+
+    <script>
+        const cloudName = 'dpvrv7btt';
+        const apiKey = '425947453244552';
+        // You'll need to create an upload preset for unsigned uploads
+        
+        let selectedFile = null;
+        
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            selectedFile = e.target.files[0];
+            const uploadBtn = document.getElementById('uploadBtn');
+            
+            if (selectedFile) {
+                document.querySelector('.upload-box p').textContent = `Selected: ${selectedFile.name}`;
+                document.getElementById('uploadBtn').style.display = 'block';
+                
+                // Check if we need upload preset
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload to Cloudinary';
+            }
+        });
+        
+        document.getElementById('uploadBtn').addEventListener('click', async function() {
+            if (!selectedFile) return;
+            
+            const resultDiv = document.getElementById('result');
+            const uploadBtn = document.getElementById('uploadBtn');
+            
+            resultDiv.innerHTML = '<p>⏳ Uploading to Cloudinary...</p>';
+            resultDiv.className = '';
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Uploading...';
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+                formData.append('upload_preset', 'rfm_uploads');
+                
+                // Using upload preset for unsigned uploads
+                
+                const response = await fetch(
+                    `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+                    {
+                        method: 'POST',
+                        body: formData
+                    }
+                );
+                
+                const result = await response.json();
+                
+                if (result.public_id) {
+                    const optimizedUrl = `https://res.cloudinary.com/${cloudName}/image/upload/w_800,q_auto,f_auto/${result.public_id}`;
+                    const thumbnailUrl = `https://res.cloudinary.com/${cloudName}/image/upload/w_300,h_300,c_fill,q_auto/${result.public_id}`;
+                    
+                    resultDiv.className = 'success';
+                    resultDiv.innerHTML = `
+                        <h3>✅ Upload Successful!</h3>
+                        <p><strong>Public ID:</strong> ${result.public_id}</p>
+                        <p><strong>File Size:</strong> ${(result.bytes / 1024).toFixed(1)} KB</p>
+                        <p><strong>Format:</strong> ${result.format}</p>
+                        <p><strong>Image URL:</strong></p>
+                        <div class="url-box">${optimizedUrl}</div>
+                        <p><strong>Thumbnail:</strong></p>
+                        <img src="${thumbnailUrl}" alt="Uploaded image">
+                        <p style="margin-top: 20px;"><strong>Original:</strong></p>
+                        <img src="${result.secure_url}" alt="Original uploaded image">
+                    `;
+                } else {
+                    throw new Error(result.error?.message || 'Upload failed');
+                }
+            } catch (error) {
+                resultDiv.className = 'error';
+                
+                if (error.message.includes('upload_preset')) {
+                    resultDiv.innerHTML = `
+                        <h3>⚠️ Upload Preset Required</h3>
+                        <p>You need to create an upload preset in Cloudinary first:</p>
+                        <ol>
+                            <li>Go to your <a href="https://cloudinary.com/console" target="_blank">Cloudinary Console</a></li>
+                            <li>Click "Settings" → "Upload"</li>
+                            <li>Add upload preset named "rfm_uploads"</li>
+                            <li>Set it to "Unsigned" mode</li>
+                            <li>Try uploading again!</li>
+                        </ol>
+                        <p style="margin-top: 15px;"><strong>Error:</strong> ${error.message}</p>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <h3>❌ Upload Failed</h3>
+                        <p>${error.message}</p>
+                        <p style="font-size: 12px; margin-top: 10px;">Check browser console for details</p>
+                    `;
+                }
+                console.error('Upload error:', error);
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload to Cloudinary';
+            }
+        });
+    </script>
+</body>
+</html>

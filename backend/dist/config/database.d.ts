@@ -9,6 +9,7 @@ export interface DatabaseConfig {
     acquireTimeout: number;
     timeout: number;
     ssl?: any;
+    decimalNumbers?: boolean;
 }
 export declare const dbConfig: DatabaseConfig;
 export declare const pool: mysql.Pool;

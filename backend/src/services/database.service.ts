@@ -318,4 +318,208 @@ export class DatabaseService {
       return { success: false, message: 'Database connection failed', error: (error as Error).message };
     }
   }
+
+  // ==================== PRODUCT/CATALOG METHODS ====================
+
+  // Create product
+  static async createProduct(productData: {
+    product_name: string;
+    category: string;
+    base_price: number;
+    description?: string;
+    image_url: string;
+    cloudinary_public_id?: string;
+    status?: string;
+    stock_quantity?: number;
+    sku?: string;
+    sizes?: string;
+    tags?: string;
+  }): Promise<ApiResponse<any>> {
+    try {
+      const connection = await pool.getConnection();
+      const [result] = await connection.execute<ResultSetHeader>(
+        `INSERT INTO catalog_clothing 
+         (product_name, category, base_price, description, image_url, cloudinary_public_id, status, stock_quantity, sku, sizes, tags) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          productData.product_name,
+          productData.category,
+          productData.base_price,
+          productData.description || null,
+          productData.image_url,
+          productData.cloudinary_public_id || null,
+          productData.status || 'Active',
+          productData.stock_quantity || 0,
+          productData.sku || null,
+          productData.sizes || null,
+          productData.tags || null
+        ]
+      );
+      connection.release();
+      return {
+        success: true,
+        message: 'Product created successfully',
+        data: { product_id: result.insertId, ...productData }
+      };
+    } catch (error: any) {
+      console.error('Database error in createProduct:', error);
+      // Handle duplicate product name
+      if (error.code === 'ER_DUP_ENTRY') {
+        return { success: false, message: 'A product with this name already exists', error: error.message };
+      }
+      return { success: false, message: 'Database error occurred', error: error.message };
+    }
+  }
+
+  // Get all products with optional filtering
+  static async getProducts(category?: string, status?: string): Promise<ApiResponse<any[]>> {
+    try {
+      const connection = await pool.getConnection();
+      let query = 'SELECT * FROM catalog_clothing WHERE 1=1';
+      const params: any[] = [];
+      
+      if (category) {
+        query += ' AND category = ?';
+        params.push(category);
+      }
+      if (status) {
+        query += ' AND status = ?';
+        params.push(status);
+      }
+      
+      query += ' ORDER BY created_at DESC';
+      
+      const [rows] = await connection.execute(query, params);
+      connection.release();
+      // Normalize types to ensure frontend gets numbers for DECIMAL fields
+      const normalized = (rows as any[]).map((r) => ({
+        ...r,
+        base_price: r.base_price !== undefined && r.base_price !== null ? Number(r.base_price) : r.base_price,
+        stock_quantity: r.stock_quantity !== undefined && r.stock_quantity !== null ? Number(r.stock_quantity) : r.stock_quantity,
+      }));
+      return { success: true, data: normalized };
+    } catch (error) {
+      console.error('Database error in getProducts:', error);
+      return { success: false, message: 'Database error occurred', error: (error as Error).message };
+    }
+  }
+
+  // Get single product
+  static async getProduct(productId: string): Promise<ApiResponse<any>> {
+    try {
+      const connection = await pool.getConnection();
+      const [rows] = await connection.execute(
+        'SELECT * FROM catalog_clothing WHERE product_id = ?',
+        [productId]
+      );
+      connection.release();
+      const products = (rows as any[]).map((r) => ({
+        ...r,
+        base_price: r.base_price !== undefined && r.base_price !== null ? Number(r.base_price) : r.base_price,
+        stock_quantity: r.stock_quantity !== undefined && r.stock_quantity !== null ? Number(r.stock_quantity) : r.stock_quantity,
+      }));
+      if (products.length === 0) {
+        return { success: false, message: 'Product not found' };
+      }
+      return { success: true, data: products[0] };
+    } catch (error) {
+      console.error('Database error in getProduct:', error);
+      return { success: false, message: 'Database error occurred', error: (error as Error).message };
+    }
+  }
+
+  // Update product
+  static async updateProduct(productId: string, updateData: any): Promise<ApiResponse<any>> {
+    try {
+      const connection = await pool.getConnection();
+      const fields = Object.keys(updateData);
+      const values = Object.values(updateData);
+      
+      if (fields.length === 0) {
+        return { success: false, message: 'No fields to update' };
+      }
+      
+      const setClause = fields.map(field => `${field} = ?`).join(', ');
+      const query = `UPDATE catalog_clothing SET ${setClause} WHERE product_id = ?`;
+      
+      const [result] = await connection.execute<ResultSetHeader>(query, [...values, productId]);
+      connection.release();
+      
+      if (result.affectedRows === 0) {
+        return { success: false, message: 'Product not found' };
+      }
+      
+      return { success: true, message: 'Product updated successfully' };
+    } catch (error: any) {
+      console.error('Database error in updateProduct:', error);
+      // Handle duplicate product name
+      if (error.code === 'ER_DUP_ENTRY') {
+        return { success: false, message: 'A product with this name already exists', error: error.message };
+      }
+      return { success: false, message: 'Database error occurred', error: error.message };
+    }
+  }
+
+  // Archive product (soft delete)
+  static async archiveProduct(productId: string): Promise<ApiResponse<any>> {
+    try {
+      const connection = await pool.getConnection();
+      const [result] = await connection.execute<ResultSetHeader>(
+        'UPDATE catalog_clothing SET status = ? WHERE product_id = ?',
+        ['Archived', productId]
+      );
+      connection.release();
+      
+      if (result.affectedRows === 0) {
+        return { success: false, message: 'Product not found' };
+      }
+      
+      return { success: true, message: 'Product archived successfully' };
+    } catch (error) {
+      console.error('Database error in archiveProduct:', error);
+      return { success: false, message: 'Database error occurred', error: (error as Error).message };
+    }
+  }
+
+  // Restore archived product
+  static async restoreProduct(productId: string): Promise<ApiResponse<any>> {
+    try {
+      const connection = await pool.getConnection();
+      const [result] = await connection.execute<ResultSetHeader>(
+        'UPDATE catalog_clothing SET status = ? WHERE product_id = ?',
+        ['Active', productId]
+      );
+      connection.release();
+      
+      if (result.affectedRows === 0) {
+        return { success: false, message: 'Product not found' };
+      }
+      
+      return { success: true, message: 'Product restored successfully' };
+    } catch (error) {
+      console.error('Database error in restoreProduct:', error);
+      return { success: false, message: 'Database error occurred', error: (error as Error).message };
+    }
+  }
+
+  // Permanently delete product (hard delete - IRREVERSIBLE)
+  static async deleteProductPermanently(productId: string): Promise<ApiResponse<any>> {
+    try {
+      const connection = await pool.getConnection();
+      const [result] = await connection.execute<ResultSetHeader>(
+        'DELETE FROM catalog_clothing WHERE product_id = ?',
+        [productId]
+      );
+      connection.release();
+      
+      if (result.affectedRows === 0) {
+        return { success: false, message: 'Product not found' };
+      }
+      
+      return { success: true, message: 'Product permanently deleted' };
+    } catch (error) {
+      console.error('Database error in deleteProductPermanently:', error);
+      return { success: false, message: 'Database error occurred', error: (error as Error).message };
+    }
+  }
 }

@@ -38,14 +38,14 @@ async function checkTable() {
     const [tables] = await connection.execute('SHOW TABLES');
     console.log(tables);
     
-    // Describe Users table structure
-    console.log('\n📋 Users table structure:');
-    const [columns] = await connection.execute('DESCRIBE Users');
+    // Describe catalog_clothing table structure
+    console.log('\n📋 catalog_clothing table structure:');
+    const [columns] = await connection.execute('DESCRIBE catalog_clothing');
     console.log(columns);
     
     // Show sample data
-    console.log('\n📋 Sample data from Users:');
-    const [rows] = await connection.execute('SELECT * FROM Users LIMIT 2');
+    console.log('\n📋 Sample data from catalog_clothing:');
+    const [rows] = await connection.execute('SELECT * FROM catalog_clothing LIMIT 5');
     console.log(rows);
     
     await connection.end();

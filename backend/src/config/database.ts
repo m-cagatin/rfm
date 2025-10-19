@@ -16,6 +16,8 @@ export interface DatabaseConfig {
   acquireTimeout: number;
   timeout: number;
   ssl?: any;
+  // Ensure DECIMAL columns (e.g., base_price) are returned as numbers
+  decimalNumbers?: boolean;
 }
 
 export const dbConfig: DatabaseConfig = {
@@ -27,6 +29,7 @@ export const dbConfig: DatabaseConfig = {
   connectionLimit: 10,
   acquireTimeout: 60000,
   timeout: 60000,
+  decimalNumbers: true,
 };
 
 // Add SSL configuration for Aiven cloud database
@@ -103,6 +106,30 @@ export async function initializeDatabase(): Promise<void> {
     
     await connection.execute(createCanvasesTable);
     await connection.execute(createUsersTable);
+    
+    // Create catalog_clothing table if it doesn't exist
+    const createCatalogClothingTable = `
+      CREATE TABLE IF NOT EXISTS catalog_clothing (
+        product_id INT AUTO_INCREMENT PRIMARY KEY,
+        product_name VARCHAR(255) NOT NULL UNIQUE,
+        category VARCHAR(100) NOT NULL,
+        base_price DECIMAL(10, 2) NOT NULL,
+        description TEXT,
+        image_url VARCHAR(500) NOT NULL,
+        cloudinary_public_id VARCHAR(255),
+        status ENUM('Active', 'Inactive', 'Archived') DEFAULT 'Active',
+        stock_quantity INT DEFAULT 0,
+        sku VARCHAR(100) UNIQUE,
+        sizes JSON DEFAULT NULL,
+        tags JSON DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_category (category),
+        INDEX idx_status (status),
+        INDEX idx_product_name (product_name)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `;
+    await connection.execute(createCatalogClothingTable);
     
     // Insert sample users if table is empty
     const [rows] = await connection.execute('SELECT COUNT(*) as count FROM Users');

@@ -4,6 +4,7 @@ import express from 'express';
 import { closeDatabase, initializeDatabase, testConnection } from './config/database';
 import authRoutes from './routes/auth.routes';
 import canvasRoutes from './routes/canvas.routes';
+import catalogRoutes from './routes/catalog.routes';
 import usersRoutes from './routes/users.routes';
 import { DatabaseService } from './services/database.service';
 
@@ -37,6 +38,7 @@ app.get('/api/health', async (req: express.Request, res: express.Response) => {
 // API Routes
 app.use('/api/canvas', canvasRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/catalog', catalogRoutes);
 app.use('/api/users', usersRoutes);
 
 // Default route
@@ -58,6 +60,15 @@ app.get('/', (req: express.Request, res: express.Response) => {
         get: 'GET /api/canvas/:id',
         update: 'PUT /api/canvas/:id',
         delete: 'DELETE /api/canvas/:id'
+      },
+      catalog: {
+        list: 'GET /api/catalog',
+        get: 'GET /api/catalog/:id',
+        create: 'POST /api/catalog',
+        update: 'PUT /api/catalog/:id',
+        archive: 'PATCH /api/catalog/:id/archive',
+        restore: 'PATCH /api/catalog/:id/restore',
+        deletePermanently: 'DELETE /api/catalog/:id'
       },
       users: {
         list: 'GET /api/users',

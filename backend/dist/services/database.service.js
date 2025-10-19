@@ -15,13 +15,11 @@ class DatabaseService {
                     return JSON.parse(str);
                 return str.split(',').map(r => r.trim()).filter(Boolean);
             }
-            if (typeof raw === 'object') {
+            if (typeof raw === 'object')
                 return Array.isArray(raw) ? raw : [];
-            }
             const asString = String(raw).trim();
-            if (asString.startsWith('[')) {
+            if (asString.startsWith('['))
                 return JSON.parse(asString);
-            }
             return asString.split(',').map(r => r.trim()).filter(Boolean);
         }
         catch (error) {
@@ -46,20 +44,19 @@ class DatabaseService {
             };
         }
         catch (error) {
-            return { success: false, error: error.message };
+            console.error('Database error in saveCanvas:', error);
+            return { success: false, message: 'Database error occurred', error: error.message };
         }
     }
     static async getCanvasList() {
         try {
             const connection = await database_1.pool.getConnection();
-            const [rows] = await connection.execute(`
-        SELECT id, name, created_at, updated_at FROM canvases ORDER BY updated_at DESC
-      `);
+            const [rows] = await connection.execute(`SELECT id, name, created_at, updated_at FROM canvases ORDER BY updated_at DESC`);
             connection.release();
             return { success: true, data: rows };
         }
         catch (error) {
-            return { success: false, error: error.message };
+            return { success: false, message: 'Failed to fetch canvas list', error: error.message };
         }
     }
     static async getCanvas(id) {
@@ -82,16 +79,50 @@ class DatabaseService {
             };
         }
         catch (error) {
-            return { success: false, error: error.message };
+            console.error('Database error in getCanvas:', error);
+            return { success: false, message: 'Failed to fetch canvas', error: error.message };
+        }
+    }
+    static async updateCanvas(id, canvasData, name) {
+        try {
+            const connection = await database_1.pool.getConnection();
+            let query = `UPDATE canvases SET canvas_data = ?, updated_at = CURRENT_TIMESTAMP`;
+            const params = [JSON.stringify(canvasData)];
+            if (name) {
+                query += `, name = ?`;
+                params.push(name);
+            }
+            query += ` WHERE id = ?`;
+            params.push(id);
+            const [result] = await connection.execute(query, params);
+            connection.release();
+            return result.affectedRows > 0
+                ? { success: true, message: 'Canvas updated successfully', data: { id: parseInt(id), name, canvas_data: canvasData } }
+                : { success: false, message: 'Canvas not found or no changes made' };
+        }
+        catch (error) {
+            console.error('Database error in updateCanvas:', error);
+            return { success: false, message: 'Failed to update canvas', error: error.message };
+        }
+    }
+    static async deleteCanvas(id) {
+        try {
+            const connection = await database_1.pool.getConnection();
+            const [result] = await connection.execute(`DELETE FROM canvases WHERE id = ?`, [id]);
+            connection.release();
+            return result.affectedRows > 0
+                ? { success: true, message: 'Canvas deleted successfully' }
+                : { success: false, message: 'Canvas not found' };
+        }
+        catch (error) {
+            console.error('Database error in deleteCanvas:', error);
+            return { success: false, message: 'Failed to delete canvas', error: error.message };
         }
     }
     static async getUsers(role, status) {
         try {
             const connection = await database_1.pool.getConnection();
-            let query = `
-        SELECT UserId, FullName, Email, Phone, Roles, Status, hired_date, last_login, created_at
-        FROM Users
-      `;
+            let query = `SELECT UserId, FullName, Email, Phone, Roles, Status, hired_date, last_login, created_at FROM Users`;
             const conditions = [];
             const params = [];
             if (status && status !== 'All Employees') {
@@ -102,7 +133,7 @@ class DatabaseService {
                 conditions.push('Roles LIKE ?');
                 params.push(`%${role}%`);
             }
-            if (conditions.length > 0)
+            if (conditions.length)
                 query += ' WHERE ' + conditions.join(' AND ');
             query += ' ORDER BY created_at DESC';
             const [rows] = await connection.execute(query, params);
@@ -115,9 +146,9 @@ class DatabaseService {
                 const rolesData = this.parseRoles(row['Roles']);
                 return {
                     id: row['UserId'],
-                    firstName: firstName,
+                    firstName,
                     middleName: middleName || undefined,
-                    lastName: lastName,
+                    lastName,
                     email: row['Email'],
                     phone: row['Phone'],
                     roles: rolesData,
@@ -125,7 +156,7 @@ class DatabaseService {
                     hiredDate: row['hired_date'],
                     lastLogin: row['last_login'],
                     created_at: row['created_at'],
-                    updated_at: row['update_at']
+                    updated_at: row['updated_at']
                 };
             });
             return { success: true, data: users };
@@ -151,9 +182,9 @@ class DatabaseService {
                 success: true,
                 data: {
                     id: u['UserId'],
-                    firstName: firstName,
+                    firstName,
                     middleName: middleName || undefined,
-                    lastName: lastName,
+                    lastName,
                     email: u['Email'],
                     phone: u['Phone'],
                     roles: rolesData,
@@ -161,7 +192,7 @@ class DatabaseService {
                     hiredDate: u['hired_date'],
                     lastLogin: u['last_login'],
                     created_at: u['created_at'],
-                    updated_at: u['update_at']
+                    updated_at: u['updated_at']
                 }
             };
         }
@@ -172,26 +203,10 @@ class DatabaseService {
     static async createUser(userData) {
         try {
             const connection = await database_1.pool.getConnection();
-            const query = `
-        INSERT INTO Users (FullName, Email, Phone, PasswordHash, Roles, Status, hired_date)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `;
             const defaultPasswordHash = '$2b$10$defaultHashForNewUsers12345678901234567890123456789';
-            const [result] = await connection.execute(query, [
-                userData.FullName,
-                userData.Email,
-                userData.Phone || '',
-                defaultPasswordHash,
-                userData.Roles,
-                userData.Status,
-                userData.hired_date || null
-            ]);
+            const [result] = await connection.execute(`INSERT INTO Users (FullName, Email, Phone, PasswordHash, Roles, Status, hired_date) VALUES (?, ?, ?, ?, ?, ?, ?)`, [userData.FullName, userData.Email, userData.Phone || '', defaultPasswordHash, userData.Roles, userData.Status, userData.hired_date || null]);
             connection.release();
-            return {
-                success: true,
-                message: 'User created successfully',
-                data: { id: result.insertId, ...userData, created_at: new Date().toISOString() }
-            };
+            return { success: true, message: 'User created successfully', data: { id: result.insertId, ...userData, created_at: new Date().toISOString() } };
         }
         catch (error) {
             return { success: false, message: 'Failed to create user', error: error.message };
@@ -226,16 +241,13 @@ class DatabaseService {
                 updateFields.push('hired_date = ?');
                 params.push(userData.hired_date);
             }
-            if (updateFields.length === 0)
+            if (!updateFields.length)
                 return { success: false, message: 'No fields to update' };
             params.push(id);
             const query = `UPDATE Users SET ${updateFields.join(', ')} WHERE UserId = ?`;
             const [result] = await connection.execute(query, params);
             connection.release();
-            return {
-                success: result.affectedRows > 0,
-                message: result.affectedRows > 0 ? 'User updated successfully' : 'No changes made'
-            };
+            return { success: result.affectedRows > 0, message: result.affectedRows > 0 ? 'User updated successfully' : 'No changes made' };
         }
         catch (error) {
             return { success: false, message: 'Failed to update user', error: error.message };
@@ -246,10 +258,7 @@ class DatabaseService {
             const connection = await database_1.pool.getConnection();
             const [result] = await connection.execute(`DELETE FROM Users WHERE UserId = ?`, [id]);
             connection.release();
-            return {
-                success: result.affectedRows > 0,
-                message: result.affectedRows > 0 ? 'User deleted successfully' : 'User not found'
-            };
+            return { success: result.affectedRows > 0, message: result.affectedRows > 0 ? 'User deleted successfully' : 'User not found' };
         }
         catch (error) {
             return { success: false, message: 'Failed to delete user', error: error.message };
@@ -260,10 +269,7 @@ class DatabaseService {
             const connection = await database_1.pool.getConnection();
             const [result] = await connection.execute(`UPDATE Users SET last_login = CURRENT_TIMESTAMP WHERE UserId = ?`, [id]);
             connection.release();
-            return {
-                success: result.affectedRows > 0,
-                message: result.affectedRows > 0 ? 'Last login updated' : 'User not found'
-            };
+            return { success: result.affectedRows > 0, message: result.affectedRows > 0 ? 'Last login updated' : 'User not found' };
         }
         catch (error) {
             return { success: false, message: 'Failed to update last login', error: error.message };
@@ -278,52 +284,158 @@ class DatabaseService {
         }
         catch (error) {
             console.error('Database health check failed:', error);
-            return {
-                success: false,
-                message: 'Database connection failed',
-                error: error instanceof Error ? error.message : 'Unknown error',
-            };
+            return { success: false, message: 'Database connection failed', error: error.message };
         }
     }
-    static async updateCanvas(id, canvasData, name) {
+    static async createProduct(productData) {
         try {
             const connection = await database_1.pool.getConnection();
-            const query = `
-      UPDATE canvases
-      SET canvas_data = ?, name = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `;
-            const [result] = await connection.execute(query, [JSON.stringify(canvasData), name, id]);
+            const [result] = await connection.execute(`INSERT INTO catalog_clothing 
+         (product_name, category, base_price, description, image_url, cloudinary_public_id, status, stock_quantity, sku, sizes, tags) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+                productData.product_name,
+                productData.category,
+                productData.base_price,
+                productData.description || null,
+                productData.image_url,
+                productData.cloudinary_public_id || null,
+                productData.status || 'Active',
+                productData.stock_quantity || 0,
+                productData.sku || null,
+                productData.sizes || null,
+                productData.tags || null
+            ]);
             connection.release();
-            if (result.affectedRows > 0) {
-                return {
-                    success: true,
-                    message: 'Canvas updated successfully',
-                    data: { id: parseInt(id), name, canvas_data: canvasData }
-                };
+            return {
+                success: true,
+                message: 'Product created successfully',
+                data: { product_id: result.insertId, ...productData }
+            };
+        }
+        catch (error) {
+            console.error('Database error in createProduct:', error);
+            if (error.code === 'ER_DUP_ENTRY') {
+                return { success: false, message: 'A product with this name already exists', error: error.message };
             }
-            return { success: false, message: 'Canvas not found' };
-        }
-        catch (error) {
-            console.error('Error updating canvas:', error);
-            return { success: false, message: 'Failed to update canvas', error: error.message };
+            return { success: false, message: 'Database error occurred', error: error.message };
         }
     }
-    static async deleteCanvas(id) {
+    static async getProducts(category, status) {
         try {
             const connection = await database_1.pool.getConnection();
-            const [result] = await connection.execute(`DELETE FROM canvases WHERE id = ?`, [id]);
+            let query = 'SELECT * FROM catalog_clothing WHERE 1=1';
+            const params = [];
+            if (category) {
+                query += ' AND category = ?';
+                params.push(category);
+            }
+            if (status) {
+                query += ' AND status = ?';
+                params.push(status);
+            }
+            query += ' ORDER BY created_at DESC';
+            const [rows] = await connection.execute(query, params);
             connection.release();
-            return {
-                success: result.affectedRows > 0,
-                message: result.affectedRows > 0
-                    ? 'Canvas deleted successfully'
-                    : 'Canvas not found'
-            };
+            const normalized = rows.map((r) => ({
+                ...r,
+                base_price: r.base_price !== undefined && r.base_price !== null ? Number(r.base_price) : r.base_price,
+                stock_quantity: r.stock_quantity !== undefined && r.stock_quantity !== null ? Number(r.stock_quantity) : r.stock_quantity,
+            }));
+            return { success: true, data: normalized };
         }
         catch (error) {
-            console.error('Error deleting canvas:', error);
-            return { success: false, message: 'Failed to delete canvas', error: error.message };
+            console.error('Database error in getProducts:', error);
+            return { success: false, message: 'Database error occurred', error: error.message };
+        }
+    }
+    static async getProduct(productId) {
+        try {
+            const connection = await database_1.pool.getConnection();
+            const [rows] = await connection.execute('SELECT * FROM catalog_clothing WHERE product_id = ?', [productId]);
+            connection.release();
+            const products = rows.map((r) => ({
+                ...r,
+                base_price: r.base_price !== undefined && r.base_price !== null ? Number(r.base_price) : r.base_price,
+                stock_quantity: r.stock_quantity !== undefined && r.stock_quantity !== null ? Number(r.stock_quantity) : r.stock_quantity,
+            }));
+            if (products.length === 0) {
+                return { success: false, message: 'Product not found' };
+            }
+            return { success: true, data: products[0] };
+        }
+        catch (error) {
+            console.error('Database error in getProduct:', error);
+            return { success: false, message: 'Database error occurred', error: error.message };
+        }
+    }
+    static async updateProduct(productId, updateData) {
+        try {
+            const connection = await database_1.pool.getConnection();
+            const fields = Object.keys(updateData);
+            const values = Object.values(updateData);
+            if (fields.length === 0) {
+                return { success: false, message: 'No fields to update' };
+            }
+            const setClause = fields.map(field => `${field} = ?`).join(', ');
+            const query = `UPDATE catalog_clothing SET ${setClause} WHERE product_id = ?`;
+            const [result] = await connection.execute(query, [...values, productId]);
+            connection.release();
+            if (result.affectedRows === 0) {
+                return { success: false, message: 'Product not found' };
+            }
+            return { success: true, message: 'Product updated successfully' };
+        }
+        catch (error) {
+            console.error('Database error in updateProduct:', error);
+            if (error.code === 'ER_DUP_ENTRY') {
+                return { success: false, message: 'A product with this name already exists', error: error.message };
+            }
+            return { success: false, message: 'Database error occurred', error: error.message };
+        }
+    }
+    static async archiveProduct(productId) {
+        try {
+            const connection = await database_1.pool.getConnection();
+            const [result] = await connection.execute('UPDATE catalog_clothing SET status = ? WHERE product_id = ?', ['Archived', productId]);
+            connection.release();
+            if (result.affectedRows === 0) {
+                return { success: false, message: 'Product not found' };
+            }
+            return { success: true, message: 'Product archived successfully' };
+        }
+        catch (error) {
+            console.error('Database error in archiveProduct:', error);
+            return { success: false, message: 'Database error occurred', error: error.message };
+        }
+    }
+    static async restoreProduct(productId) {
+        try {
+            const connection = await database_1.pool.getConnection();
+            const [result] = await connection.execute('UPDATE catalog_clothing SET status = ? WHERE product_id = ?', ['Active', productId]);
+            connection.release();
+            if (result.affectedRows === 0) {
+                return { success: false, message: 'Product not found' };
+            }
+            return { success: true, message: 'Product restored successfully' };
+        }
+        catch (error) {
+            console.error('Database error in restoreProduct:', error);
+            return { success: false, message: 'Database error occurred', error: error.message };
+        }
+    }
+    static async deleteProductPermanently(productId) {
+        try {
+            const connection = await database_1.pool.getConnection();
+            const [result] = await connection.execute('DELETE FROM catalog_clothing WHERE product_id = ?', [productId]);
+            connection.release();
+            if (result.affectedRows === 0) {
+                return { success: false, message: 'Product not found' };
+            }
+            return { success: true, message: 'Product permanently deleted' };
+        }
+        catch (error) {
+            console.error('Database error in deleteProductPermanently:', error);
+            return { success: false, message: 'Database error occurred', error: error.message };
         }
     }
 }
