@@ -20,11 +20,12 @@ import { AdminEmployeesComponent } from './components/admin/employees/employees'
 // Guards
 import { AuthGuard } from './guards/auth.guard';
 import { AdminGuard } from './guards/admin.guard';
+import { GuestGuard } from './guards/guest.guard';
 
 export const routes: Routes = [
   { path: '', component: LandingPageComponent },
-  { path: 'login', component: LoginComponent },
-  { path: 'signup', component: SignupComponent },
+  { path: 'login', component: LoginComponent, canActivate: [GuestGuard] },
+  { path: 'signup', component: SignupComponent, canActivate: [GuestGuard] },
   
   // Customer routes (optional auth)
   { path: 'apparel', component: ApparelComponent },
