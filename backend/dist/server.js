@@ -16,7 +16,14 @@ const users_routes_1 = __importDefault(require("./routes/users.routes"));
 const database_service_1 = require("./services/database.service");
 const app = (0, express_1.default)();
 exports.app = app;
-app.use((0, cors_1.default)());
+app.use((0, cors_1.default)({
+    origin: [
+        'http://localhost:4200',
+        'http://localhost:3000',
+        'https://rfm-frontend-qnnw.onrender.com'
+    ],
+    credentials: true
+}));
 app.use(body_parser_1.default.json({ limit: '50mb' }));
 app.use(body_parser_1.default.urlencoded({ extended: true, limit: '50mb' }));
 app.get('/api/health', async (req, res) => {
