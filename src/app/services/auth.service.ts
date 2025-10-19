@@ -2,6 +2,7 @@ import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { Router } from '@angular/router';
+import { environment } from '../../environments/environment';
 
 export interface AuthUser {
   id: number;
@@ -24,7 +25,7 @@ export interface AuthResponse {
   providedIn: 'root'
 })
 export class AuthService {
-  private baseUrl = 'http://localhost:3001/api/auth';
+  private baseUrl = `${environment.api.baseUrl}/auth`;
   
   // Using Angular signals for reactive state
   currentUser = signal<AuthUser | null>(null);
