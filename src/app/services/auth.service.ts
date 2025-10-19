@@ -19,6 +19,7 @@ export interface AuthResponse {
   message?: string;
   error?: string;
   user?: AuthUser;
+  token?: string;
 }
 
 @Injectable({
@@ -74,8 +75,9 @@ export class AuthService {
       address
     }).pipe(
       tap(response => {
-        if (response.success && response.user) {
+        if (response.success && response.user && response.token) {
           this.setCurrentUser(response.user);
+          this.setToken(response.token);
         }
       })
     );
@@ -90,8 +92,9 @@ export class AuthService {
       password
     }).pipe(
       tap(response => {
-        if (response.success && response.user) {
+        if (response.success && response.user && response.token) {
           this.setCurrentUser(response.user);
+          this.setToken(response.token);
         }
       })
     );
@@ -147,6 +150,28 @@ export class AuthService {
     this.currentUser.set(null);
     this.isAuthenticated.set(false);
     localStorage.removeItem('currentUser');
+    localStorage.removeItem('authToken');
+  }
+
+  /**
+   * Get JWT token from localStorage
+   */
+  getToken(): string | null {
+    return localStorage.getItem('authToken');
+  }
+
+  /**
+   * Set JWT token in localStorage
+   */
+  private setToken(token: string): void {
+    localStorage.setItem('authToken', token);
+  }
+
+  /**
+   * Remove JWT token from localStorage
+   */
+  private removeToken(): void {
+    localStorage.removeItem('authToken');
   }
 
   /**

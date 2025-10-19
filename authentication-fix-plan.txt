@@ -1,0 +1,87 @@
+FIX AUTHENTICATION AND ACCESS CONTROL BUGS
+============================================
+
+CURRENT SECURITY ISSUES
+=======================
+
+Bug 1: Logged-in users can access Login page
+File: src/app/app.routes.ts (line 26)
+- Problem: { path: 'login', component: LoginComponent } has no guard
+- Impact: Authenticated users (both admin and customer) can still visit /login
+- Expected: Should redirect based on role (admin -> /admin/dashboard, customer -> /apparel)
+
+Bug 2: Logged-in users can access Signup page
+File: src/app/app.routes.ts (line 27)
+- Problem: { path: 'signup', component: SignupComponent } has no guard
+- Impact: Authenticated users can still visit /signup
+- Expected: Should redirect based on role
+
+Bug 3: Missing GuestGuard
+Location: src/app/guards/ directory
+- Problem: No guard exists to prevent authenticated users from accessing guest-only pages
+- Impact: Login/Signup pages are accessible to logged-in users
+
+Admin Routes Already Protected
+File: src/app/guards/admin.guard.ts (lines 16-19)
+- Status: Working correctly
+- Protection: Customers trying to access /admin/* routes are redirected to /apparel
+- No fix needed
+
+SOLUTION
+========
+
+1. Create GuestGuard
+File: src/app/guards/guest.guard.ts (new file)
+
+The guard should:
+- Check if user is authenticated
+- If authenticated and role is 'employee' -> redirect to /admin/dashboard
+- If authenticated and role is 'customer' -> redirect to /apparel
+- If not authenticated -> allow access to login/signup
+
+2. Update Routes Configuration
+File: src/app/app.routes.ts
+
+Apply GuestGuard to:
+- Login route (line 26)
+- Signup route (line 27)
+
+TEST ALL SCENARIOS
+==================
+
+Scenario 1: Not logged in
+- Can access /login
+- Can access /signup
+- Cannot access /admin/*
+- Cannot access /account-settings
+
+Scenario 2: Logged in as Admin (employee)
+- Cannot access /login (redirects to /admin/dashboard)
+- Cannot access /signup (redirects to /admin/dashboard)
+- Can access /admin/* routes
+- Can access /account-settings
+
+Scenario 3: Logged in as Customer
+- Cannot access /login (redirects to /apparel)
+- Cannot access /signup (redirects to /apparel)
+- Cannot access /admin/* (redirects to /apparel)
+- Can access /account-settings
+
+IMPLEMENTATION STEPS
+====================
+
+1. Create src/app/guards/guest.guard.ts
+2. Update src/app/app.routes.ts to use GuestGuard on login and signup routes
+3. Commit changes
+4. Test all scenarios locally
+5. Deploy to Render and verify in production
+
+TO-DOS
+======
+
+- [ ] Create GuestGuard in src/app/guards/guest.guard.ts that redirects authenticated users based on their role
+- [ ] Add GuestGuard to login route in src/app/app.routes.ts
+- [ ] Add GuestGuard to signup route in src/app/app.routes.ts
+- [ ] Commit authentication access control fixes
+- [ ] Test all authentication scenarios locally (not logged in, admin, customer)
+- [ ] Deploy authentication fixes to Render and verify in production

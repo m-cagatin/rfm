@@ -2,8 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const database_service_1 = require("../services/database.service");
+const auth_middleware_1 = require("../middleware/auth.middleware");
 const router = (0, express_1.Router)();
-router.get('/', async (req, res) => {
+router.get('/', auth_middleware_1.authenticateToken, auth_middleware_1.requireAdmin, async (req, res) => {
     try {
         const { role, status } = req.query;
         const result = await database_service_1.DatabaseService.getUsers(role, status);
@@ -18,7 +19,7 @@ router.get('/', async (req, res) => {
         });
     }
 });
-router.get('/:id', async (req, res) => {
+router.get('/:id', auth_middleware_1.authenticateToken, auth_middleware_1.requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
         const result = await database_service_1.DatabaseService.getUser(id);
@@ -33,7 +34,7 @@ router.get('/:id', async (req, res) => {
         });
     }
 });
-router.post('/', async (req, res) => {
+router.post('/', auth_middleware_1.authenticateToken, auth_middleware_1.requireAdmin, async (req, res) => {
     try {
         const { firstName, middleName, lastName, email, phone, roles, status, hired_date } = req.body;
         if (!firstName || !lastName || !email || !roles) {
@@ -67,7 +68,7 @@ router.post('/', async (req, res) => {
         });
     }
 });
-router.put('/:id', async (req, res) => {
+router.put('/:id', auth_middleware_1.authenticateToken, auth_middleware_1.requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
         const { firstName, middleName, lastName, email, phone, roles, status, hired_date } = req.body;
@@ -104,7 +105,7 @@ router.put('/:id', async (req, res) => {
         });
     }
 });
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth_middleware_1.authenticateToken, auth_middleware_1.requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
         const result = await database_service_1.DatabaseService.deleteUser(id);
@@ -119,7 +120,7 @@ router.delete('/:id', async (req, res) => {
         });
     }
 });
-router.patch('/:id/last-login', async (req, res) => {
+router.patch('/:id/last-login', auth_middleware_1.authenticateToken, auth_middleware_1.requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
         const result = await database_service_1.DatabaseService.updateUserLastLogin(id);

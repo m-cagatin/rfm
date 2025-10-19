@@ -1,13 +1,15 @@
 import { Request, Response, Router } from 'express';
 import { DatabaseService } from '../services/database.service';
+import { authenticateToken, requireAdmin } from '../middleware/auth.middleware';
 
 const router = Router();
 
 /**
  * GET /api/users
  * Optional query params: role, status
+ * Requires: Admin authentication
  */
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', authenticateToken, requireAdmin, async (req: Request, res: Response) => {
   try {
     const { role, status } = req.query;
     const result = await DatabaseService.getUsers(
@@ -27,8 +29,9 @@ router.get('/', async (req: Request, res: Response) => {
 
 /**
  * GET /api/users/:id
+ * Requires: Admin authentication
  */
-router.get('/:id', async (req: Request, res: Response) => {
+router.get('/:id', authenticateToken, requireAdmin, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const result = await DatabaseService.getUser(id);
@@ -46,8 +49,9 @@ router.get('/:id', async (req: Request, res: Response) => {
 /**
  * POST /api/users
  * Body: { firstName, middleName?, lastName, email, phone, roles, status?, hired_date? }
+ * Requires: Admin authentication
  */
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', authenticateToken, requireAdmin, async (req: Request, res: Response) => {
   try {
     const { firstName, middleName, lastName, email, phone, roles, status, hired_date } = req.body;
 
@@ -90,8 +94,9 @@ router.post('/', async (req: Request, res: Response) => {
 /**
  * PUT /api/users/:id
  * Body: { firstName?, middleName?, lastName?, email?, phone?, roles?, status?, hired_date? }
+ * Requires: Admin authentication
  */
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', authenticateToken, requireAdmin, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { firstName, middleName, lastName, email, phone, roles, status, hired_date } = req.body;
@@ -127,8 +132,9 @@ router.put('/:id', async (req: Request, res: Response) => {
 
 /**
  * DELETE /api/users/:id
+ * Requires: Admin authentication
  */
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', authenticateToken, requireAdmin, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const result = await DatabaseService.deleteUser(id);
@@ -145,8 +151,9 @@ router.delete('/:id', async (req: Request, res: Response) => {
 
 /**
  * PATCH /api/users/:id/last-login
+ * Requires: Admin authentication
  */
-router.patch('/:id/last-login', async (req: Request, res: Response) => {
+router.patch('/:id/last-login', authenticateToken, requireAdmin, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const result = await DatabaseService.updateUserLastLogin(id);

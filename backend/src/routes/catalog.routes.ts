@@ -1,5 +1,6 @@
 import { Request, Response, Router } from 'express';
 import { DatabaseService } from '../services/database.service';
+import { authenticateToken, requireAdmin } from '../middleware/auth.middleware';
 
 const router = Router();
 
@@ -39,7 +40,8 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // POST /api/catalog - Create product
-router.post('/', async (req: Request, res: Response) => {
+// Requires: Admin authentication
+router.post('/', authenticateToken, requireAdmin, async (req: Request, res: Response) => {
   try {
     const { product_name, category, base_price, description, image_url, cloudinary_public_id, status, stock_quantity, sku, sizes, tags } = req.body;
     
@@ -76,7 +78,8 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 // PUT /api/catalog/:id - Update product
-router.put('/:id', async (req: Request, res: Response) => {
+// Requires: Admin authentication
+router.put('/:id', authenticateToken, requireAdmin, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const updateData: any = {};
@@ -106,7 +109,8 @@ router.put('/:id', async (req: Request, res: Response) => {
 });
 
 // PATCH /api/catalog/:id/archive - Archive product (soft delete)
-router.patch('/:id/archive', async (req: Request, res: Response) => {
+// Requires: Admin authentication
+router.patch('/:id/archive', authenticateToken, requireAdmin, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const result = await DatabaseService.archiveProduct(id);
@@ -122,7 +126,8 @@ router.patch('/:id/archive', async (req: Request, res: Response) => {
 });
 
 // PATCH /api/catalog/:id/restore - Restore archived product
-router.patch('/:id/restore', async (req: Request, res: Response) => {
+// Requires: Admin authentication
+router.patch('/:id/restore', authenticateToken, requireAdmin, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const result = await DatabaseService.restoreProduct(id);
@@ -138,7 +143,8 @@ router.patch('/:id/restore', async (req: Request, res: Response) => {
 });
 
 // DELETE /api/catalog/:id - Permanently delete product (hard delete)
-router.delete('/:id', async (req: Request, res: Response) => {
+// Requires: Admin authentication
+router.delete('/:id', authenticateToken, requireAdmin, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const result = await DatabaseService.deleteProductPermanently(id);

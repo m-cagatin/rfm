@@ -1,0 +1,599 @@
+JWT AUTHENTICATION & AUTHORIZATION SECURITY IMPLEMENTATION PLAN
+================================================================
+
+CRITICAL SECURITY VULNERABILITIES IDENTIFIED
+============================================
+
+Vulnerability 1: No Backend Authentication Middleware
+======================================================
+Severity: CRITICAL
+Issue: Backend APIs are completely unprotected - anyone can call them directly
+Impact: Attackers can access admin endpoints without authentication
+
+Example Attack:
+curl https://rfm-backend-7xts.onrender.com/api/users
+# Returns all users without authentication!
+
+Vulnerability 2: Client-Side Only Authentication
+================================================
+Severity: HIGH
+Issue: Authentication stored in localStorage can be manipulated
+Impact: Attackers can fake admin credentials in browser console
+
+Example Attack:
+// Run in browser DevTools console:
+localStorage.setItem('currentUser', JSON.stringify({
+  id: 999, email: 'fake@admin.com', role: 'employee'
+}));
+// Now has admin UI access!
+
+Vulnerability 3: No Session/Token Validation
+============================================
+Severity: HIGH
+Issue: No ongoing validation of user sessions
+Impact: Stolen or forged credentials persist indefinitely
+
+SOLUTION ARCHITECTURE
+=====================
+
+JWT Token Flow:
+1. User logs in → Backend validates credentials
+2. Backend generates JWT token (signed with secret)
+3. Token sent to frontend and stored
+4. Frontend sends token with every API request
+5. Backend validates token on each request
+6. If valid → process request
+7. If invalid → return 401 Unauthorized
+
+Token Structure:
+{
+  userId: 123,
+  email: "admin@rfm.com",
+  role: "employee",
+  iat: 1234567890,  // issued at
+  exp: 1234571490   // expires in 1 hour
+}
+
+IMPLEMENTATION PLAN
+===================
+
+PHASE 1: BACKEND - JWT INFRASTRUCTURE (Priority: CRITICAL)
+==========================================================
+
+Step 1.1: Install JWT Package
+------------------------------
+File: backend/package.json
+Command: 
+  cd backend
+  npm install jsonwebtoken
+  npm install --save-dev @types/jsonwebtoken
+
+Step 1.2: Create JWT Utility Service
+-------------------------------------
+File: backend/src/services/jwt.service.ts (NEW FILE)
+
+Functions needed:
+- generateToken(user) - Create JWT with user data
+- verifyToken(token) - Validate JWT and extract payload
+- refreshToken(token) - Generate new token from valid old token
+
+Token Configuration:
+- Secret: Use environment variable JWT_SECRET
+- Expiration: 1 hour for access token
+- Algorithm: HS256
+
+Implementation Details:
+import jwt from 'jsonwebtoken';
+
+export class JwtService {
+  static generateToken(payload: any): string {
+    return jwt.sign(payload, process.env.JWT_SECRET!, {
+      expiresIn: process.env.JWT_EXPIRATION || '1h',
+      algorithm: 'HS256'
+    });
+  }
+
+  static verifyToken(token: string): any {
+    try {
+      return jwt.verify(token, process.env.JWT_SECRET!);
+    } catch (error) {
+      throw new Error('Invalid or expired token');
+    }
+  }
+}
+
+Step 1.3: Create Authentication Middleware
+-------------------------------------------
+File: backend/src/middleware/auth.middleware.ts (NEW FILE)
+
+Middleware functions needed:
+1. authenticateToken - Verify JWT exists and is valid
+2. requireAdmin - Check if authenticated user has employee/admin role
+3. requireAuth - Check if user is authenticated (any role)
+
+Implementation Details:
+export const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+  if (!token) {
+    return res.status(401).json({ success: false, message: 'Access token required' });
+  }
+
+  try {
+    const decoded = JwtService.verifyToken(token);
+    req.user = decoded; // Attach user to request
+    next();
+  } catch (error) {
+    return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+  }
+};
+
+export const requireAdmin = (req, res, next) => {
+  if (req.user.role !== 'employee') {
+    return res.status(403).json({ success: false, message: 'Admin access required' });
+  }
+  next();
+};
+
+export const requireAuth = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ success: false, message: 'Authentication required' });
+  }
+  next();
+};
+
+Step 1.4: Update Auth Service to Generate Tokens
+-------------------------------------------------
+File: backend/src/services/auth.service.ts
+
+Modify loginUser() method (lines 106-225):
+- After successful password validation (line 166)
+- Generate JWT token using JwtService
+- Return token in response along with user data
+
+Changes:
+FROM:
+  return {
+    success: true,
+    message: 'Login successful',
+    user: { id, email, name, role, phone, roles }
+  };
+
+TO:
+  const token = JwtService.generateToken({
+    userId: user['UserId'],
+    email: user['Email'],
+    role: 'employee',
+    roles: roles
+  });
+
+  return {
+    success: true,
+    message: 'Login successful',
+    token: token,  // ← ADD THIS
+    user: { id, email, name, role, phone, roles }
+  };
+
+Modify registerCustomer() method (around line 50):
+- Generate JWT token after registration
+- Return token in response
+
+Step 1.5: Protect Backend Routes
+---------------------------------
+Files to modify:
+
+1. backend/src/routes/users.routes.ts - ALL endpoints need protection
+   Import: import { authenticateToken, requireAdmin } from '../middleware/auth.middleware';
+   
+   Protected routes:
+   - GET /api/users → authenticateToken + requireAdmin
+   - GET /api/users/:id → authenticateToken + requireAdmin
+   - POST /api/users → authenticateToken + requireAdmin
+   - PUT /api/users/:id → authenticateToken + requireAdmin
+   - DELETE /api/users/:id → authenticateToken + requireAdmin
+
+2. backend/src/routes/canvas.routes.ts
+   Review each endpoint and determine:
+   - Which need authentication (any user)
+   - Which need admin-only access
+   - Which can be public
+
+3. backend/src/routes/catalog.routes.ts
+   Review each endpoint:
+   - Product listing → Public (no auth)
+   - Create/Update/Delete products → Admin only
+   - View product details → Public
+
+Example Implementation:
+import { authenticateToken, requireAdmin } from '../middleware/auth.middleware';
+
+// Protected admin endpoint
+router.get('/users', authenticateToken, requireAdmin, async (req, res) => {
+  // Only admins with valid JWT can access
+  // req.user contains decoded JWT payload
+});
+
+// Protected user endpoint  
+router.get('/account-settings', authenticateToken, async (req, res) => {
+  // Any authenticated user can access
+});
+
+// Public endpoint (no middleware)
+router.get('/catalog', async (req, res) => {
+  // Anyone can access
+});
+
+Step 1.6: Update Environment Variables
+---------------------------------------
+File: backend/.env
+
+Add:
+JWT_SECRET=your-super-secret-key-change-in-production-use-64-chars-minimum
+JWT_EXPIRATION=1h
+
+For Render deployment:
+- Add JWT_SECRET to Render environment variables (Settings → Environment)
+- Use a strong, randomly generated secret (e.g., from: openssl rand -base64 64)
+
+Step 1.7: Create TypeScript Types
+----------------------------------
+File: backend/src/types/auth.types.ts (NEW FILE)
+
+export interface JwtPayload {
+  userId: number;
+  email: string;
+  role: 'customer' | 'employee';
+  roles?: string[];
+  iat?: number;  // issued at
+  exp?: number;  // expiration
+}
+
+PHASE 2: FRONTEND - TOKEN MANAGEMENT (Priority: HIGH)
+=====================================================
+
+Step 2.1: Update AuthService to Handle Tokens
+----------------------------------------------
+File: src/app/services/auth.service.ts
+
+Changes needed:
+1. Store JWT token in localStorage (in addition to user)
+2. Add methods to manage tokens
+3. Handle token expiration
+4. Auto-logout on 401 errors
+
+Methods to modify:
+- login() - Save token from response
+- register() - Save token from response
+- logout() - Clear token
+
+Methods to add:
+- getToken(): string | null - Retrieve token from storage
+- setToken(token: string) - Store token
+- removeToken() - Clear token
+- isTokenExpired(): boolean - Check if token is still valid
+
+Implementation:
+// Add token storage methods
+getToken(): string | null {
+  return localStorage.getItem('authToken');
+}
+
+private setToken(token: string): void {
+  localStorage.setItem('authToken', token);
+}
+
+private removeToken(): void {
+  localStorage.removeItem('authToken');
+}
+
+// Update login method
+login(email: string, password: string): Observable<AuthResponse> {
+  return this.http.post<AuthResponse>(`${this.baseUrl}/login`, {
+    email,
+    password
+  }).pipe(
+    tap(response => {
+      if (response.success && response.user && response.token) {
+        this.setCurrentUser(response.user);
+        this.setToken(response.token);  // ← ADD THIS
+      }
+    })
+  );
+}
+
+// Update logout method
+logout(): void {
+  this.clearCurrentUser();
+  this.removeToken();  // ← ADD THIS
+  this.router.navigate(['/']);
+}
+
+Step 2.2: Create HTTP Interceptor for JWT
+------------------------------------------
+File: src/app/interceptors/auth.interceptor.ts (NEW FILE)
+
+Purpose: Automatically add JWT to all HTTP requests
+
+Implementation:
+import { HttpInterceptorFn } from '@angular/common/http';
+import { inject } from '@angular/core';
+import { AuthService } from '../services/auth.service';
+import { catchError, throwError } from 'rxjs';
+
+export const authInterceptor: HttpInterceptorFn = (req, next) => {
+  const authService = inject(AuthService);
+  const token = authService.getToken();
+
+  // Clone request and add authorization header if token exists
+  if (token) {
+    req = req.clone({
+      setHeaders: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+  }
+
+  return next(req).pipe(
+    catchError(error => {
+      // Handle 401 Unauthorized errors
+      if (error.status === 401) {
+        // Token expired or invalid - logout user
+        authService.logout();
+      }
+      return throwError(() => error);
+    })
+  );
+};
+
+Step 2.3: Register Interceptor
+-------------------------------
+File: src/app/app.config.ts
+
+Add HTTP interceptor to providers:
+
+FROM:
+import { provideHttpClient, withFetch } from '@angular/common/http';
+
+providers: [
+  provideHttpClient(withFetch())
+]
+
+TO:
+import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
+import { authInterceptor } from './interceptors/auth.interceptor';
+
+providers: [
+  provideHttpClient(withFetch(), withInterceptors([authInterceptor]))
+]
+
+Step 2.4: Update AuthResponse Interface
+----------------------------------------
+File: src/app/services/auth.service.ts
+
+Update interface to include token:
+export interface AuthResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+  user?: AuthUser;
+  token?: string;  // ← ADD THIS
+}
+
+PHASE 3: TESTING & VALIDATION (Priority: HIGH)
+==============================================
+
+Step 3.1: Test Authentication Flow
+-----------------------------------
+Manual Testing Checklist:
+□ Login with valid credentials → receives token
+□ Verify token stored in localStorage (check DevTools → Application → Local Storage)
+□ Login with invalid credentials → no token, error message
+□ Token included in subsequent API requests (check Network tab → Headers)
+□ Logout clears token from localStorage
+
+Step 3.2: Test Authorization
+-----------------------------
+Manual Testing Checklist:
+□ Admin can access /api/users with valid token (200 OK)
+□ Customer cannot access /api/users (403 Forbidden)
+□ No token sent → 401 Unauthorized
+□ Invalid token sent → 401 Unauthorized
+□ Expired token → 401 Unauthorized (test by changing JWT_EXPIRATION to 1s)
+
+Step 3.3: Test Attack Scenarios
+--------------------------------
+Security Testing Checklist:
+□ Manipulate localStorage with fake user data → API calls should fail
+□ Direct API calls without token → should fail with 401
+□ Forge JWT token with wrong signature → should fail with 401
+□ Use expired token → should fail with 401
+□ Change role in localStorage → backend should reject based on JWT
+□ Copy valid token to different browser → should work (stateless)
+
+Test Commands:
+# Test 1: No token
+curl https://rfm-backend-7xts.onrender.com/api/users
+# Expected: 401 Unauthorized
+
+# Test 2: Invalid token
+curl -H "Authorization: Bearer fake-token-123" https://rfm-backend-7xts.onrender.com/api/users
+# Expected: 401 Unauthorized
+
+# Test 3: Valid token (get from login first)
+curl -H "Authorization: Bearer <valid-token>" https://rfm-backend-7xts.onrender.com/api/users
+# Expected: 200 OK with user data
+
+PHASE 4: ADDITIONAL SECURITY ENHANCEMENTS (Priority: MEDIUM)
+============================================================
+
+Step 4.1: Implement Refresh Tokens
+-----------------------------------
+Purpose: Long-lived refresh tokens for better UX
+
+Implementation:
+- Access token: 1 hour expiration (short-lived)
+- Refresh token: 7 days expiration (long-lived)
+- Endpoint: POST /api/auth/refresh
+- Flow: When access token expires, use refresh token to get new access token
+
+Step 4.2: Token Blacklisting
+-----------------------------
+Purpose: Revoke tokens on logout or password change
+
+Implementation:
+- Store revoked tokens in database table or Redis
+- Check blacklist during token validation
+- Add tokens to blacklist on:
+  * User logout
+  * Password change
+  * Account deletion
+  * Admin revokes access
+
+Step 4.3: Rate Limiting
+-----------------------
+Purpose: Prevent brute force attacks on login
+
+Implementation:
+- Use express-rate-limit package
+- Limit login attempts: 5 per 15 minutes per IP
+- Return 429 Too Many Requests after limit
+
+Step 4.4: HTTPS Enforcement
+---------------------------
+Purpose: Prevent man-in-the-middle attacks
+
+Implementation:
+- Ensure all API calls use HTTPS in production
+- Set secure cookie flags
+- Enable HSTS headers
+
+FILES TO CREATE
+===============
+
+Backend:
+1. backend/src/services/jwt.service.ts - JWT token generation/validation
+2. backend/src/middleware/auth.middleware.ts - Authentication middleware
+3. backend/src/types/auth.types.ts - TypeScript interfaces for JWT payload
+
+Frontend:
+1. src/app/interceptors/auth.interceptor.ts - HTTP interceptor for JWT
+
+FILES TO MODIFY
+===============
+
+Backend:
+1. backend/package.json - Add jsonwebtoken dependency
+2. backend/.env - Add JWT_SECRET and JWT_EXPIRATION
+3. backend/src/services/auth.service.ts - Generate tokens on login/register
+4. backend/src/routes/users.routes.ts - Add auth middleware to all routes
+5. backend/src/routes/canvas.routes.ts - Add auth middleware where needed
+6. backend/src/routes/catalog.routes.ts - Identify public vs protected routes
+
+Frontend:
+1. src/app/services/auth.service.ts - Store/retrieve JWT tokens, add getToken()
+2. src/app/app.config.ts - Register HTTP interceptor
+3. Update AuthResponse interface to include token field
+
+SECURITY BENEFITS
+=================
+
+After implementation:
+✓ All admin APIs protected with JWT validation
+✓ Tokens cryptographically signed (can't be forged)
+✓ Tokens expire automatically (1 hour)
+✓ Client-side manipulation useless (backend validates)
+✓ Each request authenticated and authorized
+✓ Role-based access control enforced server-side
+✓ Attack vectors closed
+✓ Stateless authentication (scales horizontally)
+✓ Industry-standard security approach
+
+DEPLOYMENT STEPS
+================
+
+1. Implement backend JWT infrastructure (Phase 1)
+2. Test backend authentication locally with Postman/curl
+3. Implement frontend token management (Phase 2)
+4. Test end-to-end locally
+5. Generate strong JWT_SECRET (openssl rand -base64 64)
+6. Update environment variables on Render:
+   - Backend → Settings → Environment → Add JWT_SECRET
+7. Rebuild backend (npm run build in backend/)
+8. Commit all changes
+9. Deploy backend to Render
+10. Deploy frontend to Render
+11. Test in production with all attack scenarios
+12. Monitor logs for authentication errors
+
+ROLLBACK PLAN
+=============
+
+If issues occur in production:
+1. Quick fix: Comment out middleware from protected routes
+2. Redeploy backend without authentication
+3. Debug issues locally
+4. Fix and test thoroughly before redeploying
+5. Keep old deployment available for quick rollback
+
+Rollback code example:
+// Temporarily disable auth
+// router.get('/users', authenticateToken, requireAdmin, async (req, res) => {
+router.get('/users', async (req, res) => {  // ← Remove middleware
+  // ... endpoint code
+});
+
+TO-DO CHECKLIST
+===============
+
+Backend Implementation:
+□ Install jsonwebtoken package in backend
+□ Create backend/src/services/jwt.service.ts with token generation and validation
+□ Create backend/src/middleware/auth.middleware.ts with authenticateToken and requireAdmin
+□ Create backend/src/types/auth.types.ts with JWT interfaces
+□ Update backend/src/services/auth.service.ts to generate JWT on login/register
+□ Add authentication middleware to backend/src/routes/users.routes.ts
+□ Review and protect backend/src/routes/canvas.routes.ts endpoints
+□ Review backend/src/routes/catalog.routes.ts and determine public vs protected
+□ Add JWT_SECRET to backend .env file
+□ Test backend authentication with Postman
+
+Frontend Implementation:
+□ Update src/app/services/auth.service.ts to store and manage JWT tokens
+□ Add getToken(), setToken(), removeToken() methods to AuthService
+□ Update AuthResponse interface to include token field
+□ Create src/app/interceptors/auth.interceptor.ts to add JWT to requests
+□ Register HTTP interceptor in src/app/app.config.ts
+□ Test frontend token storage in localStorage
+
+Testing:
+□ Test complete authentication flow locally
+□ Test role-based authorization with admin and customer users
+□ Verify localStorage manipulation attacks are blocked
+□ Verify direct API calls without token are blocked
+□ Test token expiration handling
+□ Test 401 error auto-logout
+
+Deployment:
+□ Generate strong JWT_SECRET for production
+□ Add JWT_SECRET to Render environment variables
+□ Rebuild backend (npm run build)
+□ Commit all changes to git
+□ Deploy backend with JWT authentication to Render
+□ Deploy frontend with token management to Render
+□ Verify security in production environment
+□ Test all attack scenarios in production
+□ Monitor logs for errors
+
+ESTIMATED TIME
+==============
+Backend Implementation: 3-4 hours
+Frontend Implementation: 2-3 hours
+Testing: 2-3 hours
+Deployment & Verification: 1-2 hours
+Total: 8-12 hours
+
+PRIORITY LEVEL
+==============
+CRITICAL - Should be implemented immediately
+Current system is vulnerable to unauthorized access
