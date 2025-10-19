@@ -17,15 +17,15 @@ export const GuestGuard = () => {
 
   if (userRole === 'employee') {
     // Admin user - redirect to admin dashboard
-    router.navigate(['/admin/dashboard']);
+    router.navigateByUrl('/admin/dashboard', { replaceUrl: true });
     return false;
   } else if (userRole === 'customer') {
     // Customer user - redirect to apparel page
-    router.navigate(['/apparel']);
+    router.navigateByUrl('/apparel', { replaceUrl: true });
     return false;
   }
 
   // Fallback (shouldn't happen but just in case)
-  router.navigate(['/']);
+  router.navigateByUrl('/', { replaceUrl: true });
   return false;
 };
