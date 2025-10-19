@@ -11,15 +11,16 @@ class JwtService {
         if (!secret) {
             throw new Error('JWT_SECRET environment variable is not set');
         }
+        const expiration = (process.env.JWT_EXPIRATION || '1h');
+        const options = {
+            expiresIn: expiration
+        };
         return jsonwebtoken_1.default.sign({
             userId: payload.userId,
             email: payload.email,
             role: payload.role,
             roles: payload.roles || []
-        }, secret, {
-            expiresIn: process.env.JWT_EXPIRATION || '1h',
-            algorithm: 'HS256'
-        });
+        }, secret, options);
     }
     static verifyToken(token) {
         const secret = process.env.JWT_SECRET;
