@@ -1,6 +1,7 @@
 import * as bcrypt from 'bcrypt';
 import { pool } from '../config/database';
 import { ResultSetHeader, RowDataPacket } from 'mysql2';
+import { JwtService } from './jwt.service';
 
 const SALT_ROUNDS = 10;
 
@@ -20,6 +21,7 @@ export interface ApiResponse<T = any> {
   data?: T;
   error?: string;
   user?: AuthUser;
+  token?: string;
 }
 
 export class AuthService {
@@ -76,19 +78,29 @@ export class AuthService {
         [email, passwordHash, fullName, phone || null, address || null]
       );
 
+      const userData = {
+        id: result.insertId,
+        email,
+        name: fullName,
+        role: 'customer' as const,
+        phone,
+        address
+      };
+
+      // Generate JWT token for newly registered user
+      const token = JwtService.generateToken({
+        userId: result.insertId,
+        email: email,
+        role: 'customer'
+      });
+
       connection.release();
 
       return {
         success: true,
         message: 'Customer registered successfully',
-        user: {
-          id: result.insertId,
-          email,
-          name: fullName,
-          role: 'customer',
-          phone,
-          address
-        }
+        token: token,
+        user: userData
       };
     } catch (error) {
       console.error('Error registering customer:', error);
@@ -127,19 +139,29 @@ export class AuthService {
             [customer['CustomerId']]
           );
 
+          const userData = {
+            id: customer['CustomerId'],
+            email: customer['CustomerEmail'],
+            name: customer['CustomerFullName'],
+            role: 'customer' as const,
+            phone: customer['CustomerPhone'],
+            address: customer['CustomerAddress']
+          };
+
+          // Generate JWT token
+          const token = JwtService.generateToken({
+            userId: customer['CustomerId'],
+            email: customer['CustomerEmail'],
+            role: 'customer'
+          });
+
           connection.release();
 
           return {
             success: true,
             message: 'Login successful',
-            user: {
-              id: customer['CustomerId'],
-              email: customer['CustomerEmail'],
-              name: customer['CustomerFullName'],
-              role: 'customer',
-              phone: customer['CustomerPhone'],
-              address: customer['CustomerAddress']
-            }
+            token: token,
+            user: userData
           };
         } else {
           connection.release();
@@ -183,19 +205,30 @@ export class AuthService {
             [user['UserId']]
           );
 
+          const userData = {
+            id: user['UserId'],
+            email: user['Email'],
+            name: user['FullName'],
+            role: 'employee' as const,
+            phone: user['Phone'],
+            roles: roles
+          };
+
+          // Generate JWT token
+          const token = JwtService.generateToken({
+            userId: user['UserId'],
+            email: user['Email'],
+            role: 'employee',
+            roles: roles
+          });
+
           connection.release();
 
           return {
             success: true,
             message: 'Login successful',
-            user: {
-              id: user['UserId'],
-              email: user['Email'],
-              name: user['FullName'],
-              role: 'employee',
-              phone: user['Phone'],
-              roles: roles
-            }
+            token: token,
+            user: userData
           };
         } else {
           connection.release();

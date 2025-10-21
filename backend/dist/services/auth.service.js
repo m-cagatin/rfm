@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthService = void 0;
 const bcrypt = __importStar(require("bcrypt"));
 const database_1 = require("../config/database");
+const jwt_service_1 = require("./jwt.service");
 const SALT_ROUNDS = 10;
 class AuthService {
     static async hashPassword(password) {
@@ -60,18 +61,25 @@ class AuthService {
             const [result] = await connection.execute(`INSERT INTO customer_accounts 
          (CustomerEmail, CustomerPasswordHash, CustomerFullName, CustomerPhone, CustomerAddress) 
          VALUES (?, ?, ?, ?, ?)`, [email, passwordHash, fullName, phone || null, address || null]);
+            const userData = {
+                id: result.insertId,
+                email,
+                name: fullName,
+                role: 'customer',
+                phone,
+                address
+            };
+            const token = jwt_service_1.JwtService.generateToken({
+                userId: result.insertId,
+                email: email,
+                role: 'customer'
+            });
             connection.release();
             return {
                 success: true,
                 message: 'Customer registered successfully',
-                user: {
-                    id: result.insertId,
-                    email,
-                    name: fullName,
-                    role: 'customer',
-                    phone,
-                    address
-                }
+                token: token,
+                user: userData
             };
         }
         catch (error) {
@@ -95,18 +103,25 @@ class AuthService {
                 const isValid = await this.comparePassword(password, customer['CustomerPasswordHash']);
                 if (isValid) {
                     await connection.execute('UPDATE customer_accounts SET last_login = CURRENT_TIMESTAMP WHERE CustomerId = ?', [customer['CustomerId']]);
+                    const userData = {
+                        id: customer['CustomerId'],
+                        email: customer['CustomerEmail'],
+                        name: customer['CustomerFullName'],
+                        role: 'customer',
+                        phone: customer['CustomerPhone'],
+                        address: customer['CustomerAddress']
+                    };
+                    const token = jwt_service_1.JwtService.generateToken({
+                        userId: customer['CustomerId'],
+                        email: customer['CustomerEmail'],
+                        role: 'customer'
+                    });
                     connection.release();
                     return {
                         success: true,
                         message: 'Login successful',
-                        user: {
-                            id: customer['CustomerId'],
-                            email: customer['CustomerEmail'],
-                            name: customer['CustomerFullName'],
-                            role: 'customer',
-                            phone: customer['CustomerPhone'],
-                            address: customer['CustomerAddress']
-                        }
+                        token: token,
+                        user: userData
                     };
                 }
                 else {
@@ -135,18 +150,26 @@ class AuthService {
                         };
                     }
                     await connection.execute('UPDATE Users SET last_login = CURRENT_TIMESTAMP WHERE UserId = ?', [user['UserId']]);
+                    const userData = {
+                        id: user['UserId'],
+                        email: user['Email'],
+                        name: user['FullName'],
+                        role: 'employee',
+                        phone: user['Phone'],
+                        roles: roles
+                    };
+                    const token = jwt_service_1.JwtService.generateToken({
+                        userId: user['UserId'],
+                        email: user['Email'],
+                        role: 'employee',
+                        roles: roles
+                    });
                     connection.release();
                     return {
                         success: true,
                         message: 'Login successful',
-                        user: {
-                            id: user['UserId'],
-                            email: user['Email'],
-                            name: user['FullName'],
-                            role: 'employee',
-                            phone: user['Phone'],
-                            roles: roles
-                        }
+                        token: token,
+                        user: userData
                     };
                 }
                 else {

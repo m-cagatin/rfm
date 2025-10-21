@@ -11,7 +11,14 @@ import { DatabaseService } from './services/database.service';
 const app = express();
 
 // Middleware setup
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:4200',
+    'http://localhost:3000',
+    'https://rfm-frontend-qnnw.onrender.com'
+  ],
+  credentials: true
+}));
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 

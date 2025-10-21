@@ -1,10 +1,11 @@
 import { Request, Response, Router } from 'express';
 import { DatabaseService } from '../services/database.service';
+import { authenticateToken } from '../middleware/auth.middleware';
 
 const router = Router();
 
 // Canvas/Fabric.js related endpoints
-router.post('/save', async (req: Request, res: Response) => {
+router.post('/save', authenticateToken, async (req: Request, res: Response) => {
   try {
     const { canvasData, name } = req.body;
     
@@ -31,7 +32,7 @@ router.post('/save', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/list', async (req: Request, res: Response) => {
+router.get('/list', authenticateToken, async (req: Request, res: Response) => {
   try {
     const result = await DatabaseService.getCanvasList();
     
@@ -49,7 +50,7 @@ router.get('/list', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/:id', async (req: Request, res: Response) => {
+router.get('/:id', authenticateToken, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     
@@ -76,7 +77,7 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { canvasData, name } = req.body;
@@ -111,7 +112,7 @@ router.put('/:id', async (req: Request, res: Response) => {
   }
 });
 
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', authenticateToken, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     

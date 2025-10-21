@@ -2,8 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const database_service_1 = require("../services/database.service");
+const auth_middleware_1 = require("../middleware/auth.middleware");
 const router = (0, express_1.Router)();
-router.post('/save', async (req, res) => {
+router.post('/save', auth_middleware_1.authenticateToken, async (req, res) => {
     try {
         const { canvasData, name } = req.body;
         if (!canvasData) {
@@ -28,7 +29,7 @@ router.post('/save', async (req, res) => {
         });
     }
 });
-router.get('/list', async (req, res) => {
+router.get('/list', auth_middleware_1.authenticateToken, async (req, res) => {
     try {
         const result = await database_service_1.DatabaseService.getCanvasList();
         if (result.success) {
@@ -46,7 +47,7 @@ router.get('/list', async (req, res) => {
         });
     }
 });
-router.get('/:id', async (req, res) => {
+router.get('/:id', auth_middleware_1.authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
         if (!id || isNaN(parseInt(id))) {
@@ -71,7 +72,7 @@ router.get('/:id', async (req, res) => {
         });
     }
 });
-router.put('/:id', async (req, res) => {
+router.put('/:id', auth_middleware_1.authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
         const { canvasData, name } = req.body;
@@ -103,7 +104,7 @@ router.put('/:id', async (req, res) => {
         });
     }
 });
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth_middleware_1.authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
         if (!id || isNaN(parseInt(id))) {

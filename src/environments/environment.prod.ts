@@ -5,6 +5,6 @@ export const environment = {
     apiKey: '425947453244552'
   },
   api: {
-    baseUrl: 'https://your-render-app.onrender.com/api'
+    baseUrl: 'https://rfm-backend-7xts.onrender.com/api'
   }
 };

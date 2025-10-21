@@ -2,6 +2,7 @@ import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { Router } from '@angular/router';
+import { environment } from '../../environments/environment';
 
 export interface AuthUser {
   id: number;
@@ -18,13 +19,14 @@ export interface AuthResponse {
   message?: string;
   error?: string;
   user?: AuthUser;
+  token?: string;
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private baseUrl = 'http://localhost:3001/api/auth';
+  private baseUrl = `${environment.api.baseUrl}/auth`;
   
   // Using Angular signals for reactive state
   currentUser = signal<AuthUser | null>(null);
@@ -73,8 +75,9 @@ export class AuthService {
       address
     }).pipe(
       tap(response => {
-        if (response.success && response.user) {
+        if (response.success && response.user && response.token) {
           this.setCurrentUser(response.user);
+          this.setToken(response.token);
         }
       })
     );
@@ -89,8 +92,9 @@ export class AuthService {
       password
     }).pipe(
       tap(response => {
-        if (response.success && response.user) {
+        if (response.success && response.user && response.token) {
           this.setCurrentUser(response.user);
+          this.setToken(response.token);
         }
       })
     );
@@ -146,6 +150,28 @@ export class AuthService {
     this.currentUser.set(null);
     this.isAuthenticated.set(false);
     localStorage.removeItem('currentUser');
+    localStorage.removeItem('authToken');
+  }
+
+  /**
+   * Get JWT token from localStorage
+   */
+  getToken(): string | null {
+    return localStorage.getItem('authToken');
+  }
+
+  /**
+   * Set JWT token in localStorage
+   */
+  private setToken(token: string): void {
+    localStorage.setItem('authToken', token);
+  }
+
+  /**
+   * Remove JWT token from localStorage
+   */
+  private removeToken(): void {
+    localStorage.removeItem('authToken');
   }
 
   /**

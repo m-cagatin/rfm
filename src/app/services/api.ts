@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface CanvasData {
   id?: string;
@@ -79,7 +80,7 @@ export interface ProductData {
   providedIn: 'root'
 })
 export class ApiService {
-  private baseUrl = 'http://localhost:3001/api';
+  private baseUrl = environment.api.baseUrl;
 
   constructor(private http: HttpClient) { }
 

@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const database_service_1 = require("../services/database.service");
+const auth_middleware_1 = require("../middleware/auth.middleware");
 const router = (0, express_1.Router)();
 router.get('/', async (req, res) => {
     try {
@@ -33,7 +34,7 @@ router.get('/:id', async (req, res) => {
         });
     }
 });
-router.post('/', async (req, res) => {
+router.post('/', auth_middleware_1.authenticateToken, auth_middleware_1.requireAdmin, async (req, res) => {
     try {
         const { product_name, category, base_price, description, image_url, cloudinary_public_id, status, stock_quantity, sku, sizes, tags } = req.body;
         if (!product_name || !category || !base_price || !image_url) {
@@ -66,7 +67,7 @@ router.post('/', async (req, res) => {
         });
     }
 });
-router.put('/:id', async (req, res) => {
+router.put('/:id', auth_middleware_1.authenticateToken, auth_middleware_1.requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
         const updateData = {};
@@ -104,7 +105,7 @@ router.put('/:id', async (req, res) => {
         });
     }
 });
-router.patch('/:id/archive', async (req, res) => {
+router.patch('/:id/archive', auth_middleware_1.authenticateToken, auth_middleware_1.requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
         const result = await database_service_1.DatabaseService.archiveProduct(id);
@@ -119,7 +120,7 @@ router.patch('/:id/archive', async (req, res) => {
         });
     }
 });
-router.patch('/:id/restore', async (req, res) => {
+router.patch('/:id/restore', auth_middleware_1.authenticateToken, auth_middleware_1.requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
         const result = await database_service_1.DatabaseService.restoreProduct(id);
@@ -134,7 +135,7 @@ router.patch('/:id/restore', async (req, res) => {
         });
     }
 });
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', auth_middleware_1.authenticateToken, auth_middleware_1.requireAdmin, async (req, res) => {
     try {
         const { id } = req.params;
         const result = await database_service_1.DatabaseService.deleteProductPermanently(id);

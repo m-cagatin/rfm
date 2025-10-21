@@ -13,6 +13,7 @@ export interface ApiResponse<T = any> {
     data?: T;
     error?: string;
     user?: AuthUser;
+    token?: string;
 }
 export declare class AuthService {
     static hashPassword(password: string): Promise<string>;
