@@ -142,4 +142,45 @@ export class CloudinaryService {
   getOriginalUrl(publicId: string): string {
     return `https://res.cloudinary.com/${this.cloudName}/image/upload/${publicId}`;
   }
+
+  /**
+   * Upload multiple images to Cloudinary
+   * Returns array of upload responses
+   */
+  async uploadMultipleImages(files: File[], productName: string): Promise<UploadResponse[]> {
+    const uploadPromises = files.map((file, index) => {
+      const publicId = this.slugify(`${productName}-${index + 1}`);
+      return this.uploadImageWithPublicId(file, publicId);
+    });
+    
+    return Promise.all(uploadPromises);
+  }
+
+  /**
+   * Helper method for uploading with custom public_id
+   */
+  private async uploadImageWithPublicId(file: File, publicId: string): Promise<UploadResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', 'rfm_uploads');
+    formData.append('public_id', publicId);
+    formData.append('folder', 'rfm_products');
+
+    try {
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${this.cloudName}/image/upload`,
+        { method: 'POST', body: formData }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || `Upload failed: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Cloudinary upload error:', error);
+      throw error;
+    }
+  }
 }

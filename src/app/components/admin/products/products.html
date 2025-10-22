@@ -150,7 +150,9 @@
       <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="addProductModalLabel">Add Product</h5>
+            <h5 class="modal-title" id="addProductModalLabel">
+              {{ isEditMode() ? 'Edit Product' : 'Add New Product' }}
+            </h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
     
@@ -238,6 +240,55 @@
                 <small class="form-text text-muted">Stock Keeping Unit for inventory tracking</small>
               </div>
 
+              <!-- Colors Section (NEW) -->
+              <div class="mb-3">
+                <label class="form-label">Colors <span class="text-danger">*</span></label>
+                <div class="color-input-group">
+                  <input 
+                    type="text" 
+                    class="form-control" 
+                    [(ngModel)]="newColor"
+                    (keyup.enter)="addColor()"
+                    name="newColor"
+                    placeholder="Enter color name and press Enter">
+                  <button type="button" class="btn btn-sm btn-primary" (click)="addColor()">
+                    Add Color
+                  </button>
+                </div>
+                <div class="color-chips mt-2">
+                  <span *ngFor="let color of productForm.colors" class="badge bg-primary me-2 mb-2">
+                    {{ color }}
+                    <button type="button" class="btn-close btn-close-white ms-1" 
+                            (click)="removeColor(color)" 
+                            style="font-size: 0.7rem; padding: 0.2rem;"></button>
+                  </span>
+                </div>
+                <small class="text-muted">Add at least one color</small>
+              </div>
+
+              <!-- Material Section (NEW) -->
+              <div class="mb-3">
+                <label class="form-label">Material</label>
+                <input 
+                  type="text" 
+                  class="form-control" 
+                  [(ngModel)]="productForm.material"
+                  name="material"
+                  placeholder="e.g., 100% Cotton, Polyester Blend">
+                <small class="text-muted">Fabric composition (optional)</small>
+              </div>
+
+              <!-- Gender Section (NEW) -->
+              <div class="mb-3">
+                <label class="form-label">Gender/Fit Type</label>
+                <select class="form-select" [(ngModel)]="productForm.gender" name="gender">
+                  <option value="Unisex">Unisex</option>
+                  <option value="Men">Men</option>
+                  <option value="Women">Women</option>
+                  <option value="Kids">Kids</option>
+                </select>
+              </div>
+
               <!-- Sizes/Variants -->
               <div class="mb-3">
                 <label class="form-label">Available Sizes</label>
@@ -304,6 +355,69 @@
                   </div>
                 </div>
               </div>
+
+              <!-- Existing Additional Images (Edit Mode Only) -->
+              <div class="mb-3" *ngIf="isEditMode() && productForm.imageUrls.length > 0">
+                <label class="form-label">Existing Additional Images</label>
+                <div class="existing-images-grid">
+                  <div *ngFor="let url of productForm.imageUrls; let i = index" class="image-preview-wrapper position-relative">
+                    <img [src]="url" class="preview-thumbnail">
+                    <button 
+                      type="button" 
+                      class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1"
+                      style="padding: 0.25rem 0.5rem; font-size: 0.75rem;"
+                      (click)="removeExistingImage(i)"
+                      title="Remove image">
+                      ×
+                    </button>
+                  </div>
+                </div>
+                <small class="text-muted">Click × to remove images</small>
+              </div>
+
+              <!-- Multiple Images Upload -->
+              <div class="mb-3">
+                <label class="form-label">
+                  {{ isEditMode() ? 'Add More Images (Optional)' : 'Additional Images (Optional)' }}
+                </label>
+                <input 
+                  type="file" 
+                  class="form-control" 
+                  accept="image/jpeg,image/jpg,image/png,image/svg+xml"
+                  multiple
+                  (change)="onMultipleImagesSelected($event)">
+                <small class="text-muted">
+                  {{ isEditMode() ? 'Upload additional images to add to existing ones' : 'Upload multiple product images (front, back, details)' }}
+                </small>
+              </div>
+
+              <!-- Customization Options -->
+              <div class="mb-3">
+                <div class="form-check">
+                  <input 
+                    type="checkbox" 
+                    class="form-check-input" 
+                    id="allows-customization"
+                    [(ngModel)]="productForm.allows_customization"
+                    name="allows_customization">
+                  <label class="form-check-label" for="allows-customization">
+                    Allows Customization (printing/embroidery)
+                  </label>
+                </div>
+              </div>
+
+              <!-- Production Days -->
+              <div class="mb-3">
+                <label class="form-label">Production Lead Time (Days)</label>
+                <input 
+                  type="number" 
+                  class="form-control" 
+                  [(ngModel)]="productForm.production_days"
+                  name="production_days"
+                  min="1"
+                  placeholder="3">
+                <small class="text-muted">Estimated days to produce this item</small>
+              </div>
             </form>
           </div>
           <div class="modal-footer">
@@ -313,8 +427,13 @@
               class="btn btn-primary" 
               (click)="onSaveProduct()"
               [disabled]="isUploading()">
-              <span *ngIf="isUploading()" class="spinner-border spinner-border-sm me-2"></span>
-              {{ isUploading() ? 'Saving...' : 'Save Product' }}
+              <span *ngIf="isUploading()">
+                <span class="spinner-border spinner-border-sm me-1"></span>
+                Uploading...
+              </span>
+              <span *ngIf="!isUploading()">
+                {{ isEditMode() ? 'Update Product' : 'Save Product' }}
+              </span>
             </button>
           </div>
         </div>
@@ -408,6 +527,52 @@
                 </a>
               </div>
               
+              <!-- NEW FIELDS -->
+              <div class="info-group" *ngIf="getProductColors(selectedProduct()!).length > 0">
+                <label>Colors</label>
+                <p class="info-value">
+                  <span *ngFor="let color of getProductColors(selectedProduct()!)" class="badge bg-secondary me-1">
+                    {{ color }}
+                  </span>
+                </p>
+              </div>
+
+              <div class="info-group" *ngIf="selectedProduct()!.material">
+                <label>Material</label>
+                <p class="info-value">{{ selectedProduct()!.material }}</p>
+              </div>
+
+              <div class="info-group" *ngIf="selectedProduct()!.gender">
+                <label>Gender/Fit</label>
+                <p class="info-value">{{ selectedProduct()!.gender }}</p>
+              </div>
+
+              <div class="info-group full-width" *ngIf="getProductImages(selectedProduct()!).length > 0">
+                <label>Additional Images</label>
+                <div class="additional-images mt-2">
+                  <img *ngFor="let imageUrl of getProductImages(selectedProduct()!)" 
+                       [src]="imageUrl" 
+                       class="preview-thumbnail me-2"
+                       style="width: 100px; height: 100px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd;">
+                </div>
+              </div>
+
+              <div class="info-group">
+                <label>Allows Customization</label>
+                <p class="info-value">
+                  <span [class.badge]="true" 
+                        [class.bg-success]="selectedProduct()!.allows_customization"
+                        [class.bg-secondary]="!selectedProduct()!.allows_customization">
+                    {{ selectedProduct()!.allows_customization ? 'Yes' : 'No' }}
+                  </span>
+                </p>
+              </div>
+
+              <div class="info-group" *ngIf="selectedProduct()!.production_days">
+                <label>Production Time</label>
+                <p class="info-value">{{ selectedProduct()!.production_days }} days</p>
+              </div>
+
               <div class="info-group">
                 <label>Created At</label>
                 <p class="info-value">{{ formatDate(selectedProduct()?.created_at) }}</p>

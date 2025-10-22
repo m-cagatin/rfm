@@ -291,8 +291,10 @@ class DatabaseService {
         try {
             const connection = await database_1.pool.getConnection();
             const [result] = await connection.execute(`INSERT INTO catalog_clothing 
-         (product_name, category, base_price, description, image_url, cloudinary_public_id, status, stock_quantity, sku, sizes, tags) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+         (product_name, category, base_price, description, image_url, cloudinary_public_id, 
+          status, stock_quantity, sku, sizes, tags, 
+          colors, images, material, gender, allows_customization, production_days, stock_by_size_color) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
                 productData.product_name,
                 productData.category,
                 productData.base_price,
@@ -303,7 +305,14 @@ class DatabaseService {
                 productData.stock_quantity || 0,
                 productData.sku || null,
                 productData.sizes || null,
-                productData.tags || null
+                productData.tags || null,
+                productData.colors || null,
+                productData.images || null,
+                productData.material || null,
+                productData.gender || 'Unisex',
+                productData.allows_customization ?? true,
+                productData.production_days || 3,
+                productData.stock_by_size_color || null
             ]);
             connection.release();
             return {

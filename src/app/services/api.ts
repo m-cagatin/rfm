@@ -70,8 +70,16 @@ export interface ProductData {
   status?: 'Active' | 'Inactive' | 'Archived';
   stock_quantity?: number;
   sku?: string | null;
-  sizes?: string | string[] | null; // Can be JSON string or array
-  tags?: string | string[] | null;  // Can be JSON string or array
+  sizes?: string | null; // JSON string
+  tags?: string | null;  // JSON string
+  // NEW FIELDS
+  colors?: string | null;               // JSON string
+  images?: string | null;               // JSON string - multiple image URLs
+  material?: string | null;             // VARCHAR
+  gender?: 'Men' | 'Women' | 'Unisex' | 'Kids' | null;
+  allows_customization?: boolean;
+  production_days?: number;
+  stock_by_size_color?: string | null;  // JSON string
   created_at?: string;
   updated_at?: string;
 }

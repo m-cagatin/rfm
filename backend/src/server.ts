@@ -6,6 +6,8 @@ import authRoutes from './routes/auth.routes';
 import canvasRoutes from './routes/canvas.routes';
 import catalogRoutes from './routes/catalog.routes';
 import usersRoutes from './routes/users.routes';
+import cartRoutes from './routes/cart.routes';
+import ordersRoutes from './routes/orders.routes';
 import { DatabaseService } from './services/database.service';
 
 const app = express();
@@ -47,6 +49,8 @@ app.use('/api/canvas', canvasRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/catalog', catalogRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/orders', ordersRoutes);
 
 // Default route
 app.get('/', (req: express.Request, res: express.Response) => {
@@ -84,6 +88,22 @@ app.get('/', (req: express.Request, res: express.Response) => {
         update: 'PUT /api/users/:id',
         delete: 'DELETE /api/users/:id',
         updateLogin: 'PATCH /api/users/:id/login'
+      },
+      cart: {
+        get: 'GET /api/cart',
+        add: 'POST /api/cart',
+        update: 'PUT /api/cart/:itemId',
+        remove: 'DELETE /api/cart/:itemId',
+        clear: 'DELETE /api/cart',
+        merge: 'POST /api/cart/merge'
+      },
+      orders: {
+        create: 'POST /api/orders',
+        list: 'GET /api/orders',
+        get: 'GET /api/orders/:id',
+        customer: 'GET /api/orders/customer/:customerId',
+        updateStatus: 'PATCH /api/orders/:id/status',
+        cancel: 'DELETE /api/orders/:id'
       }
     }
   });

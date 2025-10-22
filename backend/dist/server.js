@@ -13,6 +13,8 @@ const auth_routes_1 = __importDefault(require("./routes/auth.routes"));
 const canvas_routes_1 = __importDefault(require("./routes/canvas.routes"));
 const catalog_routes_1 = __importDefault(require("./routes/catalog.routes"));
 const users_routes_1 = __importDefault(require("./routes/users.routes"));
+const cart_routes_1 = __importDefault(require("./routes/cart.routes"));
+const orders_routes_1 = __importDefault(require("./routes/orders.routes"));
 const database_service_1 = require("./services/database.service");
 const app = (0, express_1.default)();
 exports.app = app;
@@ -49,6 +51,8 @@ app.use('/api/canvas', canvas_routes_1.default);
 app.use('/api/auth', auth_routes_1.default);
 app.use('/api/catalog', catalog_routes_1.default);
 app.use('/api/users', users_routes_1.default);
+app.use('/api/cart', cart_routes_1.default);
+app.use('/api/orders', orders_routes_1.default);
 app.get('/', (req, res) => {
     res.json({
         message: 'RFM Backend API Server',
@@ -84,6 +88,22 @@ app.get('/', (req, res) => {
                 update: 'PUT /api/users/:id',
                 delete: 'DELETE /api/users/:id',
                 updateLogin: 'PATCH /api/users/:id/login'
+            },
+            cart: {
+                get: 'GET /api/cart',
+                add: 'POST /api/cart',
+                update: 'PUT /api/cart/:itemId',
+                remove: 'DELETE /api/cart/:itemId',
+                clear: 'DELETE /api/cart',
+                merge: 'POST /api/cart/merge'
+            },
+            orders: {
+                create: 'POST /api/orders',
+                list: 'GET /api/orders',
+                get: 'GET /api/orders/:id',
+                customer: 'GET /api/orders/customer/:customerId',
+                updateStatus: 'PATCH /api/orders/:id/status',
+                cancel: 'DELETE /api/orders/:id'
             }
         }
     });

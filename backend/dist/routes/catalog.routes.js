@@ -36,7 +36,7 @@ router.get('/:id', async (req, res) => {
 });
 router.post('/', auth_middleware_1.authenticateToken, auth_middleware_1.requireAdmin, async (req, res) => {
     try {
-        const { product_name, category, base_price, description, image_url, cloudinary_public_id, status, stock_quantity, sku, sizes, tags } = req.body;
+        const { product_name, category, base_price, description, image_url, cloudinary_public_id, status, stock_quantity, sku, sizes, tags, colors, images, material, gender, allows_customization, production_days, stock_by_size_color } = req.body;
         if (!product_name || !category || !base_price || !image_url) {
             return res.status(400).json({
                 success: false,
@@ -54,7 +54,14 @@ router.post('/', auth_middleware_1.authenticateToken, auth_middleware_1.requireA
             stock_quantity: stock_quantity ? parseInt(stock_quantity) : 0,
             sku,
             sizes: sizes ? JSON.stringify(sizes) : null,
-            tags: tags ? JSON.stringify(tags) : null
+            tags: tags ? JSON.stringify(tags) : null,
+            colors: colors ? JSON.stringify(colors) : null,
+            images: images ? JSON.stringify(images) : null,
+            material,
+            gender,
+            allows_customization: allows_customization ?? true,
+            production_days: production_days ? parseInt(production_days) : 3,
+            stock_by_size_color: stock_by_size_color ? JSON.stringify(stock_by_size_color) : null
         });
         res.status(result.success ? 201 : 400).json(result);
     }
@@ -93,6 +100,20 @@ router.put('/:id', auth_middleware_1.authenticateToken, auth_middleware_1.requir
             updateData.sizes = JSON.stringify(req.body.sizes);
         if (req.body.tags)
             updateData.tags = JSON.stringify(req.body.tags);
+        if (req.body.colors)
+            updateData.colors = JSON.stringify(req.body.colors);
+        if (req.body.images)
+            updateData.images = JSON.stringify(req.body.images);
+        if (req.body.material !== undefined)
+            updateData.material = req.body.material;
+        if (req.body.gender)
+            updateData.gender = req.body.gender;
+        if (req.body.allows_customization !== undefined)
+            updateData.allows_customization = req.body.allows_customization;
+        if (req.body.production_days !== undefined)
+            updateData.production_days = parseInt(req.body.production_days);
+        if (req.body.stock_by_size_color)
+            updateData.stock_by_size_color = JSON.stringify(req.body.stock_by_size_color);
         const result = await database_service_1.DatabaseService.updateProduct(id, updateData);
         res.status(result.success ? 200 : 400).json(result);
     }

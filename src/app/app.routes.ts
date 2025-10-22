@@ -4,6 +4,8 @@ import { SignupComponent } from './components/signup/signup';
 import { ApparelComponent } from './components/apparel/apparel';
 import { CustomizationComponent } from './components/customization/customization';
 import { CartComponent } from './components/cart/cart';
+import { CheckoutComponent } from './components/checkout/checkout';
+import { OrderHistoryComponent } from './components/order-history/order-history';
 import { LandingPageComponent } from './components/landing-page/landing-page';
 import { AccountSettingsComponent } from './components/account-settings/account-settings';
 
@@ -31,6 +33,8 @@ export const routes: Routes = [
   { path: 'apparel', component: ApparelComponent },
   { path: 'customization', component: CustomizationComponent },
   { path: 'cart', component: CartComponent },
+  { path: 'checkout', component: CheckoutComponent, canActivate: [AuthGuard] },
+  { path: 'orders', component: OrderHistoryComponent, canActivate: [AuthGuard] },
   
   // Protected user profile route
   { 
