@@ -10,7 +10,7 @@
     </div>
 
     <!-- Form -->
-    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" autocomplete="off">
       <!-- Error Message -->
       <div *ngIf="errorMessage" class="alert alert-danger" role="alert">
         {{ errorMessage }}
@@ -19,7 +19,8 @@
       <div class="form-group mb-3">
         <label for="email">Email Address</label>
         <input type="email" id="email" formControlName="email" class="form-control"
-          [class.is-invalid]="email?.invalid && email?.touched" placeholder="Enter your Email" />
+          [class.is-invalid]="email?.invalid && email?.touched" placeholder="Enter your Email" 
+          autocomplete="off" data-form-type="other" />
         <div *ngIf="email?.invalid && email?.touched" class="invalid-feedback">
           <div *ngIf="email?.errors?.['required']">Email is required</div>
           <div *ngIf="email?.errors?.['email']">Please enter a valid email</div>
@@ -29,7 +30,8 @@
       <div class="form-group mb-4">
         <label for="password">Password</label>
         <input type="password" id="password" formControlName="password" class="form-control"
-          [class.is-invalid]="password?.invalid && password?.touched" placeholder="Enter your Password" />
+          [class.is-invalid]="password?.invalid && password?.touched" placeholder="Enter your Password" 
+          autocomplete="new-password" data-form-type="other" />
         <div *ngIf="password?.invalid && password?.touched" class="invalid-feedback">
           <div *ngIf="password?.errors?.['required']">Password is required</div>
           <div *ngIf="password?.errors?.['minlength']">Password must be at least 6 characters</div>

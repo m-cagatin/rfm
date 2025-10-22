@@ -1,11 +1,11 @@
 ================================================================================
                     RFM SYSTEM - HOSTING STACK GUIDE
-                    Render + Cloudinary + Clerk
+                    Render + Aiven + Cloudinary + Clerk
 ================================================================================
 
-Last Updated: October 17, 2025
+Last Updated: January 2025
 Prepared for: RFM Team
-Stack: Render (Hosting) + Cloudinary (Images) + Clerk (Authentication)
+Stack: Render (Hosting) + Aiven (Database) + Cloudinary (Images) + Clerk (Authentication)
 
 ================================================================================
                          TABLE OF CONTENTS
@@ -13,13 +13,14 @@ Stack: Render (Hosting) + Cloudinary (Images) + Clerk (Authentication)
 
 1. Stack Architecture Overview
 2. Render - Hosting Platform
-3. Cloudinary - Image Storage & Processing
-4. Clerk - Authentication & User Management
-5. How They Work Together
-6. Cost Breakdown
-7. Pros & Cons
-8. Monitoring Requirements
-9. Next Steps
+3. Aiven - Database Service
+4. Cloudinary - Image Storage & Processing
+5. Clerk - Authentication & User Management
+6. How They Work Together
+7. Cost Breakdown
+8. Pros & Cons
+9. Monitoring Requirements
+10. Next Steps
 
 ================================================================================
                     1. STACK ARCHITECTURE OVERVIEW
@@ -43,10 +44,16 @@ YOUR USERS
 | |  (Node.js)   | |
 | +------+-------+ |
 |        |         |
-| +------v-------+ |
-| |   MySQL      | |
-| |  Database    | |
-| +--------------+ |
+|        v         |
+| +------------------+
+| |     AIVEN        |
+| |   (Database)     |
+| |                  |
+| | - MySQL/PostgreSQL|
+| | - Managed Service |
+| | - High Availability|
+| | - Automatic Backups|
+| +------------------+
 +--------+---------+
          |
          v
@@ -67,7 +74,7 @@ YOUR USERS
 
 ROLE:
 -----
-Hosts your ENTIRE application (frontend, backend, and database)
+Hosts your frontend and backend application (database is handled by Aiven)
 
 WHAT RENDER DOES:
 -----------------
@@ -84,12 +91,6 @@ B) Static Sites (Your Frontend)
    - CDN included (fast worldwide)
    - Automatic builds on Git push
    - Custom domains supported
-
-C) MySQL Database
-   - Managed MySQL database
-   - Automatic backups (paid plans)
-   - Monitoring and logs
-   - Direct connection via URL
 
 
 PRICING:
@@ -114,15 +115,14 @@ Web Services:
 |            |          | - Autoscaling                                |
 +------------+----------+----------------------------------------------+
 
-Database Pricing:
-+------------+----------+----------+
-| Plan       | Cost     | Storage  |
-+------------+----------+----------+
-| Free       | $0       | None     |
-| Starter    | $7/month | 1GB      |
-| Standard   | $15/month| 10GB     |
-| Pro        | $45/month| 100GB    |
-+------------+----------+----------+
+Static Sites Pricing:
++------------+----------+----------------------------------------------+
+| Plan       | Cost     | What You Get                                 |
++------------+----------+----------------------------------------------+
+| Free       | $0       | - Custom domains                             |
+|            |          | - Automatic builds                           |
+|            |          | - CDN included                               |
++------------+----------+----------------------------------------------+
 
 
 IMPORTANT LIMITATIONS:
@@ -132,16 +132,14 @@ Free Tier:
 [X] Spin down after 15 minutes of inactivity
     - First request after spin down takes 30-60 seconds
     - NOT good for production apps
-[X] NO MySQL database on free tier
-    - Need $7/month plan minimum for database
 [X] Apps sleep between midnight-6am if on free tier
 [✓] Good for testing and demos only
 
 Paid Tier ($7/month):
 [✓] Always on
-[✓] MySQL database included (1GB)
 [✓] Fast response times
 [✓] Good for small production apps
+[✓] Database handled separately by Aiven
 
 
 KEY FEATURES:
@@ -175,11 +173,12 @@ WHAT YOU MUST KNOW:
 
 2. You need at least $7/month for a real app
    - Web Service: $7/month
-   - MySQL Database: $7/month
-   - TOTAL: $14/month minimum
+   - Database: Handled by Aiven (separate cost)
+   - Frontend: Free (static site)
 
-3. Backups are manual on starter plan
-   - Need Pro plan ($45/month) for automatic backups
+3. Database backups handled by Aiven
+   - Aiven provides automatic backups
+   - No need for Render database services
 
 4. Region selection matters
    - Choose closest to your users (Philippines: Singapore region)
@@ -187,7 +186,156 @@ WHAT YOU MUST KNOW:
 
 
 ================================================================================
-                3. CLOUDINARY - IMAGE STORAGE & PROCESSING
+                    3. AIVEN - DATABASE SERVICE
+================================================================================
+
+ROLE:
+-----
+Provides managed database services (MySQL/PostgreSQL) with high availability and automatic backups
+
+WHAT AIVEN DOES:
+----------------
+
+A) Managed Database Service
+   - Fully managed MySQL or PostgreSQL
+   - Automatic backups and point-in-time recovery
+   - High availability with automatic failover
+   - Security patches and updates handled automatically
+   - Monitoring and alerting included
+
+B) Performance & Scalability
+   - SSD storage for fast performance
+   - Connection pooling for better resource utilization
+   - Read replicas for scaling read operations
+   - Automatic scaling based on usage
+
+C) Security & Compliance
+   - Encryption at rest and in transit
+   - VPC peering for secure connections
+   - IP whitelisting and firewall rules
+   - SOC 2 Type II compliant
+   - GDPR compliant
+
+D) Developer Experience
+   - Simple connection strings
+   - Web console for database management
+   - Query performance insights
+   - Easy backup restoration
+
+
+PRICING:
+--------
+
++------------+----------+----------+--------------------------------+
+| Plan       | Cost     | Storage  | What You Get                   |
++------------+----------+----------+--------------------------------+
+| Startup    | $19/month| 1GB      | - Single node                  |
+|            |          |          | - Basic monitoring             |
+|            |          |          | - Manual backups               |
++------------+----------+----------+--------------------------------+
+| Business   | $39/month| 10GB     | - High availability            |
+|            |          |          | - Automatic backups            |
+|            |          |          | - Read replicas                |
+|            |          |          | - Advanced monitoring          |
++------------+----------+----------+--------------------------------+
+| Premium    | $79/month| 50GB     | - Everything in Business       |
+|            |          |          | - Dedicated resources          |
+|            |          |          | - Priority support             |
++------------+----------+----------+--------------------------------+
+
+Additional Costs:
+- Storage: $0.10/GB/month beyond included storage
+- Data transfer: $0.09/GB for outbound data
+- Read replicas: $19/month each
+
+
+IMPORTANT LIMITATIONS:
+----------------------
+
+Startup Plan:
+[✓] Good for development and small apps
+[!] Single node (no high availability)
+[!] Manual backups only
+[!] Limited monitoring
+
+Business Plan:
+[✓] High availability with automatic failover
+[✓] Automatic backups with point-in-time recovery
+[✓] Read replicas for scaling
+[✓] Advanced monitoring and alerting
+
+When You'd Need Premium:
+- High-traffic production applications
+- Need dedicated resources
+- Require priority support
+- Complex compliance requirements
+
+
+KEY FEATURES:
+-------------
+
+1. Automatic Backups
+   - Daily automated backups
+   - Point-in-time recovery
+   - Backup retention up to 30 days
+   - One-click restore from any point
+
+2. High Availability
+   - Automatic failover to standby node
+   - 99.95% uptime SLA
+   - Zero-downtime maintenance windows
+   - Health monitoring and alerts
+
+3. Performance Monitoring
+   - Query performance insights
+   - Resource utilization metrics
+   - Slow query identification
+   - Connection monitoring
+
+4. Security Features
+   - SSL/TLS encryption
+   - IP whitelisting
+   - VPC peering support
+   - Regular security updates
+
+5. Easy Management
+   - Web-based console
+   - Simple connection strings
+   - Database user management
+   - Schema migration tools
+
+
+WHAT YOU MUST KNOW:
+-------------------
+
+1. Choose the right plan
+   - Startup: Development and small apps
+   - Business: Production apps with uptime requirements
+   - Premium: High-traffic or compliance-critical apps
+
+2. Monitor storage usage
+   - Storage costs add up quickly
+   - Clean up old data regularly
+   - Use compression where possible
+
+3. Use read replicas wisely
+   - Great for scaling read operations
+   - Additional cost per replica
+   - Consider if you have read-heavy workloads
+
+4. Backup strategy
+   - Business plan includes automatic backups
+   - Test restore procedures regularly
+   - Keep additional backups for critical data
+
+5. Connection management
+   - Use connection pooling
+   - Monitor connection limits
+   - Implement proper error handling
+
+
+================================================================================
+                4. CLOUDINARY - IMAGE STORAGE & PROCESSING
 ================================================================================
 
 ROLE:
@@ -503,7 +651,7 @@ WHAT YOU MUST KNOW:
 
 
 ================================================================================
-                    5. HOW THEY WORK TOGETHER
+                    6. HOW THEY WORK TOGETHER
 ================================================================================
 
 USER JOURNEY EXAMPLE: User uploads a custom design
@@ -540,7 +688,7 @@ Step 2: User creates and saves design
         - Canvas data
         |
         v
-    Render Backend saves to MySQL:
+    Render Backend saves to Aiven database:
         - designs table
         - Links to user via Clerk user ID
 
@@ -548,7 +696,7 @@ Step 3: User views their designs later
     User requests their designs
         |
         v
-    Render Backend fetches from MySQL
+    Render Backend fetches from Aiven database
         |
         v
     Returns image URLs (Cloudinary links)
@@ -568,26 +716,31 @@ DATA FLOW:
 +----------------+
 
 +----------------+
-|    RENDER      |  Stores: Canvas data, orders, user preferences,
-|   (MySQL)      |          product info. Links to Clerk via user_id
+|    RENDER      |  Hosts: Frontend (Angular) and Backend (Node.js)
+|   (Hosting)    |  Connects to Aiven database
++----------------+
+
++----------------+
+|     AIVEN      |  Stores: Canvas data, orders, user preferences,
+|   (Database)   |          product info. Links to Clerk via user_id
 +----------------+
 
 +----------------+
 |  CLOUDINARY    |  Stores: Images, designs, product photos
-+----------------+           Links via URLs stored in MySQL
++----------------+           Links via URLs stored in Aiven database
 
 
 EXAMPLE DATABASE SCHEMA:
 -------------------------
 
-Users table (MySQL on Render):
+Users table (Aiven Database):
 +------------+--------------+-------------------+
 | id         | clerk_user_id| email            |
 +------------+--------------+-------------------+
 | 1          | user_abc123  | john@gmail.com   |
 +------------+--------------+-------------------+
 
-Designs table (MySQL on Render):
+Designs table (Aiven Database):
 +----+---------+-------------+------------------------------------------------+
 | id | user_id | name        | image_url (Cloudinary)                         |
 +----+---------+-------------+------------------------------------------------+
@@ -596,13 +749,14 @@ Designs table (MySQL on Render):
 
 
 ================================================================================
-                        6. COST BREAKDOWN
+                        7. COST BREAKDOWN
 ================================================================================
 
 FREE TIER (Testing Only):
 -------------------------
 Render Web Service:        $0  (spins down after 15 min, NOT production-ready)
-Render Database:           $0  (NOT available on free tier)
+Render Static Site:        $0  (frontend hosting)
+Aiven Database:            $0  (NOT available on free tier)
 Cloudinary:                $0  (25GB storage, 25GB bandwidth)
 Clerk:                     $0  (10,000 users)
                           ----
@@ -612,35 +766,39 @@ Total:                     $0  BUT NOT PRODUCTION-READY
 MINIMAL PRODUCTION (RECOMMENDED START):
 ---------------------------------------
 Render Web Service:        $7/month   (backend, always on)
-Render Database:           $7/month   (MySQL 1GB)
+Render Static Site:        $0         (frontend hosting, free)
+Aiven Database:           $19/month   (Startup plan, 1GB)
 Cloudinary:                $0         (free tier sufficient for start)
 Clerk:                     $0         (free tier sufficient for start)
                           ----------
-Total:                    $14/month   ⭐ RECOMMENDED FOR PRODUCTION
+Total:                    $26/month   ⭐ RECOMMENDED FOR PRODUCTION
 
 
 GROWING BUSINESS:
 -----------------
 Render Web Service:       $25/month   (better performance, 2GB RAM)
-Render Database:          $15/month   (10GB storage)
+Render Static Site:        $0         (frontend hosting, free)
+Aiven Database:           $39/month   (Business plan, 10GB, HA)
 Cloudinary:            $0-99/month    (depends on traffic)
 Clerk:                 $0-25/month    (depends on active users)
                       --------------
-Total:                $40-164/month
+Total:                $64-188/month
 
 
 COST OPTIMIZATION TIPS:
 -----------------------
-1. Start with $14/month plan
+1. Start with $26/month plan (Render + Aiven)
 2. Monitor Cloudinary bandwidth (free tier often enough)
 3. Only upgrade when you actually hit limits
 4. Use Cloudinary transformations to reduce file sizes
 5. Implement image caching on frontend
 6. Delete unused images from Cloudinary regularly
+7. Monitor Aiven storage usage to avoid overage charges
+8. Consider Aiven Startup plan for development, Business for production
 
 
 ================================================================================
-                        7. PROS & CONS
+                        8. PROS & CONS
 ================================================================================
 
 PROS OF THIS STACK:
@@ -661,14 +819,14 @@ PROS OF THIS STACK:
 
 CONS OF THIS STACK:
 -------------------
-[X] Multiple platforms to manage (3 different dashboards)
-[X] No free production-ready option ($14/month minimum)
+[X] Multiple platforms to manage (4 different dashboards)
+[X] No free production-ready option ($26/month minimum)
 [X] Bandwidth limits (Cloudinary free tier can run out)
 [X] Cold starts on free tier (Render)
 [X] Less powerful than GCP/AWS (for massive scale)
 [X] Vendor lock-in per service (but migrations possible)
 [X] Need to monitor multiple usage metrics
-[X] Learning curve for three platforms
+[X] Learning curve for four platforms
 [X] Support is limited on free tiers
 
 
@@ -693,7 +851,7 @@ vs. Firebase:
 
 
 ================================================================================
-                    8. MONITORING REQUIREMENTS
+                    9. MONITORING REQUIREMENTS
 ================================================================================
 
 WHAT YOU MUST MONITOR:
@@ -705,16 +863,37 @@ WHAT YOU MUST MONITOR:
    Monitor:
    - CPU usage (if consistently high, upgrade plan)
    - Memory usage (if hitting limits, upgrade RAM)
-   - Database storage (1GB fills up quickly)
    - Request response times (should be <500ms)
    - Error logs (check daily)
    
    Action Triggers:
    - CPU >80% for 24 hours → Upgrade to $25/month plan
-   - Database >800MB → Clean old data or upgrade to $15/month
    - Response time >1 second → Investigate or upgrade
 
-2. CLOUDINARY USAGE:
+2. AIVEN USAGE:
+   Dashboard: console.aiven.io
+   
+   Monitor:
+   - Database storage used / plan limit
+   - CPU usage (if consistently high, upgrade plan)
+   - Memory usage (if hitting limits, upgrade plan)
+   - Connection count (monitor for connection leaks)
+   - Query performance (slow queries)
+   - Backup status and retention
+   
+   Action Triggers:
+   - Storage >80% of plan limit → Clean old data or upgrade plan
+   - CPU >80% for 24 hours → Upgrade to Business plan
+   - High connection count → Review connection pooling
+   - Slow queries detected → Optimize database queries
+   
+   Best Practices:
+   - Monitor query performance regularly
+   - Set up alerts for storage and performance
+   - Review slow query logs weekly
+   - Test backup restoration procedures monthly
+
+3. CLOUDINARY USAGE:
    Dashboard: cloudinary.com/console
    
    Monitor:
@@ -734,7 +913,7 @@ WHAT YOU MUST MONITOR:
    - Implement client-side caching
    - Compress images before upload when possible
 
-3. CLERK USAGE:
+4. CLERK USAGE:
    Dashboard: dashboard.clerk.com
    
    Monitor:
@@ -756,47 +935,52 @@ WHAT YOU MUST MONITOR:
 RECOMMENDED MONITORING SCHEDULE:
 --------------------------------
 Daily:   - Check Render error logs
+         - Check Aiven database health
          - Check critical errors on all platforms
 
 Weekly:  - Review Cloudinary bandwidth usage
          - Check Clerk active user count
+         - Review Aiven query performance
          - Review app performance metrics
 
 Monthly: - Full review of all usage metrics
          - Cost analysis
          - Capacity planning
          - Clean up unused resources
+         - Test Aiven backup restoration
 
 
 ALERT SETUP:
 ------------
 Set up email alerts for:
 - Render: CPU >90%, Memory >90%, Service down
+- Aiven: Storage >80%, CPU >90%, Connection issues
 - Cloudinary: Bandwidth >80% of limit
 - Clerk: Unusual login patterns
 
 
 ================================================================================
-                        9. NEXT STEPS
+                        10. NEXT STEPS
 ================================================================================
 
 IMPLEMENTATION PHASES:
 ----------------------
 
 PHASE 1: SETUP ACCOUNTS (30 minutes)
-    [_] Sign up for Render (render.com)
-    [_] Sign up for Cloudinary (cloudinary.com)
-    [_] Sign up for Clerk (clerk.com)
+    [_] Sign up for Render (render.com) - Already done
+    [_] Sign up for Aiven (aiven.io) - Already done
+    [_] Sign up for Cloudinary (cloudinary.com) - Already done
+    [_] Sign up for Clerk (clerk.com) - Not implemented yet
     [_] Verify email addresses
     [_] Add credit cards (Cloudinary requires it even for free tier)
 
-PHASE 2: CLOUDINARY INTEGRATION (1-2 hours)
-    [_] Install Cloudinary SDK in Angular project
-    [_] Create upload preset in Cloudinary dashboard
-    [_] Add image upload functionality to canvas
-    [_] Test image upload and retrieval
-    [_] Update database schema to store image URLs
-    [_] Replace current image storage with Cloudinary URLs
+PHASE 2: CLOUDINARY INTEGRATION (1-2 hours) - Already done
+    [✓] Install Cloudinary SDK in Angular project
+    [✓] Create upload preset in Cloudinary dashboard
+    [✓] Add image upload functionality to canvas
+    [✓] Test image upload and retrieval
+    [✓] Update database schema to store image URLs
+    [✓] Replace current image storage with Cloudinary URLs
 
 PHASE 3: CLERK AUTHENTICATION (2-3 hours)
     [_] Install Clerk Angular SDK
@@ -809,17 +993,16 @@ PHASE 3: CLERK AUTHENTICATION (2-3 hours)
     [_] Test Google login flow
     [_] Test email/password login flow
 
-PHASE 4: RENDER DEPLOYMENT (2-3 hours)
-    [_] Create render.yaml configuration file
-    [_] Set up Render web service for backend
-    [_] Set up Render static site for frontend
-    [_] Set up Render MySQL database
-    [_] Configure environment variables
-    [_] Connect GitHub repository
-    [_] Deploy backend
-    [_] Deploy frontend
-    [_] Test production deployment
-    [_] Configure custom domain (optional)
+PHASE 4: RENDER DEPLOYMENT (2-3 hours) - Already done
+    [✓] Create render.yaml configuration file
+    [✓] Set up Render web service for backend
+    [✓] Set up Render static site for frontend
+    [✓] Configure environment variables for Aiven connection
+    [✓] Connect GitHub repository
+    [✓] Deploy backend
+    [✓] Deploy frontend
+    [✓] Test production deployment
+    [✓] Configure custom domain (optional)
 
 PHASE 5: TESTING & OPTIMIZATION (1-2 hours)
     [_] End-to-end testing of all features
@@ -834,19 +1017,19 @@ PHASE 5: TESTING & OPTIMIZATION (1-2 hours)
 IMMEDIATE NEXT STEPS:
 ---------------------
 1. Review this document with team
-2. Decide on budget approval ($14/month minimum)
-3. Assign team members to each phase
-4. Schedule implementation timeline
-5. Create backup of current system before migration
+2. Decide on budget approval ($26/month minimum)
+3. Implement Clerk authentication (Phase 3)
+4. Complete testing and optimization (Phase 5)
+5. Set up monitoring and alerts
 
 
 DECISION CHECKLIST:
 -------------------
 Before proceeding, ensure:
-[_] Team understands the costs ($14/month minimum)
-[_] Team is comfortable managing 3 platforms
+[_] Team understands the costs ($26/month minimum)
+[_] Team is comfortable managing 4 platforms
 [_] Budget is approved
-[_] Timeline is acceptable (1-2 weeks for full implementation)
+[_] Timeline is acceptable (1-2 weeks for Clerk implementation)
 [_] Team has reviewed alternatives
 [_] Backup strategy is in place
 
@@ -854,11 +1037,13 @@ Before proceeding, ensure:
 RESOURCES & DOCUMENTATION:
 --------------------------
 Render:      https://render.com/docs
+Aiven:       https://docs.aiven.io
 Cloudinary:  https://cloudinary.com/documentation
 Clerk:       https://clerk.com/docs
 
 Community Support:
 Render:      https://community.render.com
+Aiven:       https://help.aiven.io
 Cloudinary:  https://support.cloudinary.com
 Clerk:       https://clerk.com/support
 
@@ -866,6 +1051,7 @@ Clerk:       https://clerk.com/support
 CONTACT FOR QUESTIONS:
 ----------------------
 Render Support:      support@render.com
+Aiven Support:       support@aiven.io
 Cloudinary Support:  support@cloudinary.com
 Clerk Support:       support@clerk.com
 
@@ -889,8 +1075,8 @@ COMMON QUESTIONS:
 -----------------
 
 Q: Can we start with free tier?
-A: Yes for testing, but you need $14/month for production (no database on 
-   free tier).
+A: Yes for testing, but you need $26/month for production (Aiven database 
+   requires paid plan).
 
 Q: What happens if we exceed Cloudinary free tier?
 A: Images will stop loading. You'll need to upgrade or delete unused images.
@@ -898,34 +1084,34 @@ A: Images will stop loading. You'll need to upgrade or delete unused images.
 Q: Can we switch from Clerk to another auth provider later?
 A: Yes, but it requires code changes. Clerk is not vendor-locked.
 
-Q: Is $14/month enough for launch?
+Q: Is $26/month enough for launch?
 A: Yes, sufficient for 100-500 active users with moderate usage.
 
 Q: What if the app gets popular suddenly?
-A: All three services scale automatically. You just pay more. No downtime.
+A: All four services scale automatically. You just pay more. No downtime.
 
 Q: Do we need separate staging and production?
-A: Recommended. Render allows multiple environments. Total: ~$28/month.
+A: Recommended. Render allows multiple environments. Total: ~$52/month.
 
 Q: Can we use our own domain?
-A: Yes, all three services support custom domains.
+A: Yes, all four services support custom domains.
 
 Q: Is the data secure?
-A: Yes, all three services are SOC 2 compliant and use encryption.
+A: Yes, all four services are SOC 2 compliant and use encryption.
 
 
 ================================================================================
                             END OF DOCUMENT
 ================================================================================
 
-Document Version: 1.0
-Last Updated: October 17, 2025
+Document Version: 2.0
+Last Updated: January 2025
 Prepared by: AI Development Assistant for RFM Team
 
 For questions or clarifications, please refer to the official documentation
 of each service or contact their support teams.
 
-NEXT STEPS: Review with team and begin Phase 1 (Setup Accounts)
+NEXT STEPS: Review with team and begin Phase 3 (Clerk Authentication Implementation)
 
 ================================================================================
 
