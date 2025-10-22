@@ -6,8 +6,6 @@ export interface DatabaseConfig {
     password: string;
     database: string;
     connectionLimit: number;
-    acquireTimeout: number;
-    timeout: number;
     ssl?: any;
     decimalNumbers?: boolean;
 }

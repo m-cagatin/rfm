@@ -332,17 +332,21 @@ class DatabaseService {
     static async getProducts(category, status) {
         try {
             const connection = await database_1.pool.getConnection();
-            let query = 'SELECT * FROM catalog_clothing WHERE 1=1';
+            let query = 'SELECT * FROM catalog_clothing';
             const params = [];
-            if (category) {
-                query += ' AND category = ?';
-                params.push(category);
+            if (category || status) {
+                query += ' WHERE ';
+                const conditions = [];
+                if (category) {
+                    conditions.push('category = ?');
+                    params.push(category);
+                }
+                if (status) {
+                    conditions.push('status = ?');
+                    params.push(status);
+                }
+                query += conditions.join(' AND ');
             }
-            if (status) {
-                query += ' AND status = ?';
-                params.push(status);
-            }
-            query += ' ORDER BY created_at DESC';
             const [rows] = await connection.execute(query, params);
             connection.release();
             const normalized = rows.map((r) => ({
@@ -354,7 +358,7 @@ class DatabaseService {
         }
         catch (error) {
             console.error('Database error in getProducts:', error);
-            return { success: false, message: 'Database error occurred', error: error.message };
+            return { success: false, message: 'Failed to fetch products', error: error.message };
         }
     }
     static async getProduct(productId) {

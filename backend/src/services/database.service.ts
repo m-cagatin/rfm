@@ -1,4 +1,5 @@
 import { ResultSetHeader, RowDataPacket } from 'mysql2';
+import mysql from 'mysql2/promise';
 import { pool } from '../config/database';
 
 export interface CanvasData {
@@ -392,22 +393,26 @@ export class DatabaseService {
   static async getProducts(category?: string, status?: string): Promise<ApiResponse<any[]>> {
     try {
       const connection = await pool.getConnection();
-      let query = 'SELECT * FROM catalog_clothing WHERE 1=1';
+      let query = 'SELECT * FROM catalog_clothing';
       const params: any[] = [];
       
-      if (category) {
-        query += ' AND category = ?';
-        params.push(category);
+      if (category || status) {
+        query += ' WHERE ';
+        const conditions = [];
+        if (category) {
+          conditions.push('category = ?');
+          params.push(category);
+        }
+        if (status) {
+          conditions.push('status = ?');
+          params.push(status);
+        }
+        query += conditions.join(' AND ');
       }
-      if (status) {
-        query += ' AND status = ?';
-        params.push(status);
-      }
-      
-      query += ' ORDER BY created_at DESC';
       
       const [rows] = await connection.execute(query, params);
       connection.release();
+      
       // Normalize types to ensure frontend gets numbers for DECIMAL fields
       const normalized = (rows as any[]).map((r) => ({
         ...r,
@@ -417,7 +422,7 @@ export class DatabaseService {
       return { success: true, data: normalized };
     } catch (error) {
       console.error('Database error in getProducts:', error);
-      return { success: false, message: 'Database error occurred', error: (error as Error).message };
+      return { success: false, message: 'Failed to fetch products', error: (error as Error).message };
     }
   }
 

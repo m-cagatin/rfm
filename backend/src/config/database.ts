@@ -13,8 +13,6 @@ export interface DatabaseConfig {
   password: string;
   database: string;
   connectionLimit: number;
-  acquireTimeout: number;
-  timeout: number;
   ssl?: any;
   // Ensure DECIMAL columns (e.g., base_price) are returned as numbers
   decimalNumbers?: boolean;
@@ -27,8 +25,6 @@ export const dbConfig: DatabaseConfig = {
   password: process.env['DB_PASSWORD'] || '',
   database: process.env['DB_NAME'] || 'rfm_db',
   connectionLimit: 10,
-  acquireTimeout: 60000,
-  timeout: 60000,
   decimalNumbers: true,
 };
 
