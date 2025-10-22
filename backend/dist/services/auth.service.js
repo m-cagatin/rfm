@@ -45,7 +45,7 @@ class AuthService {
     static async comparePassword(password, hash) {
         return await bcrypt.compare(password, hash);
     }
-    static async registerCustomer(email, password, fullName, phone, address) {
+    static async registerCustomer(email, password, fullName, phone, address, city, province, postalCode, country, dateOfBirth, emergencyContactName, emergencyContactPhone, preferredContactMethod, marketingConsent) {
         try {
             const connection = await database_1.pool.getConnection();
             const [existing] = await connection.execute('SELECT CustomerId FROM customer_accounts WHERE CustomerEmail = ?', [email]);
@@ -59,15 +59,31 @@ class AuthService {
             }
             const passwordHash = await this.hashPassword(password);
             const [result] = await connection.execute(`INSERT INTO customer_accounts 
-         (CustomerEmail, CustomerPasswordHash, CustomerFullName, CustomerPhone, CustomerAddress) 
-         VALUES (?, ?, ?, ?, ?)`, [email, passwordHash, fullName, phone || null, address || null]);
+         (CustomerEmail, CustomerPasswordHash, CustomerFullName, CustomerPhone, CustomerAddress, 
+          CustomerCity, CustomerProvince, CustomerPostalCode, CustomerCountry, DateOfBirth,
+          EmergencyContactName, EmergencyContactPhone, PreferredContactMethod, MarketingConsent) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+                email, passwordHash, fullName, phone, address,
+                city || null, province || null, postalCode || null, country || 'Philippines',
+                dateOfBirth || null, emergencyContactName || null, emergencyContactPhone || null,
+                preferredContactMethod || 'email', marketingConsent || false
+            ]);
             const userData = {
                 id: result.insertId,
                 email,
                 name: fullName,
                 role: 'customer',
                 phone,
-                address
+                address,
+                city,
+                province,
+                postalCode,
+                country: country || 'Philippines',
+                dateOfBirth,
+                emergencyContactName,
+                emergencyContactPhone,
+                preferredContactMethod: preferredContactMethod || 'email',
+                marketingConsent: marketingConsent || false
             };
             const token = jwt_service_1.JwtService.generateToken({
                 userId: result.insertId,
@@ -95,7 +111,9 @@ class AuthService {
         try {
             const connection = await database_1.pool.getConnection();
             const [customerRows] = await connection.execute(`SELECT CustomerId, CustomerEmail, CustomerPasswordHash, CustomerFullName, 
-                CustomerPhone, CustomerAddress 
+                CustomerPhone, CustomerAddress, CustomerCity, CustomerProvince, 
+                CustomerPostalCode, CustomerCountry, DateOfBirth, EmergencyContactName,
+                EmergencyContactPhone, PreferredContactMethod, MarketingConsent
          FROM customer_accounts 
          WHERE CustomerEmail = ?`, [email]);
             if (customerRows.length > 0) {
@@ -109,7 +127,16 @@ class AuthService {
                         name: customer['CustomerFullName'],
                         role: 'customer',
                         phone: customer['CustomerPhone'],
-                        address: customer['CustomerAddress']
+                        address: customer['CustomerAddress'],
+                        city: customer['CustomerCity'],
+                        province: customer['CustomerProvince'],
+                        postalCode: customer['CustomerPostalCode'],
+                        country: customer['CustomerCountry'],
+                        dateOfBirth: customer['DateOfBirth'],
+                        emergencyContactName: customer['EmergencyContactName'],
+                        emergencyContactPhone: customer['EmergencyContactPhone'],
+                        preferredContactMethod: customer['PreferredContactMethod'],
+                        marketingConsent: customer['MarketingConsent']
                     };
                     const token = jwt_service_1.JwtService.generateToken({
                         userId: customer['CustomerId'],

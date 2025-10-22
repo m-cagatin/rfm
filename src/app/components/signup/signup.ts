@@ -24,8 +24,17 @@ export class SignupComponent {
     this.signupForm = this.fb.group({
       fullName: ['', [Validators.required, Validators.minLength(2)]],
       email: ['', [Validators.required, Validators.email]],
-      phone: ['', [Validators.pattern(/^[\d\s\+\-\(\)]+$/)]],
-      address: [''],
+      phone: ['', [Validators.required, Validators.pattern(/^[\d\s\+\-\(\)]+$/)]],
+      address: ['', [Validators.required, Validators.minLength(10)]],
+      city: ['', [Validators.required]],
+      province: ['', [Validators.required]],
+      postalCode: ['', [Validators.required]],
+      country: ['Philippines', [Validators.required]],
+      dateOfBirth: [''],
+      emergencyContactName: [''],
+      emergencyContactPhone: ['', [Validators.pattern(/^[\d\s\+\-\(\)]+$/)]],
+      preferredContactMethod: ['email', [Validators.required]],
+      marketingConsent: [false],
       password: ['', [Validators.required, Validators.minLength(6)]],
       confirmPassword: ['', [Validators.required]]
     }, {
@@ -56,9 +65,14 @@ export class SignupComponent {
     this.errorMessage = '';
     this.successMessage = '';
 
-    const { fullName, email, phone, address, password } = this.signupForm.value;
+    const { fullName, email, phone, address, city, province, postalCode, country, 
+            dateOfBirth, emergencyContactName, emergencyContactPhone, 
+            preferredContactMethod, marketingConsent, password } = this.signupForm.value;
 
-    this.authService.register(email, password, fullName, phone, address).subscribe({
+    this.authService.register(email, password, fullName, phone, address, city, 
+                              province, postalCode, country, dateOfBirth, 
+                              emergencyContactName, emergencyContactPhone, 
+                              preferredContactMethod, marketingConsent).subscribe({
       next: (response) => {
         this.isLoading = false;
         if (response.success) {
@@ -86,27 +100,20 @@ export class SignupComponent {
     });
   }
 
-  get fullName() {
-    return this.signupForm.get('fullName');
-  }
-
-  get email() {
-    return this.signupForm.get('email');
-  }
-
-  get phone() {
-    return this.signupForm.get('phone');
-  }
-
-  get address() {
-    return this.signupForm.get('address');
-  }
-
-  get password() {
-    return this.signupForm.get('password');
-  }
-
-  get confirmPassword() {
-    return this.signupForm.get('confirmPassword');
-  }
+  // Getter methods for form controls
+  get fullName() { return this.signupForm.get('fullName'); }
+  get email() { return this.signupForm.get('email'); }
+  get phone() { return this.signupForm.get('phone'); }
+  get address() { return this.signupForm.get('address'); }
+  get city() { return this.signupForm.get('city'); }
+  get province() { return this.signupForm.get('province'); }
+  get postalCode() { return this.signupForm.get('postalCode'); }
+  get country() { return this.signupForm.get('country'); }
+  get dateOfBirth() { return this.signupForm.get('dateOfBirth'); }
+  get emergencyContactName() { return this.signupForm.get('emergencyContactName'); }
+  get emergencyContactPhone() { return this.signupForm.get('emergencyContactPhone'); }
+  get preferredContactMethod() { return this.signupForm.get('preferredContactMethod'); }
+  get marketingConsent() { return this.signupForm.get('marketingConsent'); }
+  get password() { return this.signupForm.get('password'); }
+  get confirmPassword() { return this.signupForm.get('confirmPassword'); }
 }

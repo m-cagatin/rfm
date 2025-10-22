@@ -63,7 +63,15 @@ export class CheckoutComponent implements OnInit {
       this.checkoutForm.customer_name = user.name || '';
       this.checkoutForm.customer_email = user.email || '';
       this.checkoutForm.customer_phone = user.phone || '';
-      this.checkoutForm.customer_address = user.address || '';
+      
+      // Build complete address from user data
+      let fullAddress = user.address || '';
+      if (user.city) fullAddress += `, ${user.city}`;
+      if (user.province) fullAddress += `, ${user.province}`;
+      if (user.postalCode) fullAddress += ` ${user.postalCode}`;
+      if (user.country && user.country !== 'Philippines') fullAddress += `, ${user.country}`;
+      
+      this.checkoutForm.customer_address = fullAddress;
     }
   }
 

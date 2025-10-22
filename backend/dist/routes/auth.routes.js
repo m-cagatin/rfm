@@ -5,11 +5,11 @@ const auth_service_1 = require("../services/auth.service");
 const router = (0, express_1.Router)();
 router.post('/register', async (req, res) => {
     try {
-        const { email, password, fullName, phone, address } = req.body;
-        if (!email || !password || !fullName) {
+        const { email, password, fullName, phone, address, city, province, postalCode, country, dateOfBirth, emergencyContactName, emergencyContactPhone, preferredContactMethod, marketingConsent } = req.body;
+        if (!email || !password || !fullName || !phone || !address) {
             return res.status(400).json({
                 success: false,
-                message: 'Email, password, and full name are required'
+                message: 'Email, password, full name, phone, and address are required'
             });
         }
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -25,7 +25,7 @@ router.post('/register', async (req, res) => {
                 message: 'Password must be at least 6 characters long'
             });
         }
-        const result = await auth_service_1.AuthService.registerCustomer(email, password, fullName, phone, address);
+        const result = await auth_service_1.AuthService.registerCustomer(email, password, fullName, phone, address, city, province, postalCode, country, dateOfBirth, emergencyContactName, emergencyContactPhone, preferredContactMethod, marketingConsent);
         res.status(result.success ? 201 : 400).json(result);
     }
     catch (error) {

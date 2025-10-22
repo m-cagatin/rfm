@@ -11,6 +11,15 @@ export interface AuthUser {
   role: 'customer' | 'employee';
   phone?: string;
   address?: string;
+  city?: string;
+  province?: string;
+  postalCode?: string;
+  country?: string;
+  dateOfBirth?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  preferredContactMethod?: 'email' | 'phone' | 'sms';
+  marketingConsent?: boolean;
   roles?: string[];
 }
 
@@ -64,15 +73,33 @@ export class AuthService {
     email: string,
     password: string,
     fullName: string,
-    phone?: string,
-    address?: string
+    phone: string,
+    address: string,
+    city?: string,
+    province?: string,
+    postalCode?: string,
+    country?: string,
+    dateOfBirth?: string,
+    emergencyContactName?: string,
+    emergencyContactPhone?: string,
+    preferredContactMethod?: 'email' | 'phone' | 'sms',
+    marketingConsent?: boolean
   ): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.baseUrl}/register`, {
       email,
       password,
       fullName,
       phone,
-      address
+      address,
+      city,
+      province,
+      postalCode,
+      country,
+      dateOfBirth,
+      emergencyContactName,
+      emergencyContactPhone,
+      preferredContactMethod,
+      marketingConsent
     }).pipe(
       tap(response => {
         if (response.success && response.user && response.token) {

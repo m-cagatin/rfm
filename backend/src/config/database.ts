@@ -114,11 +114,22 @@ export async function initializeDatabase(): Promise<void> {
         CustomerEmail VARCHAR(255) UNIQUE NOT NULL,
         CustomerPasswordHash CHAR(60) NOT NULL,
         CustomerFullName VARCHAR(255) NOT NULL,
-        CustomerPhone VARCHAR(20),
-        CustomerAddress TEXT,
+        CustomerPhone VARCHAR(20) NOT NULL,
+        CustomerAddress TEXT NOT NULL,
+        CustomerCity VARCHAR(100),
+        CustomerProvince VARCHAR(100),
+        CustomerPostalCode VARCHAR(20),
+        CustomerCountry VARCHAR(100) DEFAULT 'Philippines',
+        DateOfBirth DATE,
+        EmergencyContactName VARCHAR(255),
+        EmergencyContactPhone VARCHAR(20),
+        PreferredContactMethod ENUM('email', 'phone', 'sms') DEFAULT 'email',
+        MarketingConsent BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         last_login TIMESTAMP NULL,
-        INDEX idx_email (CustomerEmail)
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_email (CustomerEmail),
+        INDEX idx_phone (CustomerPhone)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `;
     await connection.execute(createCustomerAccountsTable);
