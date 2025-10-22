@@ -88,7 +88,7 @@ export class AuthService {
       // Hash password
       const passwordHash = await this.hashPassword(password);
 
-      // Insert new customer
+      // Insert new customer with all required fields for orders
       const [result] = await connection.execute<ResultSetHeader>(
         `INSERT INTO customer_accounts 
          (CustomerEmail, CustomerPasswordHash, CustomerFullName, CustomerPhone, CustomerAddress, 
@@ -153,10 +153,12 @@ export class AuthService {
     try {
       const connection = await pool.getConnection();
 
-      // First, try customer_accounts table (with basic columns only)
+      // First, try customer_accounts table (with all columns)
       const [customerRows] = await connection.execute<RowDataPacket[]>(
         `SELECT CustomerId, CustomerEmail, CustomerPasswordHash, CustomerFullName, 
-                CustomerPhone, CustomerAddress
+                CustomerPhone, CustomerAddress, CustomerCity, CustomerProvince, 
+                CustomerPostalCode, CustomerCountry, DateOfBirth, EmergencyContactName,
+                EmergencyContactPhone, PreferredContactMethod, MarketingConsent
          FROM customer_accounts 
          WHERE CustomerEmail = ?`,
         [email]
@@ -179,7 +181,16 @@ export class AuthService {
             name: customer['CustomerFullName'],
             role: 'customer' as const,
             phone: customer['CustomerPhone'],
-            address: customer['CustomerAddress']
+            address: customer['CustomerAddress'],
+            city: customer['CustomerCity'],
+            province: customer['CustomerProvince'],
+            postalCode: customer['CustomerPostalCode'],
+            country: customer['CustomerCountry'],
+            dateOfBirth: customer['DateOfBirth'],
+            emergencyContactName: customer['EmergencyContactName'],
+            emergencyContactPhone: customer['EmergencyContactPhone'],
+            preferredContactMethod: customer['PreferredContactMethod'],
+            marketingConsent: customer['MarketingConsent']
           };
 
           // Generate JWT token
