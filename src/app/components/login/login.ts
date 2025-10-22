@@ -39,25 +39,19 @@ export class LoginComponent {
 
     this.authService.login(email, password).subscribe({
       next: (response) => {
-        console.log('Login response:', response);
         this.isLoading = false;
         if (response.success && response.user) {
-          console.log('User role:', response.user.role);
           // Route based on user role
           if (response.user.role === 'customer') {
-            console.log('Redirecting to apparel...');
             this.router.navigate(['/apparel']);
           } else if (response.user.role === 'employee') {
-            console.log('Redirecting to admin...');
             this.router.navigate(['/admin']);
           }
         } else {
-          console.log('Login failed:', response.message);
           this.errorMessage = response.message || 'Login failed';
         }
       },
       error: (error) => {
-        console.error('Login error:', error);
         this.isLoading = false;
         this.errorMessage = error.error?.message || 'Login failed. Please try again.';
       }

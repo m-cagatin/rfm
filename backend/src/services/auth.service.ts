@@ -153,12 +153,10 @@ export class AuthService {
     try {
       const connection = await pool.getConnection();
 
-      // First, try customer_accounts table
+      // First, try customer_accounts table (with basic columns only)
       const [customerRows] = await connection.execute<RowDataPacket[]>(
         `SELECT CustomerId, CustomerEmail, CustomerPasswordHash, CustomerFullName, 
-                CustomerPhone, CustomerAddress, CustomerCity, CustomerProvince, 
-                CustomerPostalCode, CustomerCountry, DateOfBirth, EmergencyContactName,
-                EmergencyContactPhone, PreferredContactMethod, MarketingConsent
+                CustomerPhone, CustomerAddress
          FROM customer_accounts 
          WHERE CustomerEmail = ?`,
         [email]
@@ -181,16 +179,7 @@ export class AuthService {
             name: customer['CustomerFullName'],
             role: 'customer' as const,
             phone: customer['CustomerPhone'],
-            address: customer['CustomerAddress'],
-            city: customer['CustomerCity'],
-            province: customer['CustomerProvince'],
-            postalCode: customer['CustomerPostalCode'],
-            country: customer['CustomerCountry'],
-            dateOfBirth: customer['DateOfBirth'],
-            emergencyContactName: customer['EmergencyContactName'],
-            emergencyContactPhone: customer['EmergencyContactPhone'],
-            preferredContactMethod: customer['PreferredContactMethod'],
-            marketingConsent: customer['MarketingConsent']
+            address: customer['CustomerAddress']
           };
 
           // Generate JWT token

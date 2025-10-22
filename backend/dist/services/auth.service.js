@@ -111,9 +111,7 @@ class AuthService {
         try {
             const connection = await database_1.pool.getConnection();
             const [customerRows] = await connection.execute(`SELECT CustomerId, CustomerEmail, CustomerPasswordHash, CustomerFullName, 
-                CustomerPhone, CustomerAddress, CustomerCity, CustomerProvince, 
-                CustomerPostalCode, CustomerCountry, DateOfBirth, EmergencyContactName,
-                EmergencyContactPhone, PreferredContactMethod, MarketingConsent
+                CustomerPhone, CustomerAddress
          FROM customer_accounts 
          WHERE CustomerEmail = ?`, [email]);
             if (customerRows.length > 0) {
@@ -127,16 +125,7 @@ class AuthService {
                         name: customer['CustomerFullName'],
                         role: 'customer',
                         phone: customer['CustomerPhone'],
-                        address: customer['CustomerAddress'],
-                        city: customer['CustomerCity'],
-                        province: customer['CustomerProvince'],
-                        postalCode: customer['CustomerPostalCode'],
-                        country: customer['CustomerCountry'],
-                        dateOfBirth: customer['DateOfBirth'],
-                        emergencyContactName: customer['EmergencyContactName'],
-                        emergencyContactPhone: customer['EmergencyContactPhone'],
-                        preferredContactMethod: customer['PreferredContactMethod'],
-                        marketingConsent: customer['MarketingConsent']
+                        address: customer['CustomerAddress']
                     };
                     const token = jwt_service_1.JwtService.generateToken({
                         userId: customer['CustomerId'],
