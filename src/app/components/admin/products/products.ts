@@ -12,15 +12,14 @@ export interface ProductForm {
   stockQuantity: number;
   sku: string;
   sizes: string[];
-  imageUrl: string;
-  imageFile: File | null;
-  cloudinary_public_id?: string;        // For edit mode
+  imageUrl: string;                     // Primary image URL (first from imageUrls)
+  cloudinary_public_id?: string;        // For edit mode (primary image)
   // NEW FIELDS
   colors: string[];                     // Array of color names
   material: string;                     // e.g., "100% Cotton"
   gender: 'Unisex' | 'Men' | 'Women' | 'Kids';
   imageFiles: File[];                   // Multiple image uploads
-  imageUrls: string[];                  // URLs of uploaded images
+  imageUrls: string[];                  // URLs of uploaded images (first is primary)
   allows_customization: boolean;
   production_days: number;
 }
@@ -42,7 +41,6 @@ export class AdminProductsComponent implements OnInit {
     sku: '',
     sizes: [],
     imageUrl: '',
-    imageFile: null,
     cloudinary_public_id: undefined,
     // NEW FIELDS
     colors: [],
@@ -84,10 +82,9 @@ export class AdminProductsComponent implements OnInit {
   ];
 
   protected isUploading = signal(false);
-  protected uploadedImageUrl = signal<string | null>(null);
-  protected selectedFile = signal<string | null>(null);
   protected message = signal('');
   protected messageType = signal<'success' | 'error' | 'info' | ''>('');
+  protected newImagePreviews: string[] = [];
 
   // NEW: Color input and edit mode state
   protected newColor = '';
@@ -278,36 +275,8 @@ export class AdminProductsComponent implements OnInit {
     }
   }
 
-  onFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (input.files && input.files[0]) {
-      const file = input.files[0];
-      
-      // Validate file type
-      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/svg+xml'];
-      if (!validTypes.includes(file.type)) {
-        alert('⚠️ Please upload a valid image file (JPG, PNG, SVG)');
-        return;
-      }
-
-      // Validate file size (max 5MB)
-      const maxSize = 5 * 1024 * 1024; // 5MB
-      if (file.size > maxSize) {
-        alert('⚠️ File size must be less than 5MB');
-        return;
-      }
-
-      // Store the file and show preview
-      this.productForm.imageFile = file;
-      this.selectedFile.set(file.name);
-
-      // Create a local preview URL
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        this.uploadedImageUrl.set(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
+  getNewImagePreviews(): string[] {
+    return this.newImagePreviews;
   }
 
   // NEW: Color management methods
@@ -323,7 +292,7 @@ export class AdminProductsComponent implements OnInit {
     this.productForm.colors = this.productForm.colors.filter(c => c !== color);
   }
 
-  // NEW: Multiple image upload handler
+  // Multiple image upload handler
   onMultipleImagesSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files) {
@@ -343,42 +312,20 @@ export class AdminProductsComponent implements OnInit {
       
       this.productForm.imageFiles = filesArray;
       
-      // Clear previous previews for new uploads (but not in edit mode if we want to keep existing)
-      if (!this.isEditMode()) {
-        this.productForm.imageUrls = [];
-      }
+      // Clear previous new image previews
+      this.newImagePreviews = [];
       
-      // Create local preview URLs
+      // Create local preview URLs for new uploads
       filesArray.forEach(file => {
         const reader = new FileReader();
         reader.onload = (e) => {
-          this.productForm.imageUrls.push(e.target?.result as string);
+          this.newImagePreviews.push(e.target?.result as string);
         };
         reader.readAsDataURL(file);
       });
     }
   }
 
-  async uploadImageToCloudinary(file: File): Promise<void> {
-    try {
-      this.isUploading.set(true);
-      this.showMessage('📤 Uploading image to Cloudinary...', 'info');
-      
-      const result: UploadResponse = await this.cloudinaryService.uploadImage(file);
-      
-      // Store the Cloudinary URL
-      this.productForm.imageUrl = result.secure_url;
-      this.uploadedImageUrl.set(this.cloudinaryService.getThumbnailUrl(result.public_id, 200));
-      
-      console.log('Image uploaded successfully:', result);
-      this.showMessage('✓ Image uploaded successfully!', 'success');
-    } catch (error) {
-      console.error('Upload failed:', error);
-      this.showMessage('✗ Failed to upload image. Please try again.', 'error');
-    } finally {
-      this.isUploading.set(false);
-    }
-  }
 
   async onSaveProduct(): Promise<void> {
     // Validate required fields
@@ -394,9 +341,9 @@ export class AdminProductsComponent implements OnInit {
       return;
     }
 
-    // Image required ONLY for CREATE mode
-    if (!this.isEditMode() && !this.productForm.imageFile) {
-      alert('⚠️ Please select a product image');
+    // Images required ONLY for CREATE mode
+    if (!this.isEditMode() && this.productForm.imageFiles.length === 0) {
+      alert('⚠️ Please select at least one product image');
       return;
     }
 
@@ -414,25 +361,11 @@ export class AdminProductsComponent implements OnInit {
     try {
       this.isUploading.set(true);
 
-      // CONDITIONAL PRIMARY IMAGE UPLOAD
-      let primaryImageUrl = this.productForm.imageUrl;
-      let cloudinaryPublicId = this.productForm.cloudinary_public_id || '';
-
-      if (this.productForm.imageFile) {
-        this.showMessage('📤 Uploading primary image...', 'info');
-        const primaryResult = await this.cloudinaryService.uploadImageWithProductName(
-          this.productForm.imageFile,
-          this.productForm.name
-        );
-        primaryImageUrl = primaryResult.secure_url;
-        cloudinaryPublicId = primaryResult.public_id;
-      }
-
-      // PRESERVE ADDITIONAL IMAGES and append new ones
+      // PRESERVE existing images and upload new ones
       let allImageUrls = [...this.productForm.imageUrls];
 
       if (this.productForm.imageFiles.length > 0) {
-        this.showMessage('📤 Uploading additional images...', 'info');
+        this.showMessage('📤 Uploading product images...', 'info');
         const multipleResults = await this.cloudinaryService.uploadMultipleImages(
           this.productForm.imageFiles,
           this.productForm.name
@@ -440,6 +373,10 @@ export class AdminProductsComponent implements OnInit {
         const newImageUrls = multipleResults.map(r => r.secure_url);
         allImageUrls = [...allImageUrls, ...newImageUrls];
       }
+
+      // First image is the primary image
+      const primaryImageUrl = allImageUrls[0] || '';
+      const cloudinaryPublicId = ''; // We can extract this from URL if needed
 
       this.isUploading.set(false);
       this.showMessage('💾 Saving product...', 'info');
@@ -564,7 +501,6 @@ export class AdminProductsComponent implements OnInit {
       sku: '',
       sizes: [],
       imageUrl: '',
-      imageFile: null,
       cloudinary_public_id: undefined,
       colors: [],
       material: '',
@@ -574,8 +510,7 @@ export class AdminProductsComponent implements OnInit {
       allows_customization: true,
       production_days: 3
     };
-    this.uploadedImageUrl.set(null);
-    this.selectedFile.set(null);
+    this.newImagePreviews = [];
     this.isUploading.set(false);
     this.message.set('');
     this.messageType.set('');
@@ -598,7 +533,6 @@ export class AdminProductsComponent implements OnInit {
       sku: '',
       sizes: [],
       imageUrl: '',
-      imageFile: null,
       cloudinary_public_id: undefined,
       colors: [],
       material: '',
@@ -608,8 +542,7 @@ export class AdminProductsComponent implements OnInit {
       allows_customization: true,
       production_days: 3
     };
-    this.uploadedImageUrl.set(null);
-    this.selectedFile.set(null);
+    this.newImagePreviews = [];
     this.isUploading.set(false);
     this.newColor = '';
     this.isEditMode.set(false);
@@ -626,18 +559,6 @@ export class AdminProductsComponent implements OnInit {
     // Don't clear messages here
   }
 
-  removeSelectedImage(): void {
-    this.productForm.imageFile = null;
-    this.productForm.imageUrl = '';
-    this.uploadedImageUrl.set(null);
-    this.selectedFile.set(null);
-    
-    // Reset file input
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    if (fileInput) {
-      fileInput.value = '';
-    }
-  }
 
   // View product details
   viewProductDetails(product: ProductData): void {

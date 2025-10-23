@@ -308,60 +308,13 @@
                 <small class="form-text text-muted">Select all applicable sizes for this product</small>
               </div>
 
-              <!-- Upload Product Image -->
-              <div class="mb-3">
-                <label class="form-label">Upload Product Image</label>
-                
-                <!-- Upload Area -->
-                <div *ngIf="!uploadedImageUrl()" class="upload-area">
-                  <input 
-                    type="file" 
-                    class="form-control" 
-                    accept="image/*"
-                    (change)="onFileSelected($event)"
-                    [disabled]="isUploading()">
-                  
-                  <!-- Upload Progress -->
-                  <div *ngIf="isUploading()" class="upload-progress mt-2">
-                    <div class="d-flex align-items-center">
-                      <div class="spinner-border spinner-border-sm me-2" role="status">
-                        <span class="visually-hidden">Uploading...</span>
-                      </div>
-                      <span>Uploading image to Cloudinary...</span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Image Preview -->
-                <div *ngIf="uploadedImageUrl()" class="uploaded-image-preview">
-                  <div class="d-flex align-items-center justify-content-between">
-                    <div class="d-flex align-items-center">
-                      <img [src]="uploadedImageUrl()" alt="Image preview" class="img-thumbnail me-2" style="width: 50px; height: 50px; object-fit: cover;">
-                      <div>
-                        <small class="text-primary">
-                          <i class="bi bi-image-fill me-1"></i>
-                          Image selected - ready to upload
-                        </small>
-                        <br>
-                        <small class="text-muted">{{ selectedFile() }}</small>
-                      </div>
-                    </div>
-                    <button 
-                      type="button" 
-                      class="btn btn-sm btn-outline-danger" 
-                      (click)="removeSelectedImage()">
-                      <i class="bi bi-x"></i>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Existing Additional Images (Edit Mode Only) -->
+              <!-- Existing Product Images (Edit Mode Only) -->
               <div class="mb-3" *ngIf="isEditMode() && productForm.imageUrls.length > 0">
-                <label class="form-label">Existing Additional Images</label>
+                <label class="form-label">Current Product Images</label>
                 <div class="existing-images-grid">
                   <div *ngFor="let url of productForm.imageUrls; let i = index" class="image-preview-wrapper position-relative">
                     <img [src]="url" class="preview-thumbnail">
+                    <div *ngIf="i === 0" class="badge bg-primary position-absolute top-0 start-0 m-1" style="font-size: 0.7rem;">Primary</div>
                     <button 
                       type="button" 
                       class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1"
@@ -372,13 +325,14 @@
                     </button>
                   </div>
                 </div>
-                <small class="text-muted">Click × to remove images</small>
+                <small class="text-muted">First image is used as primary. Click × to remove images</small>
               </div>
 
-              <!-- Multiple Images Upload -->
+              <!-- Product Images Upload -->
               <div class="mb-3">
                 <label class="form-label">
-                  {{ isEditMode() ? 'Add More Images (Optional)' : 'Additional Images (Optional)' }}
+                  Product Images <span *ngIf="!isEditMode()" class="text-danger">*</span>
+                  <span *ngIf="isEditMode()" class="text-muted">(Optional - to add more)</span>
                 </label>
                 <input 
                   type="file" 
@@ -387,8 +341,19 @@
                   multiple
                   (change)="onMultipleImagesSelected($event)">
                 <small class="text-muted">
-                  {{ isEditMode() ? 'Upload additional images to add to existing ones' : 'Upload multiple product images (front, back, details)' }}
+                  {{ isEditMode() ? 'Upload additional images to add to existing ones. First image will be the primary image.' : 'Upload product images (front, back, details). First image will be the primary image.' }}
                 </small>
+                
+                <!-- Preview new uploads -->
+                <div *ngIf="productForm.imageFiles.length > 0" class="mt-2">
+                  <div class="existing-images-grid">
+                    <div *ngFor="let url of getNewImagePreviews(); let i = index" class="image-preview-wrapper position-relative">
+                      <img [src]="url" class="preview-thumbnail">
+                      <div *ngIf="i === 0 && !isEditMode()" class="badge bg-success position-absolute top-0 start-0 m-1" style="font-size: 0.7rem;">Primary</div>
+                      <div class="badge bg-info position-absolute bottom-0 start-0 m-1" style="font-size: 0.7rem;">New</div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <!-- Customization Options -->
@@ -460,10 +425,36 @@
           </div>
           
           <div *ngIf="selectedProduct()" class="product-details-container">
-            <!-- Product Image -->
-            <div class="details-image-section">
-              <img [src]="selectedProduct()?.image_url" [alt]="selectedProduct()?.product_name" class="details-image" />
-              <span class="badge bg-primary mt-2">{{ selectedProduct()?.status }}</span>
+            <!-- All Product Images at the Top -->
+            <div class="details-images-section mb-4">
+              <h6 class="mb-3">
+                <i class="bi bi-images me-2"></i>Product Images
+                <span class="badge bg-primary ms-2">{{ selectedProduct()?.status }}</span>
+              </h6>
+              
+              <!-- Primary Image (larger) -->
+              <div class="primary-image-container mb-3">
+                <img [src]="selectedProduct()?.image_url" 
+                     [alt]="selectedProduct()?.product_name" 
+                     class="primary-image" />
+                <div class="badge bg-success position-absolute top-0 start-0 m-2">Primary</div>
+              </div>
+              
+              <!-- Additional Images (if any) -->
+              <div *ngIf="getProductImages(selectedProduct()!).length > 0" class="additional-images-grid">
+                <div *ngFor="let imageUrl of getProductImages(selectedProduct()!); let i = index" 
+                     class="additional-image-wrapper">
+                  <img [src]="imageUrl" 
+                       [alt]="selectedProduct()?.product_name + ' - Image ' + (i + 2)"
+                       class="additional-image" />
+                  <div class="badge bg-info position-absolute top-0 start-0 m-1">Additional</div>
+                </div>
+              </div>
+              
+              <!-- No additional images message -->
+              <div *ngIf="getProductImages(selectedProduct()!).length === 0" class="text-muted text-center py-3">
+                <i class="bi bi-image me-2"></i>No additional images
+              </div>
             </div>
             
             <!-- Product Information -->
@@ -547,15 +538,6 @@
                 <p class="info-value">{{ selectedProduct()!.gender }}</p>
               </div>
 
-              <div class="info-group full-width" *ngIf="getProductImages(selectedProduct()!).length > 0">
-                <label>Additional Images</label>
-                <div class="additional-images mt-2">
-                  <img *ngFor="let imageUrl of getProductImages(selectedProduct()!)" 
-                       [src]="imageUrl" 
-                       class="preview-thumbnail me-2"
-                       style="width: 100px; height: 100px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd;">
-                </div>
-              </div>
 
               <div class="info-group">
                 <label>Allows Customization</label>
