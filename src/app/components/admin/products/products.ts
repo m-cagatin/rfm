@@ -364,10 +364,12 @@ export class AdminProductsComponent implements OnInit {
 
       if (this.productForm.imageFiles.length > 0) {
         this.showMessage('📤 Uploading product images...', 'info');
+        
         const multipleResults = await this.cloudinaryService.uploadMultipleImages(
           this.productForm.imageFiles,
           this.productForm.name
         );
+        
         const newImageUrls = multipleResults.map(r => r.secure_url);
         allImageUrls = [...allImageUrls, ...newImageUrls];
       }

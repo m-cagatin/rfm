@@ -353,6 +353,12 @@ class DatabaseService {
                 ...r,
                 base_price: r.base_price !== undefined && r.base_price !== null ? Number(r.base_price) : r.base_price,
                 stock_quantity: r.stock_quantity !== undefined && r.stock_quantity !== null ? Number(r.stock_quantity) : r.stock_quantity,
+                production_days: r.production_days !== undefined && r.production_days !== null ? Number(r.production_days) : r.production_days,
+                images: r.images ? (typeof r.images === 'string' ? r.images : JSON.stringify(r.images)) : null,
+                colors: r.colors ? (typeof r.colors === 'string' ? r.colors : JSON.stringify(r.colors)) : null,
+                sizes: r.sizes ? (typeof r.sizes === 'string' ? r.sizes : JSON.stringify(r.sizes)) : null,
+                tags: r.tags ? (typeof r.tags === 'string' ? r.tags : JSON.stringify(r.tags)) : null,
+                stock_by_size_color: r.stock_by_size_color ? (typeof r.stock_by_size_color === 'string' ? r.stock_by_size_color : JSON.stringify(r.stock_by_size_color)) : null,
             }));
             return { success: true, data: normalized };
         }
@@ -370,6 +376,12 @@ class DatabaseService {
                 ...r,
                 base_price: r.base_price !== undefined && r.base_price !== null ? Number(r.base_price) : r.base_price,
                 stock_quantity: r.stock_quantity !== undefined && r.stock_quantity !== null ? Number(r.stock_quantity) : r.stock_quantity,
+                production_days: r.production_days !== undefined && r.production_days !== null ? Number(r.production_days) : r.production_days,
+                images: r.images ? (typeof r.images === 'string' ? r.images : JSON.stringify(r.images)) : null,
+                colors: r.colors ? (typeof r.colors === 'string' ? r.colors : JSON.stringify(r.colors)) : null,
+                sizes: r.sizes ? (typeof r.sizes === 'string' ? r.sizes : JSON.stringify(r.sizes)) : null,
+                tags: r.tags ? (typeof r.tags === 'string' ? r.tags : JSON.stringify(r.tags)) : null,
+                stock_by_size_color: r.stock_by_size_color ? (typeof r.stock_by_size_color === 'string' ? r.stock_by_size_color : JSON.stringify(r.stock_by_size_color)) : null,
             }));
             if (products.length === 0) {
                 return { success: false, message: 'Product not found' };
