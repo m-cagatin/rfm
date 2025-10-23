@@ -334,8 +334,9 @@ export class AdminProductsComponent implements OnInit {
 
     // Validate price
     const numericPrice = this.getNumericPrice();
+    console.log('Debug - basePrice:', this.productForm.basePrice, 'numericPrice:', numericPrice);
     if (numericPrice <= 0) {
-      alert('⚠️ Please enter a valid price greater than ₱0.00');
+      alert(`⚠️ Please enter a valid price greater than ₱0.00\nCurrent value: "${this.productForm.basePrice}" (parsed as: ${numericPrice})`);
       return;
     }
 
@@ -450,26 +451,32 @@ export class AdminProductsComponent implements OnInit {
     const input = event.target as HTMLInputElement;
     let value = input.value;
     
-    // Remove any non-numeric characters except decimal point
-    value = value.replace(/[^0-9.]/g, '');
+    // Remove peso sign, commas, and any non-numeric characters except decimal point
+    value = value.replace(/[₱,\s]/g, '').replace(/[^0-9.]/g, '');
     
-    // Handle multiple decimal points
+    // Handle multiple decimal points (keep only first one)
     const parts = value.split('.');
     if (parts.length > 2) {
       value = parts[0] + '.' + parts.slice(1).join('');
     }
     
+    // Update the input field to show clean value
+    input.value = value;
+    
     // Handle empty values
     if (value === '' || value === '.') {
       this.productForm.basePrice = '0';
-      input.value = '';
       return;
     }
     
-    // Parse the number
+    // Parse and validate the number
     const number = parseFloat(value);
     if (!isNaN(number) && number >= 0) {
       this.productForm.basePrice = number.toString();
+    } else {
+      // If invalid, reset to 0
+      this.productForm.basePrice = '0';
+      input.value = '0';
     }
   }
 
@@ -488,7 +495,9 @@ export class AdminProductsComponent implements OnInit {
   }
 
   private getNumericPrice(): number {
-    return parseFloat(this.productForm.basePrice) || 0;
+    // Clean the price value to ensure no peso sign or other characters
+    const cleanPrice = this.productForm.basePrice.replace(/[₱,\s]/g, '').replace(/[^0-9.]/g, '');
+    return parseFloat(cleanPrice) || 0;
   }
 
   private resetForm(): void {
