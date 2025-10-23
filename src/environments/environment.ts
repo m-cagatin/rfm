@@ -5,6 +5,6 @@ export const environment = {
     apiKey: '425947453244552'
   },
   api: {
-    baseUrl: 'http://localhost:3001/api'
+    baseUrl: 'http://localhost:3000/api'
   }
 };

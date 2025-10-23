@@ -53,6 +53,21 @@
                 <hr class="dropdown-divider">
               </li>
 
+              <!-- Customer links -->
+              <li *ngIf="!authService.isAdmin()">
+                <a class="dropdown-item" routerLink="/orders">
+                  <i class="bi bi-clock-history"></i> Order History
+                </a>
+              </li>
+              <li *ngIf="!authService.isAdmin()">
+                <a class="dropdown-item" routerLink="/account-settings">
+                  <i class="bi bi-gear"></i> Account Settings
+                </a>
+              </li>
+              <li *ngIf="!authService.isAdmin()">
+                <hr class="dropdown-divider">
+              </li>
+
               <!-- Show admin link if user is admin -->
               <li *ngIf="authService.isAdmin()">
                 <a class="dropdown-item" routerLink="/admin">
