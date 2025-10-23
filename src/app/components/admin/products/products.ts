@@ -233,7 +233,6 @@ export class AdminProductsComponent implements OnInit {
       sku: product.sku || '',
       sizes: sizes,
       imageUrl: product.image_url,
-      imageFile: null,
       cloudinary_public_id: product.cloudinary_public_id || undefined,
       colors: colors,
       material: product.material || '',
@@ -244,7 +243,6 @@ export class AdminProductsComponent implements OnInit {
       production_days: product.production_days || 3
     };
     
-    this.uploadedImageUrl.set(product.image_url);
     
     setTimeout(() => {
       const checkboxes = document.querySelectorAll('input[type="checkbox"][id^="size-"]');
