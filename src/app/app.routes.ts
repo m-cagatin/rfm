@@ -14,7 +14,6 @@ import { AdminLayoutComponent } from './components/admin/admin-layout/admin-layo
 import { AdminDashboardComponent } from './components/admin/dashboard/dashboard';
 import { AdminOrdersComponent } from './components/admin/orders/orders';
 import { AdminProductsComponent } from './components/admin/products/products';
-import { AdminMockupsComponent } from './components/admin/mockups/mockups';
 import { AdminCashflowComponent } from './components/admin/cashflow/cashflow';
 import { AdminReportsComponent } from './components/admin/reports/reports';
 import { AdminEmployeesComponent } from './components/admin/employees/employees';
@@ -54,7 +53,6 @@ export const routes: Routes = [
       { path: 'orders', component: AdminOrdersComponent },
       { path: 'products', component: AdminProductsComponent },
       { path: 'employees', component: AdminEmployeesComponent },
-      { path: 'mockups', component: AdminMockupsComponent },
       { path: 'cashflow', component: AdminCashflowComponent },
       { path: 'reports', component: AdminReportsComponent }
     ]
