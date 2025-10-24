@@ -75,23 +75,84 @@ router.post('/login', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 
-    // Validation
+    // Comprehensive validation
     if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Email and password are required'
+        message: 'Email and password are required',
+        error: 'MISSING_FIELDS',
+        field: !email ? 'email' : 'password'
       });
     }
 
-    const result = await AuthService.loginUser(email, password);
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please enter a valid email address',
+        error: 'INVALID_EMAIL_FORMAT',
+        field: 'email'
+      });
+    }
 
-    res.status(result.success ? 200 : 401).json(result);
+    // Password length validation
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long',
+        error: 'INVALID_PASSWORD_LENGTH',
+        field: 'password'
+      });
+    }
+
+    // Trim email to avoid whitespace issues
+    const trimmedEmail = email.trim().toLowerCase();
+
+    const result = await AuthService.loginUser(trimmedEmail, password);
+
+    // Enhanced error responses based on specific error types
+    if (!result.success) {
+      let statusCode = 401;
+      let errorMessage = result.message || 'Login failed';
+      
+      switch (result.error) {
+        case 'EMAIL_NOT_FOUND':
+          statusCode = 404;
+          errorMessage = 'No account found with this email address';
+          break;
+        case 'INVALID_PASSWORD':
+          statusCode = 401;
+          errorMessage = 'Incorrect password. Please try again';
+          break;
+        case 'NO_ADMIN_ROLE':
+          statusCode = 403;
+          errorMessage = 'Access denied. Admin privileges required';
+          break;
+        case 'ACCOUNT_LOCKED':
+          statusCode = 423;
+          errorMessage = 'Account is temporarily locked. Please contact support';
+          break;
+        default:
+          statusCode = 401;
+          errorMessage = 'Login failed. Please check your credentials';
+      }
+
+      return res.status(statusCode).json({
+        success: false,
+        message: errorMessage,
+        error: result.error,
+        field: result.error === 'INVALID_PASSWORD' ? 'password' : 'email'
+      });
+    }
+
+    res.status(200).json(result);
   } catch (error) {
     console.error('Error in login route:', error);
     res.status(500).json({
       success: false,
-      message: 'Login failed',
-      error: error instanceof Error ? error.message : 'Unknown error'
+      message: 'An unexpected error occurred. Please try again later',
+      error: 'SERVER_ERROR'
     });
   }
 });

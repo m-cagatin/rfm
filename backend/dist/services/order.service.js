@@ -126,6 +126,49 @@ class OrderService {
             };
         }
     }
+    static async getOrderStatusHistory(orderId) {
+        try {
+            const connection = await database_1.pool.getConnection();
+            const [rows] = await connection.execute(`SELECT 
+          osh.id,
+          osh.status,
+          osh.previous_status,
+          osh.changed_at,
+          osh.changed_by,
+          osh.notes,
+          o.order_ref
+         FROM order_status_history osh
+         JOIN orders o ON osh.order_id = o.order_id
+         WHERE osh.order_id = ?
+         ORDER BY osh.changed_at ASC`, [orderId]);
+            connection.release();
+            return {
+                success: true,
+                data: rows
+            };
+        }
+        catch (error) {
+            console.error('Error getting order status history:', error);
+            return {
+                success: false,
+                message: 'Failed to get order status history',
+                error: error.message
+            };
+        }
+    }
+    static async logStatusChange(orderId, newStatus, previousStatus = null, changedBy = 'system', notes = null) {
+        try {
+            const connection = await database_1.pool.getConnection();
+            await connection.execute(`INSERT INTO order_status_history 
+         (order_id, status, previous_status, changed_by, notes)
+         VALUES (?, ?, ?, ?, ?)`, [orderId, newStatus, previousStatus, changedBy, notes]);
+            connection.release();
+            console.log(`✅ Status change logged: Order ${orderId} ${previousStatus} → ${newStatus}`);
+        }
+        catch (error) {
+            console.error('Error logging status change:', error);
+        }
+    }
     static async getOrdersByStatus(status) {
         try {
             const connection = await database_1.pool.getConnection();

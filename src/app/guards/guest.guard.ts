@@ -17,7 +17,7 @@ export const GuestGuard = () => {
 
   if (userRole === 'employee') {
     // Admin user - redirect to admin dashboard
-    router.navigateByUrl('/admin/dashboard', { replaceUrl: true });
+    router.navigateByUrl('/admin', { replaceUrl: true });
     return false;
   } else if (userRole === 'customer') {
     // Customer user - redirect to apparel page

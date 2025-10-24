@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectorRef } from '@angular/core';
 import { RouterLink, Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -20,7 +20,8 @@ export class LoginComponent {
     private fb: FormBuilder,
     private authService: AuthService,
     private router: Router,
-    private cartService: CartService
+    private cartService: CartService,
+    private cdr: ChangeDetectorRef // ✅ Added
   ) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
@@ -42,11 +43,12 @@ export class LoginComponent {
     this.authService.login(email, password).subscribe({
       next: (response) => {
         this.isLoading = false;
+
         if (response.success && response.user) {
-          // Refresh cart after successful login to load user's cart and merge guest cart
+          // ✅ Refresh cart after successful login
           this.cartService.refreshCart();
-          
-          // Route based on user role
+
+          // ✅ Redirect based on user role
           if (response.user.role === 'customer') {
             this.router.navigate(['/apparel']);
           } else if (response.user.role === 'employee') {
@@ -55,14 +57,22 @@ export class LoginComponent {
         } else {
           this.errorMessage = response.message || 'Login failed';
         }
+
+        // ✅ Force view update (Angular sometimes misses it)
+        this.cdr.detectChanges();
       },
       error: (error) => {
         this.isLoading = false;
-        this.errorMessage = error.error?.message || 'Login failed. Please try again.';
+        this.errorMessage =
+          error.error?.message || 'Login failed. Please try again.';
+
+        // ✅ Force view update in case Angular doesn’t detect it automatically
+        this.cdr.detectChanges();
       }
     });
   }
 
+  // Getters for cleaner template bindings
   get email() {
     return this.loginForm.get('email');
   }

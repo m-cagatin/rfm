@@ -28,7 +28,7 @@ import { PaymentVerificationComponent } from './components/admin/payment-verific
 export const routes: Routes = [
   { path: '', redirectTo: '/catalog', pathMatch: 'full' },
   { path: 'landing', component: LandingPageComponent },
-  { path: 'login', component: LoginComponent, canActivate: [GuestGuard] },
+  { path: 'login', component: LoginComponent },
   { path: 'signup', component: SignupComponent, canActivate: [GuestGuard] },
   
   // Customer routes (optional auth)

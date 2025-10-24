@@ -44,6 +44,8 @@ export declare class OrderService {
         notes?: string;
     }): Promise<ApiResponse<Order>>;
     static restoreOrderStock(orderId: number): Promise<ApiResponse>;
+    static getOrderStatusHistory(orderId: number): Promise<ApiResponse<any[]>>;
+    static logStatusChange(orderId: number, newStatus: string, previousStatus?: string | null, changedBy?: string, notes?: string | null): Promise<void>;
     static getOrdersByStatus(status: string): Promise<ApiResponse<Order[]>>;
     static getOrders(filters?: {
         status?: string;

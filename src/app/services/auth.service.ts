@@ -54,14 +54,22 @@ export class AuthService {
    */
   private loadUserFromStorage(): void {
     const userJson = localStorage.getItem('currentUser');
-    if (userJson) {
+    const token = localStorage.getItem('token');
+    
+    if (userJson && token) {
       try {
         const user = JSON.parse(userJson);
-        this.currentUser.set(user);
-        this.isAuthenticated.set(true);
+        // Verify token is still valid before setting authenticated state
+        if (this.isTokenValid(token)) {
+          this.currentUser.set(user);
+          this.isAuthenticated.set(true);
+        } else {
+          // Token expired, clear storage
+          this.clearStorage();
+        }
       } catch (error) {
         console.error('Error parsing stored user:', error);
-        localStorage.removeItem('currentUser');
+        this.clearStorage();
       }
     }
   }
@@ -133,12 +141,12 @@ export class AuthService {
   logout(): void {
     this.http.post(`${this.baseUrl}/logout`, {}).subscribe({
       next: () => {
-        this.clearCurrentUser();
+        this.clearStorage();
         this.router.navigate(['/']);
       },
       error: () => {
         // Even if server request fails, clear local state
-        this.clearCurrentUser();
+        this.clearStorage();
         this.router.navigate(['/']);
       }
     });
@@ -249,6 +257,29 @@ export class AuthService {
    */
   isLoggedIn(): boolean {
     return this.isAuthenticated();
+  }
+
+  /**
+   * Check if token is valid (not expired)
+   */
+  private isTokenValid(token: string): boolean {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const currentTime = Math.floor(Date.now() / 1000);
+      return payload.exp > currentTime;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Clear all authentication data from storage
+   */
+  private clearStorage(): void {
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('token');
+    this.currentUser.set(null);
+    this.isAuthenticated.set(false);
   }
 
   /**

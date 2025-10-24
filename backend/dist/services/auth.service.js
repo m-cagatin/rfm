@@ -212,7 +212,7 @@ class AuthService {
             return {
                 success: false,
                 message: 'Email not found',
-                error: 'USER_NOT_FOUND'
+                error: 'EMAIL_NOT_FOUND'
             };
         }
         catch (error) {
