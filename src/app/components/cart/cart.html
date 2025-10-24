@@ -1,7 +1,7 @@
 <div class="container mt-5 mb-5">
   <div class="row">
     <div class="col-12">
-      <h2 class="mb-4">
+      <h2 class="mb-4 font-semibold text-2xl">
         <i class="bi bi-cart3 me-2"></i>
         Your Shopping Cart
         @if (itemCount() > 0) {
@@ -24,7 +24,7 @@
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
       <i class="bi bi-exclamation-triangle-fill me-2"></i>
       {{ error() }}
-      <button type="button" class="btn-close" (click)="error.set(null)"></button>
+      <button type="button" class="btn-close" (click)="clearError()"></button>
     </div>
   }
 
@@ -93,6 +93,7 @@
                              class="form-control text-center" 
                              [value]="item.quantity"
                              (change)="updateQuantity(item, +$any($event.target).value)"
+                             (input)="updateQuantity(item, +$any($event.target).value)"
                              min="1" max="99">
                       <button class="btn btn-outline-secondary" 
                               type="button" 

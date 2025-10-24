@@ -17,7 +17,10 @@ const catalog_routes_1 = __importDefault(require("./routes/catalog.routes"));
 const users_routes_1 = __importDefault(require("./routes/users.routes"));
 const cart_routes_1 = __importDefault(require("./routes/cart.routes"));
 const orders_routes_1 = __importDefault(require("./routes/orders.routes"));
+const payment_routes_1 = __importDefault(require("./routes/payment.routes"));
+const inventory_routes_1 = __importDefault(require("./routes/inventory.routes"));
 const database_service_1 = require("./services/database.service");
+const email_service_1 = require("./services/email.service");
 const app = (0, express_1.default)();
 exports.app = app;
 app.use((0, cors_1.default)({
@@ -55,6 +58,8 @@ app.use('/api/catalog', catalog_routes_1.default);
 app.use('/api/users', users_routes_1.default);
 app.use('/api/cart', cart_routes_1.default);
 app.use('/api/orders', orders_routes_1.default);
+app.use('/api/payment', payment_routes_1.default);
+app.use('/api/inventory', inventory_routes_1.default);
 app.get('/', (req, res) => {
     res.json({
         message: 'RFM Backend API Server',
@@ -134,6 +139,7 @@ async function startServer() {
             process.exit(1);
         }
         await (0, database_1.initializeDatabase)();
+        email_service_1.EmailService.initialize();
         app.listen(port, () => {
             console.log(`🚀 RFM Backend API server listening on http://localhost:${port}`);
             console.log(`📊 Database: Connected to rfm_db`);

@@ -49,20 +49,74 @@
   align-items: center;
 }
 
-/* Bootstrap Dropdown Customization */
-.dropdown-toggle::after {
-  margin-left: 0.5em;
+/* Custom Admin Dropdown */
+.admin-dropdown {
+  position: relative;
+  display: inline-block;
 }
 
-.dropdown-menu {
+.admin-dropdown-toggle {
+  background: none;
+  border: none;
+  color: #333;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+}
+
+.admin-dropdown-toggle:hover {
+  background-color: #f8f9fa;
+}
+
+.admin-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   min-width: 250px;
+  z-index: 1050;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.2s ease;
+}
+
+.admin-dropdown-menu.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
 }
 
 .dropdown-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 20px;
+  padding: 12px 20px;
+  color: #333;
+  text-decoration: none;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  transition: background-color 0.2s;
+}
+
+.dropdown-item:hover {
+  background-color: #f8f9fa;
+  color: #333;
+  text-decoration: none;
+}
+
+.dropdown-item.text-danger:hover {
+  background-color: #f8d7da;
+  color: #721c24;
 }
 
 .dropdown-item i {
@@ -72,6 +126,13 @@
 
 .dropdown-header {
   padding: 12px 20px;
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.dropdown-divider {
+  margin: 8px 0;
+  border-top: 1px solid #dee2e6;
 }
 
 /* Profile Modal */

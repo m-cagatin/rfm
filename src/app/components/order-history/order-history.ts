@@ -3,11 +3,13 @@ import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
 import { OrderService, Order, OrderItem } from '../../services/order.service';
 import { AuthService } from '../../services/auth.service';
+import { CartService } from '../../services/cart.service';
+import { OrderTimelineComponent } from '../order-timeline/order-timeline';
 
 @Component({
   selector: 'app-order-history',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, OrderTimelineComponent],
   templateUrl: './order-history.html',
   styleUrl: './order-history.css'
 })
@@ -37,7 +39,8 @@ export class OrderHistoryComponent implements OnInit {
   constructor(
     private orderService: OrderService,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private cartService: CartService
   ) {}
 
   ngOnInit(): void {
@@ -196,5 +199,39 @@ export class OrderHistoryComponent implements OnInit {
 
   clearError(): void {
     this.error.set(null);
+  }
+
+  // Reorder functionality
+  reorderOrder(order: Order): void {
+    if (!confirm(`Add all items from order ${order.order_ref} to your cart? This will clear your current cart.`)) {
+      return;
+    }
+
+    this.loading.set(true);
+    this.orderService.reorderFromOrder(order.order_id!)
+      .then((response) => {
+        if (response.success) {
+          // Refresh cart to show new items
+          this.cartService.refreshCart();
+          alert(response.message || 'Items added to cart successfully!');
+          // Optionally navigate to cart
+          this.router.navigate(['/cart']);
+        } else {
+          this.error.set(response.message || 'Failed to reorder items');
+        }
+        this.loading.set(false);
+      })
+      .catch((error) => {
+        console.error('Error reordering:', error);
+        this.error.set('Failed to reorder items');
+        this.loading.set(false);
+      });
+  }
+
+  // Check if order can be reordered
+  canReorderOrder(order: Order): boolean {
+    // Allow reordering for completed, cancelled, or done orders
+    const reorderableStatuses = ['done', 'cancelled'];
+    return reorderableStatuses.includes(order.status || 'pending');
   }
 }

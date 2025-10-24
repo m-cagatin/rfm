@@ -212,7 +212,7 @@ export async function initializeDatabase(): Promise<void> {
         customer_phone VARCHAR(20),
         customer_address TEXT,
         total_amount DECIMAL(10, 2) NOT NULL,
-        status ENUM('pending', 'designing', 'ripping', 'heatpress', 'cutting', 'assembly', 'qc', 'done', 'cancelled') DEFAULT 'pending',
+        status ENUM('payment_pending', 'pending', 'designing', 'ripping', 'heatpress', 'cutting', 'assembly', 'qc', 'done', 'cancelled') DEFAULT 'payment_pending',
         order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         estimated_completion DATE,
         notes TEXT,

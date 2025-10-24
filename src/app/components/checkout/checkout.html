@@ -52,8 +52,91 @@
     </div>
   }
 
+  <!-- Awaiting Payment State -->
+  @if (awaitingPayment() && !orderSuccess()) {
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="card border-warning">
+          <div class="card-header bg-warning text-dark text-center">
+            <h4 class="mb-0">
+              <i class="bi bi-clock-fill me-2"></i>
+              Awaiting Payment
+            </h4>
+          </div>
+          <div class="card-body">
+            @if (paymentMethod() === 'paymongo' && paymentLink()) {
+              <div class="text-center py-4">
+                <h5>Complete Your Payment</h5>
+                <p class="text-muted">Click the button below to complete your payment via PayMongo</p>
+                <a [href]="paymentLink()!" target="_blank" class="btn btn-primary btn-lg mb-3">
+                  <i class="bi bi-credit-card me-2"></i>
+                  Pay Now
+                </a>
+                <p class="text-muted small">
+                  Payment link will open in a new window. After completing payment, return here to view your order.
+                </p>
+                <button class="btn btn-success" (click)="onPaymentComplete()">
+                  <i class="bi bi-check-circle me-2"></i>
+                  I've Completed Payment
+                </button>
+              </div>
+            }
+            
+            @if ((paymentMethod() === 'gcash' || paymentMethod() === 'bank_transfer') && paymentInstructions()) {
+              <div class="py-4">
+                <h5 class="text-center mb-4">Payment Instructions</h5>
+                
+                @if (paymentMethod() === 'gcash') {
+                  <div class="alert alert-info">
+                    <h6><i class="bi bi-phone me-2"></i>GCash Payment Details:</h6>
+                    <ul class="list-unstyled mb-0">
+                      <li><strong>GCash Number:</strong> {{ paymentConfig.gcashNumber }}</li>
+                      <li><strong>Account Name:</strong> {{ paymentConfig.gcashName }}</li>
+                      <li><strong>Amount:</strong> ₱{{ paymentInstructions().amount.toFixed(2) }}</li>
+                      <li><strong>Reference:</strong> {{ paymentInstructions().orderRef }}</li>
+                    </ul>
+                  </div>
+                }
+                
+                @if (paymentMethod() === 'bank_transfer') {
+                  <div class="alert alert-info">
+                    <h6><i class="bi bi-bank me-2"></i>Bank Transfer Details:</h6>
+                    <ul class="list-unstyled mb-0">
+                      <li><strong>Bank:</strong> {{ paymentConfig.bankName }}</li>
+                      <li><strong>Account Number:</strong> {{ paymentConfig.bankAccountNumber }}</li>
+                      <li><strong>Account Name:</strong> {{ paymentConfig.bankAccountName }}</li>
+                      <li><strong>Amount:</strong> ₱{{ paymentInstructions().amount.toFixed(2) }}</li>
+                      <li><strong>Reference:</strong> {{ paymentInstructions().orderRef }}</li>
+                    </ul>
+                  </div>
+                }
+                
+                <div class="alert alert-warning">
+                  <h6><i class="bi bi-exclamation-triangle me-2"></i>Important:</h6>
+                  <ol class="mb-0">
+                    <li>Transfer the exact amount shown above</li>
+                    <li>Use the order reference in your transfer notes</li>
+                    <li>After payment, click "I've Completed Payment" below</li>
+                    <li>Your order will be processed once payment is verified</li>
+                  </ol>
+                </div>
+                
+                <div class="text-center">
+                  <button class="btn btn-success btn-lg" (click)="onPaymentComplete()">
+                    <i class="bi bi-check-circle me-2"></i>
+                    I've Completed Payment
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
   <!-- Checkout Form -->
-  @if (!orderSuccess()) {
+  @if (!orderSuccess() && !awaitingPayment()) {
     <div class="row">
       <div class="col-12">
         <h2 class="mb-4">
@@ -145,6 +228,81 @@
                             name="orderNotes"
                             rows="2"
                             placeholder="Any special instructions for your order"></textarea>
+                </div>
+
+                <!-- Payment Method Selection -->
+                <div class="mb-4">
+                  <label class="form-label fw-bold">Payment Method *</label>
+                  <div class="row g-2">
+                    <div class="col-md-6">
+                      <div class="form-check card p-3" 
+                           [class.border-primary]="paymentMethod() === 'paymongo'"
+                           style="cursor: pointer;"
+                           (click)="selectPaymentMethod('paymongo')">
+                        <input class="form-check-input" 
+                               type="radio" 
+                               name="paymentMethod" 
+                               id="paymentPaymongo"
+                               [checked]="paymentMethod() === 'paymongo'"
+                               (change)="selectPaymentMethod('paymongo')">
+                        <label class="form-check-label w-100" for="paymentPaymongo" style="cursor: pointer;">
+                          <strong>PayMongo</strong>
+                          <small class="d-block text-muted">Credit/Debit Card, GCash, Maya, Online Banking</small>
+                        </label>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="form-check card p-3"
+                           [class.border-primary]="paymentMethod() === 'gcash'"
+                           style="cursor: pointer;"
+                           (click)="selectPaymentMethod('gcash')">
+                        <input class="form-check-input" 
+                               type="radio" 
+                               name="paymentMethod" 
+                               id="paymentGcash"
+                               [checked]="paymentMethod() === 'gcash'"
+                               (change)="selectPaymentMethod('gcash')">
+                        <label class="form-check-label w-100" for="paymentGcash" style="cursor: pointer;">
+                          <strong>GCash Transfer</strong>
+                          <small class="d-block text-muted">Manual transfer (requires verification)</small>
+                        </label>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="form-check card p-3"
+                           [class.border-primary]="paymentMethod() === 'bank_transfer'"
+                           style="cursor: pointer;"
+                           (click)="selectPaymentMethod('bank_transfer')">
+                        <input class="form-check-input" 
+                               type="radio" 
+                               name="paymentMethod" 
+                               id="paymentBank"
+                               [checked]="paymentMethod() === 'bank_transfer'"
+                               (change)="selectPaymentMethod('bank_transfer')">
+                        <label class="form-check-label w-100" for="paymentBank" style="cursor: pointer;">
+                          <strong>Bank Transfer</strong>
+                          <small class="d-block text-muted">Direct bank deposit (requires verification)</small>
+                        </label>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="form-check card p-3"
+                           [class.border-primary]="paymentMethod() === 'cod'"
+                           style="cursor: pointer;"
+                           (click)="selectPaymentMethod('cod')">
+                        <input class="form-check-input" 
+                               type="radio" 
+                               name="paymentMethod" 
+                               id="paymentCod"
+                               [checked]="paymentMethod() === 'cod'"
+                               (change)="selectPaymentMethod('cod')">
+                        <label class="form-check-label w-100" for="paymentCod" style="cursor: pointer;">
+                          <strong>Cash on Delivery</strong>
+                          <small class="d-block text-muted">Pay when you receive your order</small>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <!-- Action Buttons -->

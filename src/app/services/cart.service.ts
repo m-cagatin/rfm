@@ -34,6 +34,7 @@ export class CartService {
   private cartItems = signal<CartItem[]>([]);
   private isLoading = signal(false);
   private error = signal<string | null>(null);
+  private isLoadingCart = false; // Prevent duplicate API calls
 
   // Computed values
   public items = computed(() => this.cartItems());
@@ -49,8 +50,19 @@ export class CartService {
     // Initialize cart on service creation
     this.initializeCart();
     
-    // Listen for auth changes to merge guest cart
-    // Note: This will be handled by the auth service when user logs in
+    // Listen for auth state changes
+    // Use a small delay to ensure auth state is properly set
+    setTimeout(() => {
+      if (this.authService.isAuthenticated()) {
+        this.loadUserCart();
+      }
+    }, 100);
+
+    // Listen for logout events to clear cart
+    window.addEventListener('user-logout', () => {
+      console.log('User logged out, clearing cart');
+      this.clearCartOnLogout();
+    });
   }
 
   private initializeCart(): void {
@@ -63,19 +75,35 @@ export class CartService {
 
   // Load cart from API (for logged-in users)
   private loadUserCart(): void {
+    if (!this.authService.isAuthenticated()) {
+      console.log('User not authenticated, skipping cart load');
+      return;
+    }
+
     this.isLoading.set(true);
     this.error.set(null);
+    
+    console.log('Loading user cart from API...');
     
     this.http.get<ApiResponse<CartItem[]>>(`${environment.api.baseUrl}/cart`)
       .subscribe({
         next: (response) => {
+          console.log('Cart API response:', response);
           if (response.success && response.data) {
             this.cartItems.set(response.data);
+            console.log('Cart loaded successfully:', response.data.length, 'items');
+          } else {
+            console.log('Cart API returned no data or failed:', response);
           }
           this.isLoading.set(false);
         },
         error: (error) => {
           console.error('Error loading user cart:', error);
+          console.error('Error details:', {
+            status: error.status,
+            message: error.message,
+            url: error.url
+          });
           this.error.set('Failed to load cart');
           this.isLoading.set(false);
         }
@@ -119,6 +147,8 @@ export class CartService {
 
   // Add item to cart
   addToCart(product: ProductData, quantity: number = 1, size?: string, color?: string, customizationData?: any): void {
+    console.log('CartService.addToCart called for:', product.product_name, 'quantity:', quantity);
+    
     const cartItem: CartItem = {
       product_id: product.product_id!,
       product_name: product.product_name,
@@ -130,22 +160,27 @@ export class CartService {
     };
 
     if (this.authService.isAuthenticated()) {
+      console.log('Adding to user cart');
       this.addToUserCart(cartItem);
     } else {
+      console.log('Adding to guest cart');
       this.addToGuestCart(cartItem);
     }
   }
 
   // Add to user cart (API call)
   private addToUserCart(cartItem: CartItem): void {
+    console.log('addToUserCart called for:', cartItem.product_name);
     this.isLoading.set(true);
     this.error.set(null);
 
     this.http.post<ApiResponse<CartItem>>(`${environment.api.baseUrl}/cart`, cartItem)
       .subscribe({
         next: (response) => {
+          console.log('API response:', response);
           if (response.success) {
             // Reload cart to get updated state
+            console.log('Reloading user cart after successful add');
             this.loadUserCart();
           } else {
             this.error.set(response.message || 'Failed to add item to cart');
@@ -194,21 +229,40 @@ export class CartService {
 
   // Update user cart quantity (API call)
   private updateUserCartQuantity(cartItemId: number, quantity: number): void {
+    console.log('Updating user cart quantity:', cartItemId, 'to', quantity);
+    
+    // Optimistically update the UI first
+    const currentItems = this.cartItems();
+    const itemIndex = currentItems.findIndex(item => item.cart_item_id === cartItemId);
+    
+    if (itemIndex >= 0) {
+      const updatedItems = [...currentItems];
+      updatedItems[itemIndex] = { ...updatedItems[itemIndex], quantity };
+      this.cartItems.set(updatedItems);
+      console.log('Optimistically updated cart item quantity');
+    }
+
     this.isLoading.set(true);
     this.error.set(null);
 
     this.http.put<ApiResponse>(`${environment.api.baseUrl}/cart/${cartItemId}`, { quantity })
       .subscribe({
         next: (response) => {
+          console.log('Cart quantity update API response:', response);
           if (response.success) {
+            // Reload cart to ensure consistency with backend
             this.loadUserCart();
           } else {
+            // Revert optimistic update on failure
+            this.loadUserCart();
             this.error.set(response.message || 'Failed to update quantity');
             this.isLoading.set(false);
           }
         },
         error: (error) => {
           console.error('Error updating user cart quantity:', error);
+          // Revert optimistic update on error
+          this.loadUserCart();
           this.error.set('Failed to update quantity');
           this.isLoading.set(false);
         }
@@ -366,6 +420,33 @@ export class CartService {
 
   // Refresh cart (useful after login/logout)
   refreshCart(): void {
-    this.initializeCart();
+    console.log('Refreshing cart, authenticated:', this.authService.isAuthenticated());
+    if (this.authService.isAuthenticated()) {
+      // Always load user cart from database (don't check for guest cart here)
+      console.log('Loading user cart from database');
+      this.loadUserCart();
+    } else {
+      // User logged out - load guest cart
+      this.loadGuestCart();
+    }
+  }
+
+  // Force reload cart from API (public method)
+  forceReloadCart(): void {
+    console.log('Force reloading cart...');
+    if (this.authService.isAuthenticated()) {
+      this.loadUserCart();
+    } else {
+      this.loadGuestCart();
+    }
+  }
+
+  // Clear cart on logout (security measure)
+  private clearCartOnLogout(): void {
+    console.log('Clearing cart data on logout');
+    this.cartItems.set([]);
+    this.isLoading.set(false);
+    this.error.set(null);
+    localStorage.removeItem(this.CART_STORAGE_KEY);
   }
 }

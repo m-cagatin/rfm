@@ -31,6 +31,8 @@ export declare class AuthService {
     static loginUser(email: string, password: string): Promise<ApiResponse<AuthUser>>;
     static getCustomerProfile(customerId: number): Promise<ApiResponse<AuthUser>>;
     static getEmployeeProfile(userId: number): Promise<ApiResponse<AuthUser>>;
+    static updateCustomerProfile(customerId: number, profileData: Partial<AuthUser>): Promise<ApiResponse<AuthUser>>;
+    static changePassword(userId: number, role: 'customer' | 'employee', oldPassword: string, newPassword: string): Promise<ApiResponse>;
     private static parseRoles;
 }
 //# sourceMappingURL=auth.service.d.ts.map

@@ -11,7 +11,10 @@ import catalogRoutes from './routes/catalog.routes';
 import usersRoutes from './routes/users.routes';
 import cartRoutes from './routes/cart.routes';
 import ordersRoutes from './routes/orders.routes';
+import paymentRoutes from './routes/payment.routes';
+import inventoryRoutes from './routes/inventory.routes';
 import { DatabaseService } from './services/database.service';
+import { EmailService } from './services/email.service';
 
 const app = express();
 
@@ -54,6 +57,8 @@ app.use('/api/catalog', catalogRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', ordersRoutes);
+app.use('/api/payment', paymentRoutes);
+app.use('/api/inventory', inventoryRoutes);
 
 // Default route
 app.get('/', (req: express.Request, res: express.Response) => {
@@ -145,6 +150,9 @@ async function startServer() {
 
     // Initialize database tables
     await initializeDatabase();
+
+    // Initialize email service
+    EmailService.initialize();
 
     // Start the server
     app.listen(port, () => {

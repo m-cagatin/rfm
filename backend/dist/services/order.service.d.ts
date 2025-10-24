@@ -43,6 +43,8 @@ export declare class OrderService {
         customer_address?: string;
         notes?: string;
     }): Promise<ApiResponse<Order>>;
+    static restoreOrderStock(orderId: number): Promise<ApiResponse>;
+    static getOrdersByStatus(status: string): Promise<ApiResponse<Order[]>>;
     static getOrders(filters?: {
         status?: string;
         customerId?: number;
@@ -51,5 +53,6 @@ export declare class OrderService {
     static getCustomerOrders(customerId: number): Promise<ApiResponse<Order[]>>;
     static updateOrderStatus(orderId: number, status: string): Promise<ApiResponse>;
     static cancelOrder(orderId: number): Promise<ApiResponse>;
+    static reorderFromOrder(orderId: number, customerId: number): Promise<ApiResponse>;
 }
 //# sourceMappingURL=order.service.d.ts.map

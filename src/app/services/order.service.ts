@@ -11,7 +11,7 @@ export interface Order {
   customer_phone?: string;
   customer_address?: string;
   total_amount: number;
-  status?: string;
+  status?: 'payment_pending' | 'pending' | 'designing' | 'ripping' | 'heatpress' | 'cutting' | 'assembly' | 'qc' | 'done' | 'cancelled';
   order_date?: string;
   estimated_completion?: string;
   notes?: string;
@@ -75,6 +75,28 @@ export class OrderService {
           error: (error) => {
             console.error('Error creating order:', error);
             this.error.set('Failed to create order');
+            this.isLoading.set(false);
+            reject(error);
+          }
+        });
+    });
+  }
+
+  // Get orders by status (admin only)
+  getOrdersByStatus(status: string): Promise<ApiResponse<Order[]>> {
+    this.isLoading.set(true);
+    this.error.set(null);
+
+    return new Promise((resolve, reject) => {
+      this.http.get<ApiResponse<Order[]>>(`${environment.api.baseUrl}/orders/status/${status}`)
+        .subscribe({
+          next: (response) => {
+            this.isLoading.set(false);
+            resolve(response);
+          },
+          error: (error) => {
+            console.error('Error getting orders by status:', error);
+            this.error.set('Failed to get orders');
             this.isLoading.set(false);
             reject(error);
           }
@@ -187,6 +209,28 @@ export class OrderService {
           error: (error) => {
             console.error('Error cancelling order:', error);
             this.error.set('Failed to cancel order');
+            this.isLoading.set(false);
+            reject(error);
+          }
+        });
+    });
+  }
+
+  // Reorder - Add items from a previous order back to cart
+  reorderFromOrder(orderId: number): Promise<ApiResponse> {
+    this.isLoading.set(true);
+    this.error.set(null);
+
+    return new Promise((resolve, reject) => {
+      this.http.post<ApiResponse>(`${environment.api.baseUrl}/orders/${orderId}/reorder`, {})
+        .subscribe({
+          next: (response) => {
+            this.isLoading.set(false);
+            resolve(response);
+          },
+          error: (error) => {
+            console.error('Error reordering:', error);
+            this.error.set('Failed to reorder items');
             this.isLoading.set(false);
             reject(error);
           }

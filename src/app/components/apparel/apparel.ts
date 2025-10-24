@@ -18,13 +18,17 @@ export class ApparelComponent implements OnInit {
   protected products = signal<ProductData[]>([]);
   protected loading = signal(true);
   protected error = signal<string | null>(null);
+  protected favorites = signal<Set<number>>(new Set());
 
   constructor(
     private http: HttpClient,
     private authService: AuthService,
     private router: Router,
     private cartService: CartService
-  ) {}
+  ) {
+    // Load favorites from localStorage
+    this.loadFavorites();
+  }
 
   ngOnInit(): void {
     this.loadProducts();
@@ -65,8 +69,12 @@ export class ApparelComponent implements OnInit {
       return;
     }
 
+    console.log('Adding to cart:', product.product_name);
+    
     // Add to cart using cart service
     this.cartService.addToCart(product, 1);
+    
+    // Show success message
     alert(`Added ${product.product_name} to cart!`);
   }
 
@@ -75,5 +83,78 @@ export class ApparelComponent implements OnInit {
     this.router.navigate(['/customization'], { 
       queryParams: { productId: product.product_id } 
     });
+  }
+
+  viewProductDetails(product: ProductData): void {
+    // Navigate to product details page
+    this.router.navigate(['/product', product.product_id]);
+  }
+
+  viewProduct(product: ProductData): void {
+    // Navigate to product detail or customization page
+    if (product.allows_customization) {
+      this.viewCustomization(product);
+    } else {
+      // For now, just add to cart
+      this.addToCart(product);
+    }
+  }
+
+  toggleFavorite(product: ProductData, event: Event): void {
+    event.stopPropagation();
+    
+    if (!product.product_id) return;
+    
+    const currentFavorites = new Set(this.favorites());
+    
+    if (currentFavorites.has(product.product_id)) {
+      currentFavorites.delete(product.product_id);
+    } else {
+      currentFavorites.add(product.product_id);
+    }
+    
+    this.favorites.set(currentFavorites);
+    this.saveFavorites();
+  }
+
+  isFavorite(productId: number): boolean {
+    return this.favorites().has(productId);
+  }
+
+  isNewProduct(product: ProductData): boolean {
+    // Check if product was created in the last 30 days
+    if (!product.created_at) return false;
+    
+    const createdDate = new Date(product.created_at);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    return createdDate > thirtyDaysAgo;
+  }
+
+  countPrintProviders(product: ProductData): number {
+    // Mock count - you can replace this with actual data from your backend
+    return Math.floor(Math.random() * 5) + 2;
+  }
+
+  private loadFavorites(): void {
+    try {
+      const stored = localStorage.getItem('productFavorites');
+      if (stored) {
+        const favArray = JSON.parse(stored);
+        this.favorites.set(new Set(favArray));
+      }
+    } catch (error) {
+      console.error('Error loading favorites:', error);
+    }
+  }
+
+  private saveFavorites(): void {
+    try {
+      const favArray = Array.from(this.favorites());
+      localStorage.setItem('productFavorites', JSON.stringify(favArray));
+    } catch (error) {
+      console.error('Error saving favorites:', error);
+    }
   }
 }

@@ -1,0 +1,82 @@
+/* Clean Bootstrap 5 Overrides */
+.nav-pills .nav-link {
+  border-radius: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  color: #6c757d;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.nav-pills .nav-link:hover {
+  color: #0d6efd;
+  background-color: #e7f1ff;
+}
+
+.nav-pills .nav-link.active {
+  background-color: #0d6efd;
+  color: white;
+}
+
+/* Minimal Clean Styles - Let Bootstrap 5 do the heavy lifting */
+
+.tab-pane {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.form-label {
+  font-weight: 600;
+}
+
+.card {
+  border-radius: 0.75rem;
+}
+
+/* Status badges - use Bootstrap colors */
+.bg-warning {
+  background-color: #ffc107 !important;
+}
+
+.bg-info {
+  background-color: #0dcaf0 !important;
+}
+
+.bg-primary {
+  background-color: #0d6efd !important;
+}
+
+.bg-secondary {
+  background-color: #6c757d !important;
+}
+
+.bg-dark {
+  background-color: #212529 !important;
+}
+
+.bg-success {
+  background-color: #198754 !important;
+}
+
+.bg-danger {
+  background-color: #dc3545 !important;
+}
+
+/* Table styling */
+.table-hover tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .nav-pills {
+    flex-direction: column;
+  }
+  
+  .nav-pills .nav-link {
+    margin-bottom: 0.5rem;
+  }
+}

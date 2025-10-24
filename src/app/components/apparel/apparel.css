@@ -1,0 +1,86 @@
+/* Apparel Component Styles */
+
+/* Product Image Hover Effect */
+.product-image-container {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+}
+
+.image-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.product-image-container:hover .image-overlay {
+  opacity: 1;
+}
+
+.product-image-container:hover .product-image {
+  transform: scale(1.05);
+  transition: transform 0.3s ease;
+}
+
+/* Cursor pointer for clickable elements */
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.cursor-pointer:hover {
+  color: #007bff;
+  transition: color 0.3s ease;
+}
+
+/* Card hover effects */
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Button styling */
+.btn {
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+/* Product card styling */
+.card {
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.product-image {
+  transition: transform 0.3s ease;
+}
+
+/* Badge styling */
+.badge {
+  font-size: 0.75rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+}
+
+/* Price styling */
+.text-primary {
+  font-weight: 600;
+}

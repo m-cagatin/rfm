@@ -13,38 +13,42 @@ import { AuthService } from '../../services/auth.service';
   styleUrl: './cart.css'
 })
 export class CartComponent implements OnInit {
-  protected cartItems = signal<CartItem[]>([]);
-  protected itemCount = signal(0);
-  protected totalAmount = signal(0);
-  protected loading = signal(false);
-  protected error = signal<string | null>(null);
-
   constructor(
     private cartService: CartService,
     private authService: AuthService,
     private router: Router
   ) {}
 
-  ngOnInit(): void {
-    this.loadCart();
-  }
+  // Use cart service signals directly for reactivity
+  protected get cartItems() { return this.cartService.items; }
+  protected get itemCount() { return this.cartService.itemCount; }
+  protected get totalAmount() { return this.cartService.totalAmount; }
+  protected get loading() { return this.cartService.loading; }
+  protected get error() { return this.cartService.errorMessage; }
 
-  private loadCart(): void {
-    // Use computed signals directly
-    this.cartItems.set(this.cartService.items());
-    this.itemCount.set(this.cartService.itemCount());
-    this.totalAmount.set(this.cartService.totalAmount());
-    this.loading.set(this.cartService.loading());
-    this.error.set(this.cartService.errorMessage());
+  ngOnInit(): void {
+    // Cart is already loaded by the service, no need to refresh
+    console.log('Cart component initialized');
   }
 
   updateQuantity(item: CartItem, newQuantity: number): void {
+    console.log('Updating quantity:', item.product_name, 'from', item.quantity, 'to', newQuantity);
+    
     if (newQuantity < 1) {
       this.removeItem(item);
       return;
     }
     
+    // Validate quantity
+    if (newQuantity > 99) {
+      newQuantity = 99;
+    }
+    
+    // Update via cart service
     this.cartService.updateQuantity(item.cart_item_id!, newQuantity);
+    
+    // Log for debugging
+    console.log('Cart service called for quantity update');
   }
 
   removeItem(item: CartItem): void {
@@ -76,5 +80,10 @@ export class CartComponent implements OnInit {
 
   continueShopping(): void {
     this.router.navigate(['/apparel']);
+  }
+
+  clearError(): void {
+    // Clear error by refreshing cart (which resets error state)
+    this.cartService.refreshCart();
   }
 }

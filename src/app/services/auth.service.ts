@@ -145,6 +145,29 @@ export class AuthService {
   }
 
   /**
+   * Update user profile
+   */
+  updateProfile(profileData: Partial<AuthUser>): Observable<AuthResponse> {
+    return this.http.put<AuthResponse>(`${this.baseUrl}/profile`, profileData).pipe(
+      tap(response => {
+        if (response.success && response.user) {
+          this.setCurrentUser(response.user);
+        }
+      })
+    );
+  }
+
+  /**
+   * Change user password
+   */
+  changePassword(oldPassword: string, newPassword: string): Observable<AuthResponse> {
+    return this.http.put<AuthResponse>(`${this.baseUrl}/password`, {
+      oldPassword,
+      newPassword
+    });
+  }
+
+  /**
    * Get current user profile from server
    */
   getCurrentUserProfile(): Observable<AuthResponse> {
@@ -178,6 +201,12 @@ export class AuthService {
     this.isAuthenticated.set(false);
     localStorage.removeItem('currentUser');
     localStorage.removeItem('authToken');
+    
+    // Clear cart data on logout for security
+    localStorage.removeItem('rfm_guest_cart');
+    
+    // Notify other services about logout
+    window.dispatchEvent(new CustomEvent('user-logout'));
   }
 
   /**

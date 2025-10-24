@@ -102,8 +102,11 @@ export class AdminOrdersComponent implements OnInit {
     this.done.set([]);
     this.cancelled.set([]);
 
-    // Organize orders by status
-    orders.forEach(order => {
+    // Filter out unpaid orders (payment_pending) - they should not appear in production Kanban
+    const paidOrders = orders.filter(order => order.status !== 'payment_pending');
+
+    // Organize paid orders by status
+    paidOrders.forEach(order => {
       const kanbanOrder: KanbanOrder = {
         order_id: order.order_id!,
         orderRef: order.order_ref,

@@ -3,6 +3,7 @@ import { RouterLink, Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
+import { CartService } from '../../services/cart.service';
 
 @Component({
   selector: 'app-login',
@@ -18,7 +19,8 @@ export class LoginComponent {
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private cartService: CartService
   ) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
@@ -41,6 +43,9 @@ export class LoginComponent {
       next: (response) => {
         this.isLoading = false;
         if (response.success && response.user) {
+          // Refresh cart after successful login to load user's cart and merge guest cart
+          this.cartService.refreshCart();
+          
           // Route based on user role
           if (response.user.role === 'customer') {
             this.router.navigate(['/apparel']);

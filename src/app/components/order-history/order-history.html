@@ -135,11 +135,21 @@
                 </div>
                 
                 <div class="col-md-4 text-end">
-                  <button class="btn btn-primary" 
-                          (click)="viewOrderDetails(order)">
-                    <i class="bi bi-eye me-2"></i>
-                    View Details
-                  </button>
+                  <div class="d-flex flex-column gap-2">
+                    <button class="btn btn-primary" 
+                            (click)="viewOrderDetails(order)">
+                      <i class="bi bi-eye me-2"></i>
+                      View Details
+                    </button>
+                    @if (canReorderOrder(order)) {
+                      <button class="btn btn-outline-success" 
+                              (click)="reorderOrder(order)"
+                              [disabled]="loading()">
+                        <i class="bi bi-arrow-repeat me-2"></i>
+                        Reorder
+                      </button>
+                    }
+                  </div>
                 </div>
               </div>
             </div>
@@ -207,6 +217,9 @@
             </div>
           </div>
 
+          <!-- Order Timeline -->
+          <app-order-timeline [currentStatus]="selectedOrder()!.status || 'pending'"></app-order-timeline>
+
           <!-- Order Items -->
           <h6>Order Items</h6>
           <div class="table-responsive">
@@ -260,6 +273,14 @@
             <button type="button" class="btn btn-outline-danger" (click)="cancelOrder(selectedOrder()!)">
               <i class="bi bi-x-circle me-2"></i>
               Cancel Order
+            </button>
+          }
+          @if (canReorderOrder(selectedOrder()!)) {
+            <button type="button" class="btn btn-outline-success" 
+                    (click)="reorderOrder(selectedOrder()!)"
+                    [disabled]="loading()">
+              <i class="bi bi-arrow-repeat me-2"></i>
+              Reorder
             </button>
           }
           <button type="button" class="btn btn-secondary" (click)="closeOrderDetails()">

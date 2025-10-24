@@ -1,5 +1,6 @@
 import { Request, Response, Router } from 'express';
 import { AuthService } from '../services/auth.service';
+import { authenticateToken } from '../middleware/auth.middleware';
 
 const router = Router();
 
@@ -113,7 +114,7 @@ router.post('/logout', async (req: Request, res: Response) => {
  * Get current user profile by ID and role
  * Query params: id (user ID), role (customer or employee)
  */
-router.get('/me', async (req: Request, res: Response) => {
+router.get('/me', authenticateToken, async (req: Request, res: Response) => {
   try {
     const { id, role } = req.query;
 
@@ -150,6 +151,85 @@ router.get('/me', async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch user profile',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * PUT /api/auth/profile
+ * Update user profile (customer only)
+ */
+router.put('/profile', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    if (user.role !== 'customer') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only customers can update their profile'
+      });
+    }
+
+    const profileData = req.body;
+    const result = await AuthService.updateCustomerProfile(user.userId, profileData);
+
+    res.status(result.success ? 200 : 400).json(result);
+  } catch (error) {
+    console.error('Error in profile update route:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Profile update failed',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * PUT /api/auth/password
+ * Change user password
+ */
+router.put('/password', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    const { oldPassword, newPassword } = req.body;
+
+    // Validation
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Old password and new password are required'
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be at least 6 characters long'
+      });
+    }
+
+    const result = await AuthService.changePassword(user.userId, user.role, oldPassword, newPassword);
+
+    res.status(result.success ? 200 : 400).json(result);
+  } catch (error) {
+    console.error('Error in password change route:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Password change failed',
       error: error instanceof Error ? error.message : 'Unknown error'
     });
   }

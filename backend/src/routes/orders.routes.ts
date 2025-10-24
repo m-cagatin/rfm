@@ -37,6 +37,22 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/orders/status/:status - Get orders by status (admin only)
+router.get('/status/:status', authenticateToken, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { status } = req.params;
+    const result = await OrderService.getOrdersByStatus(status);
+    res.status(result.success ? 200 : 400).json(result);
+  } catch (error) {
+    console.error('Error getting orders by status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get orders',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // GET /api/orders - Get all orders (admin only)
 router.get('/', authenticateToken, requireAdmin, async (req: Request, res: Response) => {
   try {
@@ -133,6 +149,24 @@ router.delete('/:id', authenticateToken, async (req: Request, res: Response) => 
     res.status(500).json({
       success: false,
       message: 'Failed to cancel order',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// POST /api/orders/:id/reorder - Reorder items from a previous order
+router.post('/:id/reorder', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const customerId = (req as any).user.userId;
+    
+    const result = await OrderService.reorderFromOrder(parseInt(id), customerId);
+    res.status(result.success ? 200 : 400).json(result);
+  } catch (error) {
+    console.error('Error reordering:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reorder items',
       error: error instanceof Error ? error.message : 'Unknown error'
     });
   }

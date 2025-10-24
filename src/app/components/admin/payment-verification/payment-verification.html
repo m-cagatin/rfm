@@ -1,0 +1,269 @@
+<div class="payment-verification-container">
+  <div class="header-section">
+    <h2 class="page-title">
+      <i class="bi bi-credit-card me-2"></i>
+      Payment Verification
+    </h2>
+    <p class="page-subtitle">Review and approve orders awaiting payment verification</p>
+  </div>
+
+  @if (loading()) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p class="mt-3">Loading pending orders...</p>
+    </div>
+  }
+
+  @if (error()) {
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>
+      {{ error() }}
+      <button type="button" class="btn-close" (click)="clearError()"></button>
+    </div>
+  }
+
+  @if (!loading() && orders().length === 0) {
+    <div class="card">
+      <div class="card-body text-center py-5">
+        <i class="bi bi-check-circle display-1 text-success mb-3"></i>
+        <h5 class="card-title">All Caught Up!</h5>
+        <p class="card-text text-muted">No orders pending payment verification.</p>
+        <button class="btn btn-primary" (click)="loadPendingOrders()">
+          <i class="bi bi-arrow-clockwise me-2"></i>
+          Refresh
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (!loading() && orders().length > 0) {
+    <!-- Orders Grid -->
+    <div class="row">
+      @for (order of orders(); track order.order_id) {
+        <div class="col-md-6 col-lg-4 mb-4">
+          <div class="card order-card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <div>
+                <h6 class="mb-0">
+                  <i class="bi bi-receipt me-2"></i>
+                  {{ order.order_ref }}
+                </h6>
+                <small class="text-muted">{{ formatDate(order.order_date || order.created_at || '') }}</small>
+              </div>
+              <span class="badge bg-warning">
+                <i class="bi bi-clock me-1"></i>
+                Payment Pending
+              </span>
+            </div>
+            
+            <div class="card-body">
+              <!-- Customer Info -->
+              <div class="mb-3">
+                <h6 class="mb-1">Customer</h6>
+                <p class="mb-1"><strong>{{ order.customer_name }}</strong></p>
+                <p class="mb-1 text-muted">{{ order.customer_email }}</p>
+                @if (order.customer_phone) {
+                  <p class="mb-0 text-muted">{{ order.customer_phone }}</p>
+                }
+              </div>
+
+              <!-- Order Summary -->
+              <div class="mb-3">
+                <h6 class="mb-1">Order Summary</h6>
+                <p class="mb-1"><strong>Total: ₱{{ order.total_amount.toFixed(2) }}</strong></p>
+                @if (order.notes) {
+                  <p class="mb-0 text-muted">
+                    <i class="bi bi-chat-text me-1"></i>
+                    {{ order.notes }}
+                  </p>
+                }
+              </div>
+
+              <!-- Payment Info -->
+              <div class="mb-3">
+                <h6 class="mb-1">Payment Method</h6>
+                <div class="d-flex align-items-center">
+                  <span class="payment-icon me-2">{{ getPaymentMethodIcon(order.payment_method || 'unknown') }}</span>
+                  <span>{{ getPaymentMethodName(order.payment_method || 'unknown') }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Payment Evidence Indicators -->
+            <div class="payment-evidence" *ngIf="hasPaymentEvidence(order)">
+              <div class="evidence-badges p-2 bg-light border-top">
+                <span *ngIf="order.paymongo_payment_intent_id" class="badge bg-primary me-1">
+                  <i class="bi bi-shield-check"></i> PayMongo ID
+                </span>
+                <span *ngIf="order.payment_proof_url" class="badge bg-info me-1">
+                  <i class="bi bi-image"></i> Proof Image
+                </span>
+                <span *ngIf="order.reference_number" class="badge bg-secondary me-1">
+                  <i class="bi bi-hash"></i> Reference
+                </span>
+              </div>
+            </div>
+            
+            <div class="card-footer">
+              <div class="d-grid gap-2">
+                <button class="btn btn-outline-primary" 
+                        (click)="viewOrderDetails(order)">
+                  <i class="bi bi-eye me-2"></i>
+                  Review Details
+                </button>
+                
+                <!-- Payment Verification Actions -->
+                <div class="btn-group" role="group" *ngIf="order.payment_method === 'paymongo' && order.payment_id">
+                  <button class="btn btn-outline-info btn-sm" 
+                          (click)="getPaymentEvidence(order.payment_id!)"
+                          [disabled]="loading()">
+                    <i class="bi bi-search me-1"></i>
+                    Check Evidence
+                  </button>
+                  <button class="btn btn-outline-warning btn-sm" 
+                          (click)="verifyWithPayMongo(order.payment_id!)"
+                          [disabled]="loading()">
+                    <i class="bi bi-shield-check me-1"></i>
+                    Verify with PayMongo
+                  </button>
+                </div>
+                
+                <!-- Manual Payment Evidence Check -->
+                <div class="btn-group" role="group" *ngIf="order.payment_method !== 'paymongo' && order.payment_id">
+                  <button class="btn btn-outline-info btn-sm" 
+                          (click)="getPaymentEvidence(order.payment_id!)"
+                          [disabled]="loading()">
+                    <i class="bi bi-image me-1"></i>
+                    Check Payment Proof
+                  </button>
+                </div>
+                
+                <!-- Order Actions -->
+                <div class="btn-group" role="group">
+                  <button class="btn btn-success" 
+                          (click)="approveOrder(order)"
+                          [disabled]="processingOrder() === order.order_id">
+                    @if (processingOrder() === order.order_id) {
+                      <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                    } @else {
+                      <i class="bi bi-check-circle me-2"></i>
+                    }
+                    Approve
+                  </button>
+                  <button class="btn btn-outline-danger" 
+                          (click)="rejectOrder(order)"
+                          [disabled]="processingOrder() === order.order_id">
+                    <i class="bi bi-x-circle me-2"></i>
+                    Reject
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- Order Details Modal -->
+@if (showOrderDetails() && selectedOrder()) {
+  <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="bi bi-receipt me-2"></i>
+            Order Details - {{ selectedOrder()!.order_ref }}
+          </h5>
+          <button type="button" class="btn-close" (click)="closeOrderDetails()"></button>
+        </div>
+        
+        <div class="modal-body">
+          <!-- Order Summary -->
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <h6>Order Information</h6>
+              <ul class="list-unstyled">
+                <li><strong>Order Reference:</strong> {{ selectedOrder()!.order_ref }}</li>
+                <li><strong>Order Date:</strong> {{ formatDate(selectedOrder()!.order_date || selectedOrder()!.created_at || '') }}</li>
+                <li><strong>Status:</strong> 
+                  <span class="badge bg-warning">Payment Pending</span>
+                </li>
+                <li><strong>Total Amount:</strong> ₱{{ selectedOrder()!.total_amount.toFixed(2) }}</li>
+              </ul>
+            </div>
+            <div class="col-md-6">
+              <h6>Customer Information</h6>
+              <ul class="list-unstyled">
+                <li><strong>Name:</strong> {{ selectedOrder()!.customer_name }}</li>
+                <li><strong>Email:</strong> {{ selectedOrder()!.customer_email }}</li>
+                @if (selectedOrder()!.customer_phone) {
+                  <li><strong>Phone:</strong> {{ selectedOrder()!.customer_phone }}</li>
+                }
+                @if (selectedOrder()!.customer_address) {
+                  <li><strong>Address:</strong> {{ selectedOrder()!.customer_address }}</li>
+                }
+              </ul>
+            </div>
+          </div>
+
+          <!-- Payment Information -->
+          <div class="mb-4">
+            <h6>Payment Information</h6>
+            <div class="card">
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6">
+                    <p><strong>Payment Method:</strong> 
+                      <span class="payment-icon me-2">{{ getPaymentMethodIcon(selectedOrder()!.payment_method || 'unknown') }}</span>
+                      {{ getPaymentMethodName(selectedOrder()!.payment_method || 'unknown') }}
+                    </p>
+                    <p><strong>Amount:</strong> ₱{{ selectedOrder()!.total_amount.toFixed(2) }}</p>
+                  </div>
+                  <div class="col-md-6">
+                    @if (selectedOrder()!.payment_proof_url) {
+                      <p><strong>Payment Proof:</strong></p>
+                      <a [href]="selectedOrder()!.payment_proof_url" target="_blank" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-image me-2"></i>
+                        View Proof
+                      </a>
+                    }
+                    @if (selectedOrder()!.payment_reference) {
+                      <p class="mt-2"><strong>Reference:</strong> {{ selectedOrder()!.payment_reference }}</p>
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          @if (selectedOrder()!.notes) {
+            <div class="mb-3">
+              <h6>Order Notes</h6>
+              <p class="text-muted">{{ selectedOrder()!.notes }}</p>
+            </div>
+          }
+        </div>
+        
+        <div class="modal-footer">
+          <div class="btn-group w-100" role="group">
+            <button type="button" class="btn btn-success" (click)="approveOrder(selectedOrder()!)">
+              <i class="bi bi-check-circle me-2"></i>
+              Approve for Production
+            </button>
+            <button type="button" class="btn btn-outline-danger" (click)="rejectOrder(selectedOrder()!)">
+              <i class="bi bi-x-circle me-2"></i>
+              Reject Order
+            </button>
+            <button type="button" class="btn btn-secondary" (click)="closeOrderDetails()">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+}

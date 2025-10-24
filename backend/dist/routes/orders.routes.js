@@ -33,6 +33,21 @@ router.post('/', auth_middleware_1.authenticateToken, async (req, res) => {
         });
     }
 });
+router.get('/status/:status', auth_middleware_1.authenticateToken, auth_middleware_1.requireAdmin, async (req, res) => {
+    try {
+        const { status } = req.params;
+        const result = await order_service_1.OrderService.getOrdersByStatus(status);
+        res.status(result.success ? 200 : 400).json(result);
+    }
+    catch (error) {
+        console.error('Error getting orders by status:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to get orders',
+            error: error instanceof Error ? error.message : 'Unknown error'
+        });
+    }
+});
 router.get('/', auth_middleware_1.authenticateToken, auth_middleware_1.requireAdmin, async (req, res) => {
     try {
         const { status } = req.query;
@@ -120,6 +135,22 @@ router.delete('/:id', auth_middleware_1.authenticateToken, async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to cancel order',
+            error: error instanceof Error ? error.message : 'Unknown error'
+        });
+    }
+});
+router.post('/:id/reorder', auth_middleware_1.authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const customerId = req.user.userId;
+        const result = await order_service_1.OrderService.reorderFromOrder(parseInt(id), customerId);
+        res.status(result.success ? 200 : 400).json(result);
+    }
+    catch (error) {
+        console.error('Error reordering:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to reorder items',
             error: error instanceof Error ? error.message : 'Unknown error'
         });
     }
