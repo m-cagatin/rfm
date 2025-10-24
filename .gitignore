@@ -42,7 +42,14 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Environment variables (CRITICAL - contains sensitive credentials)
 .env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
 
 # Documentation and Planning Files (specific files only)
 BACKEND_ENV_SETUP.txt
