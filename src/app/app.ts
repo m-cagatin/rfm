@@ -56,4 +56,8 @@ export class App {
   closeUserDropdown(): void {
     this.userDropdownOpen.set(false);
   }
+
+  isDesigningRoute(): boolean {
+    return this.router.url.includes('/designing');
+  }
 }

@@ -1,5 +1,5 @@
-<!-- Printify-Style Sidebar Navigation (Customer Routes Only) -->
-<div *ngIf="!isAdminRoute()" class="app-layout">
+<!-- Printify-Style Sidebar Navigation (Customer Routes Only, NOT on designing route) -->
+<div *ngIf="!isAdminRoute() && !isDesigningRoute()" class="app-layout">
   <!-- Left Sidebar -->
   <aside class="sidebar">
     <!-- Top Section - RFM Logo -->
@@ -155,6 +155,11 @@
   <main class="main-content">
     <router-outlet></router-outlet>
   </main>
+</div>
+
+<!-- Designing Route - Render without app layout (no sidebar) -->
+<div *ngIf="!isAdminRoute() && isDesigningRoute()">
+  <router-outlet></router-outlet>
 </div>
 
 <!-- Admin Routes - Use AdminLayoutComponent -->
