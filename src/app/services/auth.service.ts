@@ -54,7 +54,8 @@ export class AuthService {
    */
   private loadUserFromStorage(): void {
     const userJson = localStorage.getItem('currentUser');
-    const token = localStorage.getItem('token');
+    // Use a single, consistent key for the JWT across the app
+    const token = localStorage.getItem('authToken');
     
     if (userJson && token) {
       try {
@@ -276,10 +277,11 @@ export class AuthService {
    * Clear all authentication data from storage
    */
   private clearStorage(): void {
-    localStorage.removeItem('currentUser');
+    // Centralized cleanup: remove user and token consistently
+    this.clearCurrentUser();
+    this.removeToken();
+    // Remove any legacy key if it exists
     localStorage.removeItem('token');
-    this.currentUser.set(null);
-    this.isAuthenticated.set(false);
   }
 
   /**

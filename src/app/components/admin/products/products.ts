@@ -1,6 +1,7 @@
 import { Component, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { CloudinaryService, UploadResponse } from '../../../services/cloudinary.service';
 import { ApiService, ProductData } from '../../../services/api';
 
@@ -27,7 +28,7 @@ export interface ProductForm {
 @Component({
   selector: 'app-admin-products',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './products.html',
   styleUrls: ['./products.css']
 })

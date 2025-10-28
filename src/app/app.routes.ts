@@ -16,7 +16,9 @@ import { AdminOrdersComponent } from './components/admin/orders/orders';
 import { AdminProductsComponent } from './components/admin/products/products';
 import { AdminCashflowComponent } from './components/admin/cashflow/cashflow';
 import { AdminReportsComponent } from './components/admin/reports/reports';
+import { AdminCustomizableProductsComponent } from './components/admin/customizable-products/customizable-products';
 import { AdminEmployeesComponent } from './components/admin/employees/employees';
+// lazy-load the creation form to avoid static import issues during build
 
 // Guards
 import { AuthGuard } from './guards/auth.guard';
@@ -57,7 +59,8 @@ export const routes: Routes = [
       { path: '', redirectTo: 'payment-verification', pathMatch: 'full' },
       { path: 'payment-verification', component: PaymentVerificationComponent },
       { path: 'orders', component: AdminOrdersComponent },
-      { path: 'products', component: AdminProductsComponent },
+  { path: 'products', component: AdminProductsComponent },
+      { path: 'customizable-products', component: AdminCustomizableProductsComponent },
       { path: 'employees', component: AdminEmployeesComponent },
       { path: 'cashflow', component: AdminCashflowComponent },
       { path: 'reports', component: AdminReportsComponent }

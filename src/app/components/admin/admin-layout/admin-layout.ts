@@ -21,6 +21,7 @@ export class AdminLayoutComponent implements OnInit {
     { name: 'Payment Verification', icon: '💳', route: '/admin/payment-verification' },
     { name: 'Orders', icon: '🛒', route: '/admin/orders' },
     { name: 'Products', icon: '📦', route: '/admin/products' },
+    { name: 'Customizable Products', icon: '🎨', route: '/admin/customizable-products' },
     { name: 'Employees', icon: '👥', route: '/admin/employees' },
     { name: 'Cash flow', icon: '💰', route: '/admin/cashflow' },
     { name: 'Reports', icon: '📈', route: '/admin/reports' }

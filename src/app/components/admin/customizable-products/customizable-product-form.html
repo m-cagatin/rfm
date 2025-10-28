@@ -1,0 +1,227 @@
+<div class="cp-form-container">
+  <div *ngIf="message()" class="alert" [class.alert-success]="messageType()==='success'" [class.alert-danger]="messageType()==='error'" [class.alert-info]="messageType()==='info'">{{message()}}</div>
+
+  <h2>Add Customizable Product</h2>
+  <form>
+    <!-- 1. Basic Info -->
+    <section class="card-section">
+      <h3>1. Basic Info</h3>
+      <div class="row">
+        <div class="col">
+          <label>Product Name</label>
+          <input class="form-control" [(ngModel)]="form.name" name="name" placeholder="Premium Cotton T-Shirt" required>
+        </div>
+        <div class="col">
+          <label>Category</label>
+          <select class="form-select" [(ngModel)]="form.category" name="category" required>
+            <option value="">Select category</option>
+            <option *ngFor="let c of categories" [value]="c">{{c}}</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col">
+          <label>Brand / Supplier</label>
+          <input class="form-control" [(ngModel)]="form.brand" name="brand" placeholder="e.g., Bella+Canvas">
+        </div>
+        <div class="col">
+          <label>Gender</label>
+          <select class="form-select" [(ngModel)]="form.gender" name="gender">
+            <option>Unisex</option>
+            <option>Men</option>
+            <option>Women</option>
+            <option>Kids</option>
+          </select>
+        </div>
+        <div class="col">
+          <label>Fit Type</label>
+          <select class="form-select" [(ngModel)]="form.fitType" name="fitType">
+            <option>Classic</option>
+            <option>Slim</option>
+            <option>Oversized</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label>Description</label>
+        <textarea class="form-control" rows="3" [(ngModel)]="form.description" name="description" placeholder="Product details and selling points"></textarea>
+      </div>
+    </section>
+
+    <!-- 2. Images -->
+    <section class="card-section">
+      <h3>2. Images</h3>
+      <div class="row">
+        <div class="col">
+          <label>Front View Image (required)</label>
+          <input type="file" class="form-control" (change)="onFileSelected($event,'front')" accept="image/*">
+          <img *ngIf="frontPreview" [src]="frontPreview" class="preview" alt="front preview">
+        </div>
+        <div class="col">
+          <label>Back View Image (required)</label>
+          <input type="file" class="form-control" (change)="onFileSelected($event,'back')" accept="image/*">
+          <img *ngIf="backPreview" [src]="backPreview" class="preview" alt="back preview">
+        </div>
+        <div class="col">
+          <label>Logo/Tag (optional)</label>
+          <input type="file" class="form-control" (change)="onFileSelected($event,'logo')" accept="image/*">
+          <img *ngIf="logoPreview" [src]="logoPreview" class="preview" alt="logo preview">
+        </div>
+      </div>
+      <div>
+        <label>Additional Images (optional)</label>
+        <input type="file" class="form-control" (change)="onFileSelected($event,'additional')" accept="image/*" multiple>
+        <div class="preview-list">
+          <img *ngFor="let p of additionalPreviews" [src]="p" class="preview">
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Material & Fabric -->
+    <section class="card-section">
+      <h3>3. Material & Fabric</h3>
+      <div class="row">
+        <div class="col">
+          <label>Fabric Composition</label>
+          <input class="form-control" [(ngModel)]="form.fabricComposition" name="fabricComposition" placeholder="100% Cotton">
+        </div>
+        <div class="col">
+          <label>Fabric Weight</label>
+          <input class="form-control" [(ngModel)]="form.fabricWeight" name="fabricWeight" placeholder="180 g/m²">
+        </div>
+        <div class="col">
+          <label>Texture / Finish</label>
+          <input class="form-control" [(ngModel)]="form.texture" name="texture" placeholder="Soft-washed">
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Sizes & Fit -->
+    <section class="card-section">
+      <h3>4. Sizes & Fit</h3>
+      <div>
+        <label>Available Sizes</label>
+        <div class="chips">
+          <label *ngFor="let s of sizes" class="chip">
+            <input type="checkbox" (change)="toggleSize(s, $any($event.target).checked)"> {{s}}
+          </label>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col">
+          <label>Size Chart (image)</label>
+          <input type="file" class="form-control" (change)="onFileSelected($event,'sizeChart')" accept="image/*">
+          <img *ngIf="sizeChartPreview" [src]="sizeChartPreview" class="preview" alt="size chart">
+        </div>
+        <div class="col">
+          <label>Fit Description</label>
+          <input class="form-control" [(ngModel)]="form.fitDescription" name="fitDescription" placeholder="Runs true to size">
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. Colors & Variants -->
+    <section class="card-section">
+      <h3>5. Colors & Variants</h3>
+      <div>
+        <label>Available Colors</label>
+        <div class="chips">
+          <label *ngFor="let c of colorsCatalog" class="chip">
+            <input type="checkbox" (change)="toggleColor(c, $any($event.target).checked)"> {{c}}
+          </label>
+        </div>
+      </div>
+      <div class="stock-grid" *ngIf="form.availableSizes.length && form.availableColors.length">
+        <h4 class="mt-3">Stock Quantity per Size/Color</h4>
+        <table class="table table-sm align-middle">
+          <thead>
+            <tr>
+              <th>Size</th>
+              <th>Color</th>
+              <th style="width:140px">Quantity</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let entry of form.stock; trackBy: trackByStock">
+              <td>{{entry.size}}</td>
+              <td>{{entry.color}}</td>
+              <td>
+                <input type="number" min="0" class="form-control form-control-sm" [(ngModel)]="entry.quantity" name="qty-{{entry.size}}-{{entry.color}}">
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 6. Print & Customization -->
+    <section class="card-section">
+      <h3>6. Print & Customization</h3>
+      <div class="row">
+        <div class="col">
+          <label>Print Method</label>
+          <select class="form-select" [(ngModel)]="form.printMethod" name="printMethod">
+            <option *ngFor="let m of printMethods">{{m}}</option>
+          </select>
+        </div>
+        <div class="col">
+          <label>Print Areas</label>
+          <div class="chips">
+            <label *ngFor="let a of printAreaOptions" class="chip">
+              <input type="checkbox" [checked]="form.printAreas.includes(a)" (change)="togglePrintArea(a, $any($event.target).checked)"> {{a}}
+            </label>
+          </div>
+        </div>
+      </div>
+      <div>
+        <label>Design Upload Requirements</label>
+        <input class="form-control" [(ngModel)]="form.designRequirements" name="designRequirements" placeholder="300 DPI PNG, transparent">
+      </div>
+    </section>
+
+    <!-- 7. Pricing & Stock -->
+    <section class="card-section">
+      <h3>7. Pricing & Stock</h3>
+      <div class="row">
+        <div class="col">
+          <label>Base Cost</label>
+          <input type="number" min="0" class="form-control" [(ngModel)]="form.baseCost" name="baseCost">
+        </div>
+        <div class="col">
+          <label>Retail Price</label>
+          <input type="number" min="0" class="form-control" [(ngModel)]="form.retailPrice" name="retailPrice">
+        </div>
+        <div class="col">
+          <label>Active</label>
+          <div class="form-check form-switch mt-2">
+            <input type="checkbox" class="form-check-input" [(ngModel)]="form.isActive" name="isActive">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. Shipping & Fulfillment -->
+    <section class="card-section">
+      <h3>8. Shipping & Fulfillment</h3>
+      <div class="row">
+        <div class="col">
+          <label>Production Time (days)</label>
+          <input type="number" min="0" class="form-control" [(ngModel)]="form.productionTimeDays" name="productionTimeDays">
+        </div>
+        <div class="col">
+          <label>Shipping Time</label>
+          <input class="form-control" [(ngModel)]="form.shippingTime" name="shippingTime" placeholder="3–7 business days">
+        </div>
+        <div class="col">
+          <label>Weight per Item (kg)</label>
+          <input type="number" min="0" step="0.01" class="form-control" [(ngModel)]="form.weightPerItem" name="weightPerItem">
+        </div>
+      </div>
+    </section>
+
+    <div class="actions sticky-actions">
+      <button type="button" class="btn btn-secondary" routerLink="/admin/customizable-products">Cancel</button>
+      <button type="button" class="btn btn-primary" (click)="save()">Save</button>
+    </div>
+  </form>
+</div>

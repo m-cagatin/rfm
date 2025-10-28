@@ -1,0 +1,31 @@
+<div class="customizable-products-container">
+  <div class="header">
+    <h2>Customizable Products</h2>
+    <p class="subtitle">Set up products with front/back views and label areas using a canvas workflow.</p>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-primary" (click)="showForm.set(true)">
+      <i class="bi bi-brush"></i>
+      <span class="ms-2">Add Customizable Product</span>
+    </button>
+  </div>
+
+  <div class="content card" *ngIf="!showForm()">
+    <div class="card-body">
+      <p class="mb-2">This section will manage:</p>
+      <ul>
+        <li>Product base info (name, price, category)</li>
+        <li>Canvas templates for front, back, and label</li>
+        <li>Printable area definitions and default layers</li>
+        <li>Mockup previews and export settings</li>
+      </ul>
+      <p class="text-muted mb-0">We can wire a full creation wizard next; for now, use the button above to start the flow.</p>
+    </div>
+  </div>
+
+  <!-- Embedded creation form -->
+  <div *ngIf="showForm()">
+    <ng-container *ngComponentOutlet="formComponent"></ng-container>
+  </div>
+</div>

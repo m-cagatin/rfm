@@ -17,10 +17,16 @@
 
   <div class="products-header">
     <h2>Product Catalog</h2>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
-      <i class="bi bi-plus-circle me-2"></i>
-      Add Product
-    </button>
+    <div class="btn-group">
+      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
+        <i class="bi bi-plus-circle me-2"></i>
+        Add Product
+      </button>
+      <a class="btn btn-outline-primary" [routerLink]="['/admin/customizable-products']" title="Create canvas-based products">
+        <i class="bi bi-brush me-2"></i>
+        Add Customizable Product
+      </a>
+    </div>
   </div>
 
   <!-- Tab Navigation -->
@@ -72,7 +78,12 @@
             <img [src]="product.image_url" [alt]="product.product_name" />
           </div>
           <div class="col-id">{{ product.product_id }}</div>
-          <div class="col-name" [title]="product.product_name">{{ product.product_name }}</div>
+          <div class="col-name" [title]="product.product_name">
+            {{ product.product_name }}
+            <span *ngIf="product.allows_customization" class="badge bg-info ms-2" title="Customizable">
+              Customizable
+            </span>
+          </div>
           <div class="col-category">{{ product.category }}</div>
           <div class="col-price">₱{{ product.base_price.toFixed(2) }}</div>
           <div class="col-stock">{{ product.stock_quantity || 0 }}</div>
@@ -122,7 +133,12 @@
             <span class="archived-badge">ARCHIVED</span>
           </div>
           <div class="col-id">{{ product.product_id }}</div>
-          <div class="col-name" [title]="product.product_name">{{ product.product_name }}</div>
+          <div class="col-name" [title]="product.product_name">
+            {{ product.product_name }}
+            <span *ngIf="product.allows_customization" class="badge bg-info ms-2" title="Customizable">
+              Customizable
+            </span>
+          </div>
           <div class="col-category">{{ product.category }}</div>
           <div class="col-price">₱{{ product.base_price.toFixed(2) }}</div>
           <div class="col-stock">{{ product.stock_quantity || 0 }}</div>
