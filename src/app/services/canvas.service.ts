@@ -82,13 +82,29 @@ export class CanvasService {
   /**
    * Setup keyboard shortcuts
    */
+  private keyboardHandler?: (e: KeyboardEvent) => void;
+  
   private setupKeyboardShortcuts(): void {
     if (!isPlatformBrowser(this.platformId)) return;
 
-    document.addEventListener('keydown', (e: KeyboardEvent) => {
+    // Remove existing listener if any
+    if (this.keyboardHandler) {
+      document.removeEventListener('keydown', this.keyboardHandler);
+    }
+
+    // Create the handler
+    this.keyboardHandler = (e: KeyboardEvent) => {
+      const activeElement = document.activeElement as HTMLElement;
+      const activeObj = this.fabricCanvas?.getActiveObject();
+      
+      // Check if typing in a form input (but not canvas text editor)
+      const isTypingInInput = (activeElement?.tagName === 'INPUT' || 
+                               activeElement?.tagName === 'TEXTAREA' ||
+                               activeElement?.isContentEditable) &&
+                              !activeObj?.isEditing;
+      
       // Select All (Ctrl+A / Cmd+A)
       if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
-        const activeObj = this.fabricCanvas?.getActiveObject();
         // Only prevent default if not editing text
         if (!activeObj?.isEditing) {
           e.preventDefault();
@@ -98,18 +114,8 @@ export class CanvasService {
       
       // Delete (Delete / Backspace)
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        const activeElement = document.activeElement as HTMLElement;
-        const activeObj = this.fabricCanvas?.getActiveObject();
-        
-        // Only delete if:
-        // 1. Not typing in an input/textarea
-        // 2. Not editing text on canvas
-        const isTypingInInput = activeElement?.tagName === 'INPUT' || 
-                                activeElement?.tagName === 'TEXTAREA' ||
-                                activeElement?.isContentEditable;
-        const isEditingText = activeObj?.isEditing;
-        
-        if (!isTypingInInput && !isEditingText) {
+        // Only delete if not typing in an input and not editing canvas text
+        if (!isTypingInInput && !activeObj?.isEditing) {
           e.preventDefault();
           this.deleteSelected();
         }
@@ -117,17 +123,25 @@ export class CanvasService {
 
       // Undo (Ctrl+Z / Cmd+Z)
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-        e.preventDefault();
-        this.undo();
+        if (!isTypingInInput) {
+          e.preventDefault();
+          console.log('Undo triggered');
+          this.undo();
+        }
       }
 
       // Redo (Ctrl+Shift+Z / Cmd+Shift+Z or Ctrl+Y / Cmd+Y)
       if (((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z') || 
           ((e.ctrlKey || e.metaKey) && e.key === 'y')) {
-        e.preventDefault();
-        this.redo();
+        if (!isTypingInInput) {
+          e.preventDefault();
+          console.log('Redo triggered');
+          this.redo();
+        }
       }
-    });
+    };
+
+    document.addEventListener('keydown', this.keyboardHandler);
   }
 
   /**
@@ -165,7 +179,19 @@ export class CanvasService {
   private saveState(): void {
     if (!this.fabricCanvas) return;
 
-    const json = JSON.stringify(this.fabricCanvas.toJSON());
+    // Include all custom properties when serializing
+    const json = JSON.stringify(this.fabricCanvas.toJSON([
+      'selectable',
+      'hasControls', 
+      'hasBorders',
+      'lockMovementX',
+      'lockMovementY',
+      'lockRotation',
+      'lockScalingX',
+      'lockScalingY',
+      'customType'
+    ]));
+    
     this.undoStack.push(json);
     
     // Limit stack size to prevent memory issues
@@ -177,6 +203,7 @@ export class CanvasService {
     this.redoStack = [];
     
     this.updateUndoRedoSignals();
+    console.log('State saved - stack size:', this.undoStack.length);
   }
 
   /**
@@ -191,8 +218,13 @@ export class CanvasService {
    * Undo last action
    */
   undo(): void {
-    if (!this.fabricCanvas || this.undoStack.length <= 1) return;
+    if (!this.fabricCanvas || this.undoStack.length <= 1) {
+      console.log('Cannot undo - stack length:', this.undoStack.length);
+      return;
+    }
 
+    console.log('Undo - stack before:', this.undoStack.length, 'redo:', this.redoStack.length);
+    
     this.isUndoRedoAction = true;
 
     // Move current state to redo stack
@@ -204,12 +236,22 @@ export class CanvasService {
     // Load previous state
     const previousState = this.undoStack[this.undoStack.length - 1];
     if (previousState) {
-      this.fabricCanvas.loadFromJSON(previousState, () => {
-        this.fabricCanvas.renderAll();
+      try {
+        const json = JSON.parse(previousState);
+        this.fabricCanvas.loadFromJSON(json, () => {
+          // Re-setup event listeners after loading
+          this.setupEventListeners();
+          this.fabricCanvas.renderAll();
+          this.isUndoRedoAction = false;
+          this.updateUndoRedoSignals();
+          console.log('✓ Undo completed - stack:', this.undoStack.length, 'redo:', this.redoStack.length);
+        });
+      } catch (error) {
+        console.error('Undo error:', error);
         this.isUndoRedoAction = false;
-        this.updateUndoRedoSignals();
-        console.log('✓ Undo completed');
-      });
+      }
+    } else {
+      this.isUndoRedoAction = false;
     }
   }
 
@@ -217,7 +259,12 @@ export class CanvasService {
    * Redo last undone action
    */
   redo(): void {
-    if (!this.fabricCanvas || this.redoStack.length === 0) return;
+    if (!this.fabricCanvas || this.redoStack.length === 0) {
+      console.log('Cannot redo - redo stack empty');
+      return;
+    }
+
+    console.log('Redo - stack before:', this.undoStack.length, 'redo:', this.redoStack.length);
 
     this.isUndoRedoAction = true;
 
@@ -226,12 +273,22 @@ export class CanvasService {
     if (nextState) {
       this.undoStack.push(nextState);
       
-      this.fabricCanvas.loadFromJSON(nextState, () => {
-        this.fabricCanvas.renderAll();
+      try {
+        const json = JSON.parse(nextState);
+        this.fabricCanvas.loadFromJSON(json, () => {
+          // Re-setup event listeners after loading
+          this.setupEventListeners();
+          this.fabricCanvas.renderAll();
+          this.isUndoRedoAction = false;
+          this.updateUndoRedoSignals();
+          console.log('✓ Redo completed - stack:', this.undoStack.length, 'redo:', this.redoStack.length);
+        });
+      } catch (error) {
+        console.error('Redo error:', error);
         this.isUndoRedoAction = false;
-        this.updateUndoRedoSignals();
-        console.log('✓ Redo completed');
-      });
+      }
+    } else {
+      this.isUndoRedoAction = false;
     }
   }
 
@@ -958,6 +1015,12 @@ export class CanvasService {
    * Dispose canvas
    */
   dispose(): void {
+    // Clean up keyboard listener
+    if (this.keyboardHandler) {
+      document.removeEventListener('keydown', this.keyboardHandler);
+      this.keyboardHandler = undefined;
+    }
+    
     if (this.fabricCanvas) {
       this.fabricCanvas.dispose();
       this.fabricCanvas = null;
