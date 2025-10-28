@@ -1,11 +1,13 @@
 .upload-panel {
-  background: #f8f9fa;
+  background: #fff;
   padding: 20px;
-  border-radius: 8px;
-  height: 100%;
+  border-radius: 12px;
+  width: 420px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
+  position: relative;
 }
 
 .upload-section {
@@ -27,6 +29,38 @@
   font-weight: 600;
   color: #333;
 }
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.button-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pick-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #e0e0e0;
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px 14px;
+  cursor: pointer;
+}
+
+.pick-btn.primary {
+  border-color: #c7d2fe;
+  background: #eef2ff;
+}
+
+.btn-icon { width: 20px; }
 
 .expand-icon {
   color: #666;
@@ -335,6 +369,7 @@
 @media (max-width: 768px) {
   .upload-panel {
     padding: 16px;
+    width: 92vw;
   }
   
   .upload-area {
@@ -345,4 +380,11 @@
     grid-template-columns: 1fr;
     gap: 8px;
   }
+}
+
+/* Overlay container lives in parent, but style helpers here for cohesion */
+.upload-overlay .overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
 }

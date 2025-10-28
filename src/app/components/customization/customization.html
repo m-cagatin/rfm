@@ -11,13 +11,20 @@
       </button>
     </div>
     
-    <button class="sidebar-btn">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-      </svg>
-      <span class="sidebar-btn-label">Upload</span>
-    </button>
-    <button class="sidebar-btn">
+    <div class="sidebar-item with-dropdown">
+      <button class="sidebar-btn" (click)="openUpload()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+        </svg>
+        <span class="sidebar-btn-label">Upload</span>
+      </button>
+      <!-- Dropdown panel beside the icon -->
+      <div class="dropdown-panel" *ngIf="showUpload()" (click)="$event.stopPropagation()">
+        <app-upload-panel (closed)="closeUpload()" (fileSelected)="onFileSelected($event)"></app-upload-panel>
+        <div class="dropdown-arrow"></div>
+      </div>
+    </div>
+    <button class="sidebar-btn" (click)="openTextFrom($event)">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <polyline points="4 7 4 4 20 4 20 7"/>
         <line x1="9" y1="20" x2="15" y2="20"/>
@@ -25,13 +32,13 @@
       </svg>
       <span class="sidebar-btn-label">Add text</span>
     </button>
-    <button class="sidebar-btn">
+    <button class="sidebar-btn" (click)="openLibraryFrom($event)">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
       </svg>
       <span class="sidebar-btn-label">My library</span>
     </button>
-    <button class="sidebar-btn">
+    <button class="sidebar-btn" (click)="openGraphicsFrom($event)">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
         <circle cx="8.5" cy="8.5" r="1.5"/>
@@ -39,7 +46,7 @@
       </svg>
       <span class="sidebar-btn-label">Graphics</span>
     </button>
-    <button class="sidebar-btn">
+    <button class="sidebar-btn" (click)="openTemplatesFrom($event)">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
         <polyline points="14 2 14 8 20 8"/>
@@ -49,17 +56,17 @@
       </svg>
       <span class="sidebar-btn-label">My templates</span>
     </button>
-    <button class="sidebar-btn">
+    <button class="sidebar-btn" (click)="openPatternsFrom($event)">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="11" cy="11" r="8"/>
         <path d="m21 21-4.35-4.35"/>
       </svg>
-      <span class="sidebar-btn-label">Shutterstock</span>
+      <span class="sidebar-btn-label">Pattern / Texture</span>
     </button>
   </div>
 
   <!-- Main Content -->
-  <div class="main-content">
+  <div class="main-content" (click)="onMainContentClick($event)">
     <!-- Top Bar -->
     <div class="top-bar">
       <div class="top-bar-left">
@@ -70,9 +77,147 @@
             <line x1="12" y1="8" x2="12.01" y2="8"/>
           </svg>
         </button>
-        <button class="undo-btn">↶</button>
-        <button class="redo-btn">↷</button>
+        <button 
+          class="undo-btn" 
+          (click)="undoAction()"
+          [disabled]="!canvasService.canUndo()"
+          [class.disabled]="!canvasService.canUndo()"
+          title="Undo (Ctrl+Z)">
+          ↶
+        </button>
+        <button 
+          class="redo-btn" 
+          (click)="redoAction()"
+          [disabled]="!canvasService.canRedo()"
+          [class.disabled]="!canvasService.canRedo()"
+          title="Redo (Ctrl+Shift+Z or Ctrl+Y)">
+          ↷
+        </button>
       </div>
+
+      <!-- Text Formatting Toolbar (centered, appears when text is selected) -->
+      <div class="top-bar-center" *ngIf="showToolbar()">
+        <div class="text-toolbar">
+          <div class="toolbar-section">
+            <button class="toolbar-btn" title="Position">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="7 10 12 15 17 10"/>
+              </svg>
+              Position
+            </button>
+          </div>
+
+          <div class="toolbar-divider"></div>
+
+          <!-- Font Family -->
+          <div class="toolbar-section">
+            <select class="font-select" [value]="selectedFontFamily()" (change)="onFontFamilyChange($any($event.target).value)">
+              <option value="Arial">Arial</option>
+              <option value="Helvetica">Helvetica</option>
+              <option value="Times New Roman">Times New Roman</option>
+              <option value="Georgia">Georgia</option>
+              <option value="Courier New">Courier New</option>
+              <option value="Roboto">Roboto</option>
+              <option value="Open Sans">Open Sans</option>
+              <option value="Lato">Lato</option>
+              <option value="Montserrat">Montserrat</option>
+              <option value="Poppins">Poppins</option>
+              <option value="Oswald">Oswald</option>
+              <option value="Playfair Display">Playfair Display</option>
+              <option value="Inter">Inter</option>
+            </select>
+          </div>
+
+          <!-- Font Size -->
+          <div class="toolbar-section font-size-control">
+            <button class="size-btn" (click)="decreaseFontSize()">−</button>
+            <input 
+              type="number" 
+              class="size-input" 
+              [value]="selectedFontSize()" 
+              (input)="onFontSizeChange(+$any($event.target).value)"
+              min="8"
+              max="200"
+            />
+            <button class="size-btn" (click)="increaseFontSize()">+</button>
+          </div>
+
+          <div class="toolbar-divider"></div>
+
+          <!-- Text Formatting -->
+          <div class="toolbar-section">
+            <button class="toolbar-btn-icon" [class.active]="isBold()" (click)="toggleBoldAction()" title="Bold">
+              <strong>B</strong>
+            </button>
+            <button class="toolbar-btn-icon" [class.active]="isItalic()" (click)="toggleItalicAction()" title="Italic">
+              <em>I</em>
+            </button>
+            <button class="toolbar-btn-icon" [class.active]="isUnderline()" (click)="toggleUnderlineAction()" title="Underline">
+              <u>U</u>
+            </button>
+          </div>
+
+          <div class="toolbar-divider"></div>
+
+          <!-- Text Alignment -->
+          <div class="toolbar-section">
+            <button class="toolbar-btn-icon" [class.active]="textAlignment() === 'left'" (click)="setAlignment('left')" title="Align Left">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="17" y1="10" x2="3" y2="10"/>
+                <line x1="21" y1="6" x2="3" y2="6"/>
+                <line x1="21" y1="14" x2="3" y2="14"/>
+                <line x1="17" y1="18" x2="3" y2="18"/>
+              </svg>
+            </button>
+            <button class="toolbar-btn-icon" [class.active]="textAlignment() === 'center'" (click)="setAlignment('center')" title="Align Center">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="10" x2="6" y2="10"/>
+                <line x1="21" y1="6" x2="3" y2="6"/>
+                <line x1="21" y1="14" x2="3" y2="14"/>
+                <line x1="18" y1="18" x2="6" y2="18"/>
+              </svg>
+            </button>
+            <button class="toolbar-btn-icon" [class.active]="textAlignment() === 'right'" (click)="setAlignment('right')" title="Align Right">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="21" y1="10" x2="7" y2="10"/>
+                <line x1="21" y1="6" x2="3" y2="6"/>
+                <line x1="21" y1="14" x2="3" y2="14"/>
+                <line x1="21" y1="18" x2="7" y2="18"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="toolbar-divider"></div>
+
+          <!-- Text Color -->
+          <div class="toolbar-section">
+            <input 
+              type="color" 
+              class="color-picker" 
+              [value]="selectedTextColor()" 
+              (input)="onTextColorChange($any($event.target).value)"
+              title="Text Color"
+            />
+          </div>
+
+          <div class="toolbar-divider"></div>
+
+          <!-- Delete Button -->
+          <div class="toolbar-section">
+            <button 
+              class="toolbar-btn-icon delete-btn" 
+              (click)="deleteSelectedObject()" 
+              (mousedown)="$event.preventDefault()"
+              title="Delete">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div class="top-bar-right">
         <button class="btn-edit">Edit</button>
         <button class="btn-preview">Preview</button>
@@ -81,7 +226,8 @@
     </div>
 
     <!-- Canvas Area -->
-    <div class="canvas-area">
+    <div class="canvas-area" (click)="onCanvasAreaClick($event)">
+
       <!-- Product Info Panel -->
       <div class="product-info-panel" [style.display]="isPanelVisible() ? 'block' : 'none'">
         <div class="panel-header">
@@ -116,15 +262,21 @@
 
       <!-- T-shirt Canvas -->
       <div class="tshirt-canvas">
-        <div class="tshirt-outline">
-          <svg class="tshirt-svg" viewBox="0 0 380 480" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <!-- T-shirt outline -->
-            <path d="M120 50 L120 30 Q120 20 130 20 L150 20 Q160 10 180 10 L200 10 Q220 10 230 20 L250 20 Q260 20 260 30 L260 50" stroke="#ccc" stroke-width="2" fill="none"/>
-            <path d="M120 50 L80 70 L80 120 L110 130 L110 460 Q110 470 120 470 L260 470 Q270 470 270 460 L270 130 L300 120 L300 70 Z" stroke="#ccc" stroke-width="2" fill="#f9f9f9"/>
-            <!-- Neck opening -->
-            <ellipse cx="190" cy="35" rx="30" ry="15" stroke="#ccc" stroke-width="2" fill="#f0f0f0"/>
-          </svg>
-          <div class="print-area-box"></div>
+        <div class="print-area-box" 
+             [style.width.px]="canvasWidth()"
+             [style.height.px]="canvasHeight()">
+          <canvas #fabricCanvas></canvas>
+          
+          <!-- Resize handles -->
+          <div class="resize-handle resize-handle-e" 
+               (mousedown)="startResize($event, 'e')"
+               title="Resize width"></div>
+          <div class="resize-handle resize-handle-s" 
+               (mousedown)="startResize($event, 's')"
+               title="Resize height"></div>
+          <div class="resize-handle resize-handle-se" 
+               (mousedown)="startResize($event, 'se')"
+               title="Resize"></div>
         </div>
       </div>
 
@@ -162,4 +314,47 @@
       <button class="save-btn" (click)="saveProduct()">Save product</button>
     </div>
   </div>
+</div>
+<!-- Upload Modal Overlay -->
+<div class="upload-overlay" *ngIf="showUpload()" (click)="closeUpload()">
+  <div class="upload-modal" (click)="$event.stopPropagation()">
+    <app-upload-panel (closed)="closeUpload()" (fileSelected)="onFileSelected($event)"></app-upload-panel>
+  </div>
+  <button class="overlay-close" (click)="closeUpload()">✕</button>
+  <div class="overlay-backdrop"></div>
+</div>
+
+<!-- Text Dropdown Panel (anchored near sidebar) -->
+<div class="panel-catcher" *ngIf="showTextPanel()" (click)="closeText()"></div>
+<div class="text-dropdown" *ngIf="showTextPanel()" (click)="$event.stopPropagation()" [style.top.px]="textPanelPos().top" [style.left.px]="textPanelPos().left">
+  <app-text-panel (closed)="closeText()" (fontSelected)="onFontSelected($event)" (preDesignedSelected)="onPreDesignedTextSelected($event)"></app-text-panel>
+  <div class="text-dropdown-arrow"></div>
+</div>
+
+<!-- Library Panel -->
+<div class="panel-catcher" *ngIf="showLibraryPanel()" (click)="closeLibrary()"></div>
+<div class="text-dropdown" *ngIf="showLibraryPanel()" (click)="$event.stopPropagation()" [style.top.px]="activePanelPos().top" [style.left.px]="activePanelPos().left">
+  <app-library-panel (closed)="closeLibrary()" (itemSelected)="onLibraryItemSelected($event)"></app-library-panel>
+  <div class="text-dropdown-arrow"></div>
+</div>
+
+<!-- Graphics Panel -->
+<div class="panel-catcher" *ngIf="showGraphicsPanel()" (click)="closeGraphics()"></div>
+<div class="text-dropdown" *ngIf="showGraphicsPanel()" (click)="$event.stopPropagation()" [style.top.px]="activePanelPos().top" [style.left.px]="activePanelPos().left">
+  <app-graphics-panel (closed)="closeGraphics()" (graphicSelected)="onGraphicSelected($event)"></app-graphics-panel>
+  <div class="text-dropdown-arrow"></div>
+</div>
+
+<!-- Templates Panel -->
+<div class="panel-catcher" *ngIf="showTemplatesPanel()" (click)="closeTemplates()"></div>
+<div class="text-dropdown" *ngIf="showTemplatesPanel()" (click)="$event.stopPropagation()" [style.top.px]="activePanelPos().top" [style.left.px]="activePanelPos().left">
+  <app-templates-panel (closed)="closeTemplates()" (templateSelected)="onTemplateSelected($event)"></app-templates-panel>
+  <div class="text-dropdown-arrow"></div>
+</div>
+
+<!-- Patterns Panel -->
+<div class="panel-catcher" *ngIf="showPatternsPanel()" (click)="closePatterns()"></div>
+<div class="text-dropdown" *ngIf="showPatternsPanel()" (click)="$event.stopPropagation()" [style.top.px]="activePanelPos().top" [style.left.px]="activePanelPos().left">
+  <app-patterns-panel (closed)="closePatterns()" (patternSelected)="onPatternSelected($event)"></app-patterns-panel>
+  <div class="text-dropdown-arrow"></div>
 </div>

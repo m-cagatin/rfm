@@ -1,3 +1,60 @@
 <div class="upload-panel">
-  <!-- Empty upload panel - ready for new implementation -->
+  <div class="upload-header">
+    <h3>New upload</h3>
+    <button class="close-btn" (click)="onClose()">✕</button>
+  </div>
+
+  <!-- Buttons -->
+  <div class="button-stack">
+    <input #fileInput type="file" accept="image/png,image/jpeg,image/svg+xml" (change)="onFileInput($event)" hidden>
+    <button class="pick-btn primary" (click)="onPickDevice(fileInput)">
+      <span class="btn-icon">🖥️</span>
+      <span>My device</span>
+    </button>
+    <button class="pick-btn" (click)="pickDropbox()">
+      <span class="btn-icon">🗂️</span>
+      <span>Dropbox</span>
+    </button>
+    <button class="pick-btn" (click)="pickDrive()">
+      <span class="btn-icon">📁</span>
+      <span>Google Drive</span>
+    </button>
+  </div>
+
+  <!-- Drag & drop area -->
+  <div class="upload-area" [class.drag-over]="isDragging()" (drop)="onDrop($event)" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)">
+    <div class="upload-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+    </div>
+    <div class="upload-text">
+      <p class="main-text">Drag & drop files here</p>
+      <p class="sub-text">or click My device to browse</p>
+    </div>
+  </div>
+
+  <!-- Preview -->
+  <div class="uploaded-preview" *ngIf="previewUrl() || fileName()">
+    <div class="preview-header">
+      <div class="preview-title">Selected file</div>
+      <button class="remove-btn" (click)="removeSelected()">Remove</button>
+    </div>
+    <div class="preview-image" *ngIf="previewUrl()">
+      <img [src]="previewUrl()" alt="Preview">
+    </div>
+    <div class="preview-info">
+      <p class="file-name">{{ fileName() }}</p>
+      <p class="file-size" *ngIf="fileSize()">{{ (fileSize()!/1024/1024) | number:'1.0-2' }} MB</p>
+    </div>
+  </div>
+
+  <!-- Requirements -->
+  <div class="requirements">
+    <h4>Print file requirements</h4>
+    <ul>
+      <li>JPG, PNG and SVG file types supported</li>
+      <li>Maximum 100 MiB (JPG, PNG) or 20 MiB (SVG)</li>
+      <li>Print area size <strong>4500 × 3000 px</strong> (300 DPI)</li>
+      <li>Maximum resolution 30000 × 30000 px</li>
+    </ul>
+  </div>
 </div>

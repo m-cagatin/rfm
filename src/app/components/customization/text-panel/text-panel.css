@@ -1,0 +1,50 @@
+/* Panel container */
+.text-panel {
+  background: #fff;
+  width: 360px;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  max-height: 70vh;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid #eee;
+}
+
+.panel-header h3 { margin: 0; font-size: 16px; font-weight: 600; }
+.close-btn { background: none; border: 1px solid #eee; border-radius: 6px; padding: 2px 8px; cursor: pointer; }
+
+/* Sticky search */
+.sticky-search { position: sticky; top: 0; background: #fff; padding: 12px 14px; border-bottom: 1px solid #f0f0f0; z-index: 2; }
+.search-input { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+
+/* Scroll area */
+.scroll-body { overflow: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 20px; }
+
+.pre-designed h4, .upload-fonts h4, .browse-fonts h4 { margin: 0 0 10px 0; font-size: 14px; font-weight: 600; color: #333; }
+
+.pre-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.pre-card { border: 1px solid #eee; border-radius: 8px; padding: 12px; text-align: center; background: #fafafa; cursor: pointer; }
+.pre-title { font-weight: 700; font-size: 16px; }
+.pre-sub { font-size: 12px; color: #666; }
+
+.pre-card.style-impact { font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif; }
+.pre-card.style-vintage { font-family: 'Times New Roman', Times, serif; letter-spacing: 2px; }
+.pre-card.style-sports { font-family: 'Oswald', Arial, sans-serif; text-transform: uppercase; }
+.pre-card.style-modern { font-family: 'Poppins', Arial, sans-serif; }
+
+.upload-row { display: flex; align-items: center; gap: 10px; }
+.upload-btn { border: 1px solid #c7d2fe; background: #eef2ff; padding: 8px 12px; border-radius: 8px; cursor: pointer; }
+.help { font-size: 12px; color: #666; }
+
+.font-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.font-item { display: flex; align-items: center; gap: 12px; padding: 8px; border: 1px solid #eee; border-radius: 8px; cursor: pointer; }
+.font-item:hover { background: #f9fafb; }
+.font-sample { font-size: 18px; width: 28px; text-align: center; }
+.font-name { font-size: 14px; color: #333; }

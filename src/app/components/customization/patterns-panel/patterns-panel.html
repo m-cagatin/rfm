@@ -1,0 +1,42 @@
+<div class="panel">
+  <div class="panel-header">
+    <h3>Pattern / Texture</h3>
+    <button class="close-btn" (click)="onClose()">✕</button>
+  </div>
+
+  <div class="sticky-search">
+    <input type="text" class="search-input" placeholder="Search patterns" [ngModel]="query()" (ngModelChange)="query.set($event)">
+  </div>
+
+  <div class="panel-body">
+    <div class="category-tabs">
+      <button *ngFor="let cat of categories" 
+              class="tab-btn" 
+              [class.active]="selectedCategory() === cat"
+              (click)="onCategoryChange(cat)">
+        {{ cat | titlecase }}
+      </button>
+    </div>
+
+    <div class="patterns-grid">
+      <div class="pattern-item" *ngFor="let pattern of filteredPatterns()" (click)="onSelectPattern(pattern)">
+        <div class="pattern-preview">
+          <img [src]="pattern.url" [alt]="pattern.name">
+        </div>
+        <span class="pattern-name">{{ pattern.name }}</span>
+      </div>
+    </div>
+
+    <div class="empty-state" *ngIf="filteredPatterns().length === 0">
+      <p>No patterns found</p>
+      <p class="help-text">Try a different search or category</p>
+    </div>
+
+    <div class="upload-section">
+      <input #patternInput type="file" accept="image/*" multiple hidden>
+      <button class="upload-btn" (click)="patternInput.click()">
+        + Upload custom pattern
+      </button>
+    </div>
+  </div>
+</div>

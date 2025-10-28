@@ -1,0 +1,35 @@
+<div class="panel">
+  <div class="panel-header">
+    <h3>Graphics</h3>
+    <button class="close-btn" (click)="onClose()">✕</button>
+  </div>
+
+  <div class="sticky-search">
+    <input type="text" class="search-input" placeholder="Search graphics" [ngModel]="query()" (ngModelChange)="query.set($event)">
+  </div>
+
+  <div class="panel-body">
+    <div class="category-tabs">
+      <button *ngFor="let cat of categories" 
+              class="tab-btn" 
+              [class.active]="selectedCategory() === cat"
+              (click)="onCategoryChange(cat)">
+        {{ cat | titlecase }}
+      </button>
+    </div>
+
+    <div class="graphics-grid">
+      <div class="graphic-item" *ngFor="let graphic of filteredGraphics()" (click)="onSelectGraphic(graphic)">
+        <div class="graphic-preview">
+          <svg viewBox="0 0 80 80" [innerHTML]="graphic.svg"></svg>
+        </div>
+        <span class="graphic-name">{{ graphic.name }}</span>
+      </div>
+    </div>
+
+    <div class="empty-state" *ngIf="filteredGraphics().length === 0">
+      <p>No graphics found</p>
+      <p class="help-text">Try a different search or category</p>
+    </div>
+  </div>
+</div>
