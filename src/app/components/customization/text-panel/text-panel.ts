@@ -102,8 +102,13 @@ export class TextPanelComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Load common fonts
     ['Roboto','Inter','Poppins','Montserrat','Oswald','Playfair Display','Lato','Open Sans']
       .forEach(f => this.fontLoader.loadGoogleFont(f));
+    
+    // Load all fonts used in pre-designed templates for proper preview
+    const templateFonts = [...new Set(this.predesigned.map(t => t.fontFamily))];
+    templateFonts.forEach(f => this.fontLoader.loadGoogleFont(f));
   }
 
   onUploadClick(input: HTMLInputElement): void {

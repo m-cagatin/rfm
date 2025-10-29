@@ -30,14 +30,43 @@
 .pre-designed h4, .upload-fonts h4, .browse-fonts h4 { margin: 0 0 10px 0; font-size: 14px; font-weight: 600; color: #333; }
 
 .pre-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-.pre-card { border: 1px solid #eee; border-radius: 8px; padding: 12px; text-align: center; background: #fafafa; cursor: pointer; }
-.pre-title { font-weight: 700; font-size: 16px; }
-.pre-sub { font-size: 12px; color: #666; }
-
-.pre-card.style-impact { font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif; }
-.pre-card.style-vintage { font-family: 'Times New Roman', Times, serif; letter-spacing: 2px; }
-.pre-card.style-sports { font-family: 'Oswald', Arial, sans-serif; text-transform: uppercase; }
-.pre-card.style-modern { font-family: 'Poppins', Arial, sans-serif; }
+.pre-card { 
+  border: 1px solid #eee; 
+  border-radius: 8px; 
+  padding: 16px 12px; 
+  text-align: center; 
+  background: #fafafa; 
+  cursor: pointer; 
+  transition: all 0.2s;
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+}
+.pre-card:hover {
+  border-color: #6200ea;
+  background: #f5f5f5;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(98, 0, 234, 0.1);
+}
+.pre-title { 
+  font-weight: 700; 
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.pre-sub { 
+  line-height: 1.2;
+  opacity: 0.8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
 
 .upload-row { display: flex; align-items: center; gap: 10px; }
 .upload-btn { border: 1px solid #c7d2fe; background: #eef2ff; padding: 8px 12px; border-radius: 8px; cursor: pointer; }

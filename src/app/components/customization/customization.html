@@ -202,6 +202,34 @@
 
           <div class="toolbar-divider"></div>
 
+          <!-- Group/Ungroup Buttons -->
+          <div class="toolbar-section">
+            <button 
+              class="toolbar-btn-icon" 
+              (click)="groupSelected()"
+              title="Group (Ctrl+G)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"/>
+                <rect x="14" y="3" width="7" height="7"/>
+                <rect x="14" y="14" width="7" height="7"/>
+                <rect x="3" y="14" width="7" height="7"/>
+              </svg>
+            </button>
+            <button 
+              class="toolbar-btn-icon" 
+              (click)="ungroupSelected()"
+              title="Ungroup (Ctrl+Shift+G)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"/>
+                <rect x="14" y="14" width="7" height="7"/>
+                <line x1="10" y1="3" x2="14" y2="7"/>
+                <line x1="21" y1="10" x2="17" y2="14"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="toolbar-divider"></div>
+
           <!-- Delete Button -->
           <div class="toolbar-section">
             <button 
@@ -221,12 +249,168 @@
       <div class="top-bar-right">
         <button class="btn-edit">Edit</button>
         <button class="btn-preview">Preview</button>
-        <button class="close-btn" (click)="goBack()">✕</button>
+        <button class="tools-btn" (click)="toggleToolsPanel()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 1v6m0 6v6M5.6 5.6l4.2 4.2m4.2 4.2l4.2 4.2M1 12h6m6 0h6M5.6 18.4l4.2-4.2m4.2-4.2l4.2-4.2"/>
+          </svg>
+        </button>
       </div>
     </div>
 
     <!-- Canvas Area -->
     <div class="canvas-area" (click)="onCanvasAreaClick($event)">
+
+      <!-- Tools Panel -->
+      <div class="tools-panel" *ngIf="showToolsPanel()">
+        <div class="panel-header">
+          <span class="panel-title">Variants and tools</span>
+          <button class="panel-close" (click)="closeToolsPanel()">✕</button>
+        </div>
+        <div class="panel-content">
+          
+          <!-- Product Type Selection -->
+          <div class="tools-section">
+            <h3>Product Type</h3>
+            <select class="variant-select" [(ngModel)]="selectedProductType" (change)="onProductTypeChange()">
+              <option value="tshirt">T-Shirt</option>
+              <option value="jogging-pants">Jogging Pants</option>
+              <option value="polo-shirt">Polo Shirt</option>
+              <option value="sando">Sando (Jersey)</option>
+              <option value="shorts">Shorts</option>
+              <option value="warmers">Warmers</option>
+              <option value="varsity-jacket">Varsity Jacket</option>
+            </select>
+          </div>
+
+          <!-- Neckline Selection (for T-Shirt and Sando) -->
+          <div class="tools-section" *ngIf="showNecklineOptions()">
+            <h3>Neckline</h3>
+            <select class="variant-select" [(ngModel)]="selectedNeckline">
+              <option *ngFor="let neckline of getNecklineOptions()" [value]="neckline">
+                {{ neckline }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Sando Special Options -->
+          <div class="tools-section" *ngIf="selectedProductType() === 'sando'">
+            <h3>Style</h3>
+            <div class="checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="isNBACut">
+                NBA Cut
+              </label>
+            </div>
+          </div>
+
+          <!-- Size Selection -->
+          <div class="tools-section">
+            <h3>Size Category</h3>
+            <div class="size-category-tabs">
+              <button 
+                class="size-tab" 
+                [class.active]="selectedSizeCategory() === 'regular'"
+                (click)="selectSizeCategory('regular')">
+                Regular
+              </button>
+              <button 
+                class="size-tab" 
+                [class.active]="selectedSizeCategory() === 'kids'"
+                (click)="selectSizeCategory('kids')">
+                Kids
+              </button>
+              <button 
+                class="size-tab" 
+                [class.active]="selectedSizeCategory() === 'custom'"
+                (click)="selectSizeCategory('custom')">
+                Custom
+              </button>
+            </div>
+          </div>
+
+          <!-- Regular Sizes -->
+          <div class="tools-section" *ngIf="selectedSizeCategory() === 'regular'">
+            <h3>Size</h3>
+            <div class="size-grid">
+              <button 
+                *ngFor="let size of regularSizes" 
+                class="size-btn"
+                [class.selected]="selectedSize() === size.value"
+                (click)="selectSize(size.value, size.priceAdd)">
+                {{ size.label }}
+                <span class="size-price" *ngIf="size.priceAdd > 0">+₱{{ size.priceAdd }}</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Kids Sizes -->
+          <div class="tools-section" *ngIf="selectedSizeCategory() === 'kids'">
+            <h3>Kids Size</h3>
+            <div class="size-grid">
+              <button 
+                *ngFor="let size of kidsSizes" 
+                class="size-btn"
+                [class.selected]="selectedSize() === size"
+                (click)="selectSize(size, 0)">
+                {{ size }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Custom Size -->
+          <div class="tools-section" *ngIf="selectedSizeCategory() === 'custom'">
+            <h3>Custom Size</h3>
+            <p class="custom-size-note">Enter custom measurements for plus size or super small</p>
+            <div class="custom-size-inputs">
+              <div class="input-group">
+                <label>Chest (inches)</label>
+                <input type="number" class="size-input" [(ngModel)]="customChest" placeholder="e.g., 42">
+              </div>
+              <div class="input-group">
+                <label>Length (inches)</label>
+                <input type="number" class="size-input" [(ngModel)]="customLength" placeholder="e.g., 28">
+              </div>
+              <div class="input-group" *ngIf="selectedProductType() !== 'tshirt' && selectedProductType() !== 'polo-shirt'">
+                <label>Waist (inches)</label>
+                <input type="number" class="size-input" [(ngModel)]="customWaist" placeholder="e.g., 32">
+              </div>
+            </div>
+          </div>
+
+          <!-- Color Selection -->
+          <div class="tools-section">
+            <h3>Color</h3>
+            <div class="color-grid">
+              <button 
+                *ngFor="let color of colors" 
+                class="color-btn"
+                [class.selected]="selectedColor() === color.value"
+                [style.background-color]="color.value"
+                (click)="selectColor(color.value)"
+                [title]="color.name">
+              </button>
+            </div>
+          </div>
+
+          <!-- Price Display -->
+          <div class="tools-section price-section">
+            <div class="price-row">
+              <span class="price-label">Base Price:</span>
+              <span class="price-value">₱{{ basePrice() }}</span>
+            </div>
+            <div class="price-row" *ngIf="sizePriceAdd() > 0">
+              <span class="price-label">Size Add-on:</span>
+              <span class="price-value">₱{{ sizePriceAdd() }}</span>
+            </div>
+            <div class="price-row total-price">
+              <span class="price-label">Total Price:</span>
+              <span class="price-value">₱{{ getTotalPrice() }}</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
 
       <!-- Product Info Panel -->
       <div class="product-info-panel" [style.display]="isPanelVisible() ? 'block' : 'none'">

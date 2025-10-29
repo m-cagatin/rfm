@@ -71,6 +71,7 @@ export class CanvasService {
       // Add keyboard shortcuts
       this.setupKeyboardShortcuts();
       this.setupHistoryTracking();
+      // Setup non-intrusive alignment guides
       this.setupAlignmentGuides();
 
       console.log('Canvas initialized successfully', { width, height });
@@ -137,6 +138,24 @@ export class CanvasService {
           e.preventDefault();
           console.log('Redo triggered');
           this.redo();
+        }
+      }
+
+      // Group (Ctrl+G / Cmd+G)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'g' && !e.shiftKey) {
+        if (!isTypingInInput) {
+          e.preventDefault();
+          console.log('Group triggered');
+          this.groupSelected();
+        }
+      }
+
+      // Ungroup (Ctrl+Shift+G / Cmd+Shift+G)
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'g') {
+        if (!isTypingInInput) {
+          e.preventDefault();
+          console.log('Ungroup triggered');
+          this.ungroupSelected();
         }
       }
     };
@@ -293,43 +312,43 @@ export class CanvasService {
   }
 
   /**
-   * Setup alignment guides (like Figma)
+   * Setup alignment guides - Visual guides + gentle snapping when VERY close
    */
   private setupAlignmentGuides(): void {
     if (!this.fabricCanvas) return;
 
     let alignmentLines: any[] = [];
-    const snapDistance = 5; // Snap within 5 pixels
-    const lineColor = '#FF0066'; // Red/pink like Figma
+    const showDistance = 8; // Show guide when within 8 pixels
+    const snapDistance = 2; // Snap only when within 2 pixels
+    const lineColor = '#FF0066';
     const lineWidth = 1;
 
-    // Create alignment line
     const createLine = (coords: number[]): any => {
       return new this.fabric.Line(coords, {
         stroke: lineColor,
         strokeWidth: lineWidth,
         selectable: false,
         evented: false,
-        strokeDashArray: [5, 5]
+        strokeDashArray: [5, 5],
+        excludeFromExport: true,
+        isAlignmentGuide: true
       });
     };
 
-    // Clear all alignment lines
     const clearAlignmentLines = () => {
+      if (alignmentLines.length === 0) return;
       alignmentLines.forEach(line => this.fabricCanvas.remove(line));
       alignmentLines = [];
-      this.fabricCanvas.requestRenderAll();
     };
 
-    // Get canvas center
     const getCanvasCenter = () => ({
       x: this.fabricCanvas.width / 2,
       y: this.fabricCanvas.height / 2
     });
 
-    // Check alignment and snap
+    // Check alignment - show guides at wider range, snap only when VERY close
     const checkAlignment = (obj: any) => {
-      if (!obj || obj.type === 'line') return;
+      if (!obj || obj.isAlignmentGuide) return;
 
       clearAlignmentLines();
 
@@ -338,33 +357,39 @@ export class CanvasService {
       const objBounds = obj.getBoundingRect();
       
       const allObjects = this.fabricCanvas.getObjects().filter((o: any) => 
-        o !== obj && o.type !== 'line' && o.visible
+        o !== obj && o.type !== 'line' && o.visible && !o.isAlignmentGuide
       );
 
       let snapped = false;
 
-      // Check vertical center alignment (canvas)
-      if (Math.abs(objCenter.x - canvasCenter.x) < snapDistance) {
-        obj.set({ left: obj.left + (canvasCenter.x - objCenter.x) });
-        obj.setCoords();
-        
-        // Draw vertical center line
+      // Vertical center alignment (canvas)
+      const verticalCenterDist = Math.abs(objCenter.x - canvasCenter.x);
+      if (verticalCenterDist < showDistance) {
+        // Snap only if VERY close
+        if (verticalCenterDist < snapDistance) {
+          obj.set({ left: obj.left + (canvasCenter.x - objCenter.x) });
+          obj.setCoords();
+          snapped = true;
+        }
+        // Always show guide
         const line = createLine([canvasCenter.x, 0, canvasCenter.x, this.fabricCanvas.height]);
         this.fabricCanvas.add(line);
         alignmentLines.push(line);
-        snapped = true;
       }
 
-      // Check horizontal center alignment (canvas)
-      if (Math.abs(objCenter.y - canvasCenter.y) < snapDistance) {
-        obj.set({ top: obj.top + (canvasCenter.y - objCenter.y) });
-        obj.setCoords();
-        
-        // Draw horizontal center line
+      // Horizontal center alignment (canvas)
+      const horizontalCenterDist = Math.abs(objCenter.y - canvasCenter.y);
+      if (horizontalCenterDist < showDistance) {
+        // Snap only if VERY close
+        if (horizontalCenterDist < snapDistance) {
+          obj.set({ top: obj.top + (canvasCenter.y - objCenter.y) });
+          obj.setCoords();
+          snapped = true;
+        }
+        // Always show guide
         const line = createLine([0, canvasCenter.y, this.fabricCanvas.width, canvasCenter.y]);
         this.fabricCanvas.add(line);
         alignmentLines.push(line);
-        snapped = true;
       }
 
       // Check alignment with other objects
@@ -373,112 +398,133 @@ export class CanvasService {
         const targetBounds = target.getBoundingRect();
 
         // Vertical alignment (centers)
-        if (Math.abs(objCenter.x - targetCenter.x) < snapDistance) {
-          obj.set({ left: obj.left + (targetCenter.x - objCenter.x) });
-          obj.setCoords();
-          
+        const verticalObjectDist = Math.abs(objCenter.x - targetCenter.x);
+        if (verticalObjectDist < showDistance) {
+          if (verticalObjectDist < snapDistance) {
+            obj.set({ left: obj.left + (targetCenter.x - objCenter.x) });
+            obj.setCoords();
+            snapped = true;
+          }
           const y1 = Math.min(objBounds.top, targetBounds.top);
           const y2 = Math.max(objBounds.top + objBounds.height, targetBounds.top + targetBounds.height);
           const line = createLine([targetCenter.x, y1, targetCenter.x, y2]);
           this.fabricCanvas.add(line);
           alignmentLines.push(line);
-          snapped = true;
         }
 
         // Horizontal alignment (centers)
-        if (Math.abs(objCenter.y - targetCenter.y) < snapDistance) {
-          obj.set({ top: obj.top + (targetCenter.y - objCenter.y) });
-          obj.setCoords();
-          
+        const horizontalObjectDist = Math.abs(objCenter.y - targetCenter.y);
+        if (horizontalObjectDist < showDistance) {
+          if (horizontalObjectDist < snapDistance) {
+            obj.set({ top: obj.top + (targetCenter.y - objCenter.y) });
+            obj.setCoords();
+            snapped = true;
+          }
           const x1 = Math.min(objBounds.left, targetBounds.left);
           const x2 = Math.max(objBounds.left + objBounds.width, targetBounds.left + targetBounds.width);
           const line = createLine([x1, targetCenter.y, x2, targetCenter.y]);
           this.fabricCanvas.add(line);
           alignmentLines.push(line);
-          snapped = true;
         }
 
         // Left edge alignment
-        if (Math.abs(objBounds.left - targetBounds.left) < snapDistance) {
-          obj.set({ left: obj.left + (targetBounds.left - objBounds.left) });
-          obj.setCoords();
-          
+        const leftEdgeDist = Math.abs(objBounds.left - targetBounds.left);
+        if (leftEdgeDist < showDistance) {
+          if (leftEdgeDist < snapDistance) {
+            obj.set({ left: obj.left + (targetBounds.left - objBounds.left) });
+            obj.setCoords();
+            snapped = true;
+          }
           const y1 = Math.min(objBounds.top, targetBounds.top);
           const y2 = Math.max(objBounds.top + objBounds.height, targetBounds.top + targetBounds.height);
           const line = createLine([targetBounds.left, y1, targetBounds.left, y2]);
           this.fabricCanvas.add(line);
           alignmentLines.push(line);
-          snapped = true;
         }
 
         // Right edge alignment
         const objRight = objBounds.left + objBounds.width;
         const targetRight = targetBounds.left + targetBounds.width;
-        if (Math.abs(objRight - targetRight) < snapDistance) {
-          obj.set({ left: obj.left + (targetRight - objRight) });
-          obj.setCoords();
-          
+        const rightEdgeDist = Math.abs(objRight - targetRight);
+        if (rightEdgeDist < showDistance) {
+          if (rightEdgeDist < snapDistance) {
+            obj.set({ left: obj.left + (targetRight - objRight) });
+            obj.setCoords();
+            snapped = true;
+          }
           const y1 = Math.min(objBounds.top, targetBounds.top);
           const y2 = Math.max(objBounds.top + objBounds.height, targetBounds.top + targetBounds.height);
           const line = createLine([targetRight, y1, targetRight, y2]);
           this.fabricCanvas.add(line);
           alignmentLines.push(line);
-          snapped = true;
         }
 
         // Top edge alignment
-        if (Math.abs(objBounds.top - targetBounds.top) < snapDistance) {
-          obj.set({ top: obj.top + (targetBounds.top - objBounds.top) });
-          obj.setCoords();
-          
+        const topEdgeDist = Math.abs(objBounds.top - targetBounds.top);
+        if (topEdgeDist < showDistance) {
+          if (topEdgeDist < snapDistance) {
+            obj.set({ top: obj.top + (targetBounds.top - objBounds.top) });
+            obj.setCoords();
+            snapped = true;
+          }
           const x1 = Math.min(objBounds.left, targetBounds.left);
           const x2 = Math.max(objBounds.left + objBounds.width, targetBounds.left + targetBounds.width);
           const line = createLine([x1, targetBounds.top, x2, targetBounds.top]);
           this.fabricCanvas.add(line);
           alignmentLines.push(line);
-          snapped = true;
         }
 
         // Bottom edge alignment
         const objBottom = objBounds.top + objBounds.height;
         const targetBottom = targetBounds.top + targetBounds.height;
-        if (Math.abs(objBottom - targetBottom) < snapDistance) {
-          obj.set({ top: obj.top + (targetBottom - objBottom) });
-          obj.setCoords();
-          
+        const bottomEdgeDist = Math.abs(objBottom - targetBottom);
+        if (bottomEdgeDist < showDistance) {
+          if (bottomEdgeDist < snapDistance) {
+            obj.set({ top: obj.top + (targetBottom - objBottom) });
+            obj.setCoords();
+            snapped = true;
+          }
           const x1 = Math.min(objBounds.left, targetBounds.left);
           const x2 = Math.max(objBounds.left + objBounds.width, targetBounds.left + targetBounds.width);
           const line = createLine([x1, targetBottom, x2, targetBottom]);
           this.fabricCanvas.add(line);
           alignmentLines.push(line);
-          snapped = true;
         }
       });
 
-      if (snapped) {
-        this.fabricCanvas.requestRenderAll();
+      if (alignmentLines.length > 0 || snapped) {
+        this.fabricCanvas.renderAll();
       }
     };
 
-    // Object moving event
+    // Throttle the alignment check to reduce frequency
+    let isChecking = false;
     this.fabricCanvas.on('object:moving', (e: any) => {
-      checkAlignment(e.target);
+      if (!isChecking) {
+        isChecking = true;
+        requestAnimationFrame(() => {
+          checkAlignment(e.target);
+          isChecking = false;
+        });
+      }
     });
 
-    // Clear lines when movement stops
     this.fabricCanvas.on('object:modified', () => {
       clearAlignmentLines();
+      this.fabricCanvas.renderAll();
+    });
+
+    this.fabricCanvas.on('mouse:up', () => {
+      clearAlignmentLines();
+      this.fabricCanvas.renderAll();
     });
 
     this.fabricCanvas.on('selection:cleared', () => {
       clearAlignmentLines();
     });
 
-    this.fabricCanvas.on('mouse:up', () => {
-      // Clear lines after a short delay
-      setTimeout(() => {
-        clearAlignmentLines();
-      }, 100);
+    this.fabricCanvas.on('selection:created', () => {
+      clearAlignmentLines();
     });
   }
 
@@ -625,6 +671,104 @@ export class CanvasService {
   }
 
   /**
+   * Group selected objects
+   */
+  groupSelected(): void {
+    if (!this.fabric || !this.fabricCanvas) return;
+
+    const activeObject = this.fabricCanvas.getActiveObject();
+    
+    // Check if multiple objects are selected
+    if (!activeObject || (activeObject.type !== 'activeSelection' && activeObject.type !== 'activeselection')) {
+      console.log('Please select multiple objects to group');
+      return;
+    }
+
+    // Get the selected objects
+    const selection = activeObject as any;
+    const objects = selection.getObjects ? selection.getObjects() : selection._objects || [];
+    
+    if (objects.length < 2) {
+      console.log('Need at least 2 objects to group');
+      return;
+    }
+
+    // Deselect current selection
+    this.fabricCanvas.discardActiveObject();
+
+    // Create a group from the selected objects
+    const group = new this.fabric.Group(objects, {
+      selectable: true,
+      hasControls: true,
+      hasBorders: true
+    });
+
+    // Remove individual objects from canvas
+    objects.forEach((obj: any) => {
+      this.fabricCanvas.remove(obj);
+    });
+
+    // Add the group to canvas
+    this.fabricCanvas.add(group);
+    this.fabricCanvas.setActiveObject(group);
+    this.fabricCanvas.renderAll();
+
+    console.log('✓ Objects grouped');
+  }
+
+  /**
+   * Ungroup selected group
+   */
+  ungroupSelected(): void {
+    if (!this.fabric || !this.fabricCanvas) return;
+
+    const activeObject = this.fabricCanvas.getActiveObject();
+    
+    // Check if it's a group
+    if (!activeObject || activeObject.type !== 'group') {
+      console.log('Please select a grouped object to ungroup');
+      return;
+    }
+
+    const group = activeObject as any;
+    const items = group.getObjects();
+
+    // Ungroup: get the transformation matrix
+    const groupLeft = group.left || 0;
+    const groupTop = group.top || 0;
+    const groupAngle = group.angle || 0;
+    const groupScaleX = group.scaleX || 1;
+    const groupScaleY = group.scaleY || 1;
+
+    // Remove the group
+    this.fabricCanvas.remove(group);
+
+    // Add individual objects back
+    items.forEach((item: any) => {
+      // Calculate absolute position
+      const itemLeft = groupLeft + (item.left || 0) * groupScaleX;
+      const itemTop = groupTop + (item.top || 0) * groupScaleY;
+
+      // Create a clone with proper positioning
+      item.set({
+        left: itemLeft,
+        top: itemTop,
+        angle: (item.angle || 0) + groupAngle,
+        scaleX: (item.scaleX || 1) * groupScaleX,
+        scaleY: (item.scaleY || 1) * groupScaleY,
+        selectable: true,
+        hasControls: true,
+        hasBorders: true
+      });
+
+      this.fabricCanvas.add(item);
+    });
+
+    this.fabricCanvas.renderAll();
+    console.log('✓ Group ungrouped');
+  }
+
+  /**
    * Add simple text to canvas
    */
   addText(text: string = 'Enter text', style: TextStyle = {}): void {
@@ -696,18 +840,14 @@ export class CanvasService {
       lockScalingFlip: true
     });
 
-    // Initialize the text object properly
     textObj.setCoords();
-    
-    // Add main text first
     this.fabricCanvas.add(textObj);
-    this.fabricCanvas.renderAll();
 
-    // Add subtitle if exists - wait for main text to render to get proper dimensions
+    // If there's a subtitle, create it separately and multi-select both
     if (template.subtitle) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Wait for main text to render to get proper height
+      await new Promise(resolve => setTimeout(resolve, 50));
       
-      // Get accurate height after rendering
       const textHeight = textObj.getScaledHeight();
       const subtitleTop = textObj.top + textHeight + 10;
       
@@ -727,28 +867,34 @@ export class CanvasService {
         originY: 'top',
         lockScalingFlip: true
       });
-      
-      // Initialize subtitle coordinates properly
+
       subtitleObj.setCoords();
-      
       this.fabricCanvas.add(subtitleObj);
       this.fabricCanvas.renderAll();
-      
-      // Force coordinate update after render
-      setTimeout(() => {
-        subtitleObj.setCoords();
-        this.fabricCanvas.requestRenderAll();
-      }, 50);
-    }
 
-    this.fabricCanvas.setActiveObject(textObj);
-    this.fabricCanvas.renderAll();
-    
-    // Manually trigger selection with proper coordinate update
-    setTimeout(() => {
-      textObj.setCoords();
-      this.handleSelection(textObj);
-    }, 150);
+      // Multi-select both objects
+      setTimeout(() => {
+        const selection = new this.fabric.ActiveSelection([textObj, subtitleObj], {
+          canvas: this.fabricCanvas
+        });
+        this.fabricCanvas.setActiveObject(selection);
+        this.fabricCanvas.renderAll();
+        
+        textObj.setCoords();
+        subtitleObj.setCoords();
+        this.handleSelection(selection);
+        console.log('✓ Pre-designed text added with multi-selection');
+      }, 100);
+    } else {
+      // Single text without subtitle
+      this.fabricCanvas.setActiveObject(textObj);
+      this.fabricCanvas.renderAll();
+      
+      setTimeout(() => {
+        textObj.setCoords();
+        this.handleSelection(textObj);
+      }, 100);
+    }
   }
 
   /**
@@ -969,6 +1115,206 @@ export class CanvasService {
       textAlign: activeObject.textAlign,
       charSpacing: activeObject.charSpacing
     };
+  }
+
+  /**
+   * Add shape to canvas
+   */
+  addShape(shapeId: string, color: string = '#4ecdc4'): void {
+    if (!this.fabric || !this.fabricCanvas) return;
+
+    let shape: any;
+    const left = 150;
+    const top = 150;
+
+    switch (shapeId) {
+      case 'circle':
+        shape = new this.fabric.Circle({
+          radius: 50,
+          fill: color,
+          left,
+          top
+        });
+        break;
+
+      case 'square':
+        shape = new this.fabric.Rect({
+          width: 100,
+          height: 100,
+          fill: color,
+          left,
+          top
+        });
+        break;
+
+      case 'rectangle':
+        shape = new this.fabric.Rect({
+          width: 150,
+          height: 80,
+          fill: color,
+          left,
+          top
+        });
+        break;
+
+      case 'triangle':
+        shape = new this.fabric.Triangle({
+          width: 100,
+          height: 100,
+          fill: color,
+          left,
+          top
+        });
+        break;
+
+      case 'star':
+        // Create star using polygon points
+        const starPoints = this.getStarPoints(5, 50, 25);
+        shape = new this.fabric.Polygon(starPoints, {
+          fill: color,
+          left,
+          top
+        });
+        break;
+
+      case 'heart':
+        // Create heart using SVG path
+        const heartPath = 'M50,85 C50,85 15,60 15,40 C15,25 25,20 35,25 C40,28 45,35 50,40 C55,35 60,28 65,25 C75,20 85,25 85,40 C85,60 50,85 50,85 Z';
+        shape = new this.fabric.Path(heartPath, {
+          fill: color,
+          left,
+          top,
+          scaleX: 1.2,
+          scaleY: 1.2
+        });
+        break;
+
+      case 'hexagon':
+        const hexPoints = this.getPolygonPoints(6, 50);
+        shape = new this.fabric.Polygon(hexPoints, {
+          fill: color,
+          left,
+          top
+        });
+        break;
+
+      case 'octagon':
+        const octPoints = this.getPolygonPoints(8, 50);
+        shape = new this.fabric.Polygon(octPoints, {
+          fill: color,
+          left,
+          top
+        });
+        break;
+
+      case 'pentagon':
+        const pentPoints = this.getPolygonPoints(5, 50);
+        shape = new this.fabric.Polygon(pentPoints, {
+          fill: color,
+          left,
+          top
+        });
+        break;
+
+      case 'diamond':
+        shape = new this.fabric.Polygon([
+          { x: 50, y: 0 },
+          { x: 100, y: 50 },
+          { x: 50, y: 100 },
+          { x: 0, y: 50 }
+        ], {
+          fill: color,
+          left,
+          top
+        });
+        break;
+
+      case 'arrow-right':
+        const arrowRightPath = 'M10,50 L70,50 L70,30 L90,50 L70,70 L70,50 Z';
+        shape = new this.fabric.Path(arrowRightPath, {
+          fill: color,
+          left,
+          top,
+          scaleX: 1.5,
+          scaleY: 1.5
+        });
+        break;
+
+      case 'arrow-left':
+        const arrowLeftPath = 'M90,50 L30,50 L30,30 L10,50 L30,70 L30,50 Z';
+        shape = new this.fabric.Path(arrowLeftPath, {
+          fill: color,
+          left,
+          top,
+          scaleX: 1.5,
+          scaleY: 1.5
+        });
+        break;
+
+      default:
+        console.error('Unknown shape:', shapeId);
+        return;
+    }
+
+    if (shape) {
+      shape.set({
+        selectable: true,
+        hasControls: true,
+        hasBorders: true,
+        lockUniScaling: false,
+        originX: 'left',
+        originY: 'top'
+      });
+
+      shape.setCoords();
+      this.fabricCanvas.add(shape);
+      this.fabricCanvas.setActiveObject(shape);
+      this.fabricCanvas.renderAll();
+
+      setTimeout(() => {
+        shape.setCoords();
+        this.fabricCanvas.requestRenderAll();
+      }, 50);
+
+      console.log(`✓ Added ${shapeId} shape to canvas`);
+    }
+  }
+
+  /**
+   * Helper: Get star points
+   */
+  private getStarPoints(points: number, outerRadius: number, innerRadius: number): any[] {
+    const step = Math.PI / points;
+    const coords: any[] = [];
+
+    for (let i = 0; i < points * 2; i++) {
+      const radius = i % 2 === 0 ? outerRadius : innerRadius;
+      const angle = i * step - Math.PI / 2;
+      coords.push({
+        x: 50 + radius * Math.cos(angle),
+        y: 50 + radius * Math.sin(angle)
+      });
+    }
+
+    return coords;
+  }
+
+  /**
+   * Helper: Get regular polygon points
+   */
+  private getPolygonPoints(sides: number, radius: number): any[] {
+    const coords: any[] = [];
+    const angleStep = (2 * Math.PI) / sides;
+
+    for (let i = 0; i < sides; i++) {
+      const angle = i * angleStep - Math.PI / 2;
+      coords.push({
+        x: 50 + radius * Math.cos(angle),
+        y: 50 + radius * Math.sin(angle)
+      });
+    }
+
+    return coords;
   }
 
   /**

@@ -13,9 +13,21 @@
       <h4>Pre designed Text</h4>
       <div class="pre-grid">
         <div class="pre-item" *ngFor="let item of predesigned" (click)="onSelectPreDesigned(item)">
-          <div class="pre-card" [class]="'style-' + item.style">
-            <div class="pre-title">{{ item.title }}</div>
-            <div class="pre-sub" *ngIf="item.subtitle">{{ item.subtitle }}</div>
+          <div class="pre-card">
+            <div class="pre-title" 
+                 [style.font-family]="item.fontFamily"
+                 [style.font-size.px]="item.fontSize * 0.3"
+                 [style.color]="item.fill"
+                 [style.font-weight]="item.fontWeight">
+              {{ item.title }}
+            </div>
+            <div class="pre-sub" 
+                 *ngIf="item.subtitle"
+                 [style.font-family]="item.fontFamily"
+                 [style.font-size.px]="item.subtitleSize * 0.4"
+                 [style.color]="item.fill">
+              {{ item.subtitle }}
+            </div>
           </div>
         </div>
       </div>
@@ -35,7 +47,7 @@
       <ul class="font-list">
         <li class="font-item" *ngFor="let f of filteredFonts()" (click)="onSelectFont(f)">
           <span class="font-sample" [style.font-family]="f">Aa</span>
-          <span class="font-name">{{ f }}</span>
+          <span class="font-name" [style.font-family]="f">{{ f }}</span>
         </li>
       </ul>
     </section>

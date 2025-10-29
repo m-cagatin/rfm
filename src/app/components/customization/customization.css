@@ -238,16 +238,29 @@
   background: #f5f5f5;
 }
 
-.close-btn {
+.tools-btn {
   width: 32px;
   height: 32px;
   background: none;
-  border: none;
+  border: 1px solid #ddd;
+  border-radius: 4px;
   cursor: pointer;
-  font-size: 20px;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: #666;
-  padding: 0;
-  line-height: 1;
+  transition: all 0.2s;
+}
+
+.tools-btn:hover {
+  background: #f5f5f5;
+  border-color: #999;
+}
+
+.tools-btn svg {
+  width: 20px;
+  height: 20px;
 }
 
 /* Canvas Area */
@@ -365,6 +378,292 @@
   color: #666;
   cursor: pointer;
   margin: 0;
+}
+
+/* Tools Panel */
+.tools-panel {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 380px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  overflow: hidden;
+  z-index: 10;
+}
+
+.tools-section {
+  margin-bottom: 16px;
+}
+
+.tools-section h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 12px 0;
+}
+
+.variants-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.variant-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.variant-item label {
+  font-size: 13px;
+  color: #333;
+  font-weight: 500;
+}
+
+.select-variants-btn {
+  padding: 6px 16px;
+  background: #fff;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.select-variants-btn:hover {
+  background: #f5f5f5;
+  border-color: #999;
+}
+
+.color-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid #e5e5e5;
+  background: #fff;
+}
+
+.variant-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.variant-select:hover {
+  border-color: #999;
+}
+
+.variant-select:focus {
+  outline: none;
+  border-color: #666;
+}
+
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+}
+
+.size-category-tabs {
+  display: flex;
+  gap: 8px;
+  background: #f5f5f5;
+  padding: 4px;
+  border-radius: 6px;
+}
+
+.size-tab {
+  flex: 1;
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.size-tab:hover {
+  color: #333;
+}
+
+.size-tab.active {
+  background: #fff;
+  color: #333;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.size-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.size-btn {
+  padding: 12px;
+  background: #fff;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.size-btn:hover {
+  border-color: #999;
+  background: #f9f9f9;
+}
+
+.size-btn.selected {
+  border-color: #6b705c;
+  background: #6b705c;
+  color: #fff;
+}
+
+.size-price {
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.custom-size-note {
+  font-size: 12px;
+  color: #666;
+  margin: 0 0 12px 0;
+  font-style: italic;
+}
+
+.custom-size-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.input-group label {
+  font-size: 13px;
+  color: #333;
+  font-weight: 500;
+}
+
+.size-input {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.size-input:hover {
+  border-color: #999;
+}
+
+.size-input:focus {
+  outline: none;
+  border-color: #6b705c;
+  box-shadow: 0 0 0 3px rgba(107, 112, 92, 0.1);
+}
+
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.color-btn {
+  width: 100%;
+  aspect-ratio: 1;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.9);
+}
+
+.color-btn:hover {
+  transform: scale(1.05);
+  border-color: #999;
+}
+
+.color-btn.selected {
+  border-color: #6b705c;
+  border-width: 3px;
+  transform: scale(1.05);
+}
+
+.price-section {
+  background: #f9f9f9;
+  padding: 16px;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 14px;
+}
+
+.price-label {
+  color: #666;
+}
+
+.price-value {
+  font-weight: 600;
+  color: #333;
+}
+
+.total-price {
+  border-top: 2px solid #e5e5e5;
+  margin-top: 8px;
+  padding-top: 12px;
+  font-size: 16px;
+}
+
+.total-price .price-label {
+  color: #333;
+  font-weight: 600;
+}
+
+.total-price .price-value {
+  color: #6b705c;
+  font-size: 18px;
 }
 
 /* T-shirt Canvas */

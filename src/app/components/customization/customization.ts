@@ -22,6 +22,7 @@ export class CustomizationComponent implements AfterViewInit, OnDestroy {
   @ViewChild('fabricCanvas', { static: false }) canvasElement!: ElementRef<HTMLCanvasElement>;
 
   protected isPanelVisible = signal(true);
+  protected showToolsPanel = signal(false);
   protected zoomLevel = signal(17);
   protected activeView = signal(0); // 0: front, 1: back, 2: neck label
   protected showUpload = signal(false);
@@ -32,6 +33,44 @@ export class CustomizationComponent implements AfterViewInit, OnDestroy {
   protected showTemplatesPanel = signal(false);
   protected showPatternsPanel = signal(false);
   protected activePanelPos = signal<{ top: number; left: number }>({ top: 100, left: 96 });
+
+  // Product Configuration
+  protected selectedProductType = signal<string>('tshirt');
+  protected selectedNeckline = signal<string>('Round neck');
+  protected isNBACut = signal(false);
+  protected selectedSizeCategory = signal<'regular' | 'kids' | 'custom'>('regular');
+  protected selectedSize = signal<string>('M');
+  protected selectedColor = signal<string>('#FFFFFF');
+  protected sizePriceAdd = signal<number>(0);
+  protected basePrice = signal<number>(350);
+  
+  // Custom size inputs
+  protected customChest = signal<number | null>(null);
+  protected customLength = signal<number | null>(null);
+  protected customWaist = signal<number | null>(null);
+
+  // Size options
+  protected regularSizes = [
+    { label: 'S', value: 'S', priceAdd: 0 },
+    { label: 'M', value: 'M', priceAdd: 0 },
+    { label: 'L', value: 'L', priceAdd: 0 },
+    { label: 'XL', value: 'XL', priceAdd: 0 },
+    { label: 'XXL', value: 'XXL', priceAdd: 50 },
+    { label: 'XXXL', value: 'XXXL', priceAdd: 100 },
+  ];
+
+  protected kidsSizes = ['K6', 'K7', 'K8', 'K9', 'K10'];
+
+  protected colors = [
+    { name: 'White', value: '#FFFFFF' },
+    { name: 'Black', value: '#000000' },
+    { name: 'Red', value: '#FF0000' },
+    { name: 'Blue', value: '#0000FF' },
+    { name: 'Green', value: '#00FF00' },
+    { name: 'Yellow', value: '#FFFF00' },
+    { name: 'Navy', value: '#000080' },
+    { name: 'Gray', value: '#808080' },
+  ];
 
   // Canvas-related signals
   protected showToolbar = signal(false);
@@ -175,6 +214,67 @@ export class CustomizationComponent implements AfterViewInit, OnDestroy {
     // Implement save logic
   }
 
+  // Tools panel controls
+  toggleToolsPanel(): void {
+    this.showToolsPanel.set(!this.showToolsPanel());
+  }
+
+  closeToolsPanel(): void {
+    this.showToolsPanel.set(false);
+  }
+
+  // Product configuration methods
+  onProductTypeChange(): void {
+    // Reset neckline when product type changes
+    const type = this.selectedProductType();
+    if (type === 'tshirt') {
+      this.selectedNeckline.set('Round neck');
+    } else if (type === 'sando') {
+      this.selectedNeckline.set('V-Neck');
+    }
+  }
+
+  showNecklineOptions(): boolean {
+    const type = this.selectedProductType();
+    return type === 'tshirt' || type === 'sando';
+  }
+
+  getNecklineOptions(): string[] {
+    const type = this.selectedProductType();
+    if (type === 'tshirt') {
+      return ['Chinese Collar', 'V-neck', 'Round neck'];
+    } else if (type === 'sando') {
+      return ['V-Neck', 'Round Neck'];
+    }
+    return [];
+  }
+
+  selectSizeCategory(category: 'regular' | 'kids' | 'custom'): void {
+    this.selectedSizeCategory.set(category);
+    // Reset size selection
+    if (category === 'regular') {
+      this.selectSize('M', 0);
+    } else if (category === 'kids') {
+      this.selectSize('K6', 0);
+    } else {
+      this.selectedSize.set('Custom');
+      this.sizePriceAdd.set(0);
+    }
+  }
+
+  selectSize(size: string, priceAdd: number): void {
+    this.selectedSize.set(size);
+    this.sizePriceAdd.set(priceAdd);
+  }
+
+  selectColor(color: string): void {
+    this.selectedColor.set(color);
+  }
+
+  getTotalPrice(): number {
+    return this.basePrice() + this.sizePriceAdd();
+  }
+
   // Upload modal controls
   openUpload(): void {
     this.showUpload.set(true);
@@ -303,6 +403,20 @@ export class CustomizationComponent implements AfterViewInit, OnDestroy {
   }
 
   /**
+   * Group selected objects
+   */
+  groupSelected(): void {
+    this.canvasService.groupSelected();
+  }
+
+  /**
+   * Ungroup selected group
+   */
+  ungroupSelected(): void {
+    this.canvasService.ungroupSelected();
+  }
+
+  /**
    * Start canvas resize
    */
   startResize(event: MouseEvent, direction: 'e' | 's' | 'se'): void {
@@ -406,6 +520,16 @@ export class CustomizationComponent implements AfterViewInit, OnDestroy {
   closeGraphics(): void { this.showGraphicsPanel.set(false); }
   onGraphicSelected(graphic: any): void {
     console.log('Graphic selected:', graphic);
+    
+    // If it's a shape with SVG, add it to canvas
+    if (graphic.svg && graphic.id) {
+      // Extract color from the SVG fill attribute if possible
+      const fillMatch = graphic.svg.match(/fill="([^"]+)"/);
+      const defaultColor = fillMatch ? fillMatch[1] : '#4ecdc4';
+      
+      this.canvasService.addShape(graphic.id, defaultColor);
+    }
+    
     this.closeGraphics();
   }
 
