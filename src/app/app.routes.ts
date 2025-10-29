@@ -59,7 +59,7 @@ export const routes: Routes = [
       { path: '', redirectTo: 'payment-verification', pathMatch: 'full' },
       { path: 'payment-verification', component: PaymentVerificationComponent },
       { path: 'orders', component: AdminOrdersComponent },
-  { path: 'products', component: AdminProductsComponent },
+      { path: 'products', component: AdminProductsComponent },
       { path: 'customizable-products', component: AdminCustomizableProductsComponent },
       { path: 'employees', component: AdminEmployeesComponent },
       { path: 'cashflow', component: AdminCashflowComponent },

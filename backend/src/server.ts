@@ -8,6 +8,7 @@ import { closeDatabase, initializeDatabase, testConnection } from './config/data
 import authRoutes from './routes/auth.routes';
 import canvasRoutes from './routes/canvas.routes';
 import catalogRoutes from './routes/catalog.routes';
+import customizableProductsRoutes from './routes/customizable-products.routes';
 import usersRoutes from './routes/users.routes';
 import cartRoutes from './routes/cart.routes';
 import ordersRoutes from './routes/orders.routes';
@@ -54,6 +55,7 @@ app.get('/api/health', async (req: express.Request, res: express.Response) => {
 app.use('/api/canvas', canvasRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/catalog', catalogRoutes);
+app.use('/api/customizable-products', customizableProductsRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', ordersRoutes);

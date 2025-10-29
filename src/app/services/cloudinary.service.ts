@@ -50,8 +50,13 @@ export class CloudinaryService {
   /**
    * Upload image with product name as filename
    * Product name + timestamp ensures uniqueness
+   * @param folderType - 'catalog' or 'customizable' (defaults to catalog)
    */
-  async uploadImageWithProductName(file: File, productName: string): Promise<UploadResponse> {
+  async uploadImageWithProductName(
+    file: File, 
+    productName: string, 
+    folderType: 'catalog' | 'customizable' = 'catalog'
+  ): Promise<UploadResponse> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', 'rfm_uploads');
@@ -59,7 +64,8 @@ export class CloudinaryService {
     // Use slugified product name with timestamp as public_id
     const publicId = this.slugify(productName);
     formData.append('public_id', publicId);
-    formData.append('folder', 'rfm_products'); // Organize in folder
+    // Send full folder path since preset has no asset folder set
+    formData.append('folder', `rfm_images/${folderType}`);
     
     // Note: 'overwrite' parameter is controlled by the upload preset settings
     // We don't need to send it manually for unsigned uploads
@@ -146,11 +152,16 @@ export class CloudinaryService {
   /**
    * Upload multiple images to Cloudinary
    * Returns array of upload responses
+   * @param folderType - 'catalog' or 'customizable' (defaults to catalog)
    */
-  async uploadMultipleImages(files: File[], productName: string): Promise<UploadResponse[]> {
+  async uploadMultipleImages(
+    files: File[], 
+    productName: string,
+    folderType: 'catalog' | 'customizable' = 'catalog'
+  ): Promise<UploadResponse[]> {
     const uploadPromises = files.map((file, index) => {
       const publicId = this.slugify(`${productName}-${index + 1}`);
-      return this.uploadImageWithPublicId(file, publicId);
+      return this.uploadImageWithPublicId(file, publicId, folderType);
     });
     
     return Promise.all(uploadPromises);
@@ -159,12 +170,16 @@ export class CloudinaryService {
   /**
    * Helper method for uploading with custom public_id
    */
-  private async uploadImageWithPublicId(file: File, publicId: string): Promise<UploadResponse> {
+  private async uploadImageWithPublicId(
+    file: File, 
+    publicId: string,
+    folderType: 'catalog' | 'customizable' = 'catalog'
+  ): Promise<UploadResponse> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', 'rfm_uploads');
     formData.append('public_id', publicId);
-    formData.append('folder', 'rfm_products');
+    formData.append('folder', `rfm_images/${folderType}`);
 
     try {
       const response = await fetch(
@@ -182,5 +197,21 @@ export class CloudinaryService {
       console.error('Cloudinary upload error:', error);
       throw error;
     }
+  }
+
+  /**
+   * Upload catalog product images (convenience method)
+   * Uploads to: rfm_images/catalog/
+   */
+  async uploadCatalogImages(files: File[], productName: string): Promise<UploadResponse[]> {
+    return this.uploadMultipleImages(files, productName, 'catalog');
+  }
+
+  /**
+   * Upload customizable product images (convenience method)
+   * Uploads to: rfm_images/customizable/
+   */
+  async uploadCustomizableImages(files: File[], productName: string): Promise<UploadResponse[]> {
+    return this.uploadMultipleImages(files, productName, 'customizable');
   }
 }

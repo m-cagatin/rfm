@@ -14,6 +14,7 @@ const database_1 = require("./config/database");
 const auth_routes_1 = __importDefault(require("./routes/auth.routes"));
 const canvas_routes_1 = __importDefault(require("./routes/canvas.routes"));
 const catalog_routes_1 = __importDefault(require("./routes/catalog.routes"));
+const customizable_products_routes_1 = __importDefault(require("./routes/customizable-products.routes"));
 const users_routes_1 = __importDefault(require("./routes/users.routes"));
 const cart_routes_1 = __importDefault(require("./routes/cart.routes"));
 const orders_routes_1 = __importDefault(require("./routes/orders.routes"));
@@ -55,6 +56,7 @@ app.get('/api/health', async (req, res) => {
 app.use('/api/canvas', canvas_routes_1.default);
 app.use('/api/auth', auth_routes_1.default);
 app.use('/api/catalog', catalog_routes_1.default);
+app.use('/api/customizable-products', customizable_products_routes_1.default);
 app.use('/api/users', users_routes_1.default);
 app.use('/api/cart', cart_routes_1.default);
 app.use('/api/orders', orders_routes_1.default);

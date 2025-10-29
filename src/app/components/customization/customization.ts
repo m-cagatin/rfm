@@ -57,6 +57,7 @@ export class CustomizationComponent implements AfterViewInit, OnDestroy {
     { label: 'XL', value: 'XL', priceAdd: 0 },
     { label: 'XXL', value: 'XXL', priceAdd: 50 },
     { label: 'XXXL', value: 'XXXL', priceAdd: 100 },
+    { label: 'XXXXL', value: 'XXXXL', priceAdd: 150 },
   ];
 
   protected kidsSizes = ['K6', 'K7', 'K8', 'K9', 'K10'];
