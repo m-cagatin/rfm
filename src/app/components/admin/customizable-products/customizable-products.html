@@ -1,0 +1,200 @@
+<div class="customizable-products-container">
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <h2>Customizable Products</h2>
+      <p class="subtitle">Manage products with custom designs, sizes, and color options</p>
+    </div>
+    <button class="btn btn-primary" (click)="addNewProduct()" *ngIf="!showForm()">
+      <span>➕ Add New Product</span>
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading()" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="mt-3">Loading products...</p>
+  </div>
+
+  <!-- Products List -->
+  <div *ngIf="!showForm() && !showDetails() && !loading()">
+    <!-- Empty State -->
+    <div *ngIf="products().length === 0" class="empty-state card">
+      <div class="card-body text-center py-5">
+        <div class="empty-icon">📦</div>
+        <h4>No Customizable Products Yet</h4>
+        <p class="text-muted mb-4">Start by adding your first customizable product.</p>
+        <button class="btn btn-primary" (click)="addNewProduct()">
+          ➕ Add First Product
+        </button>
+      </div>
+    </div>
+
+    <!-- Products Grid -->
+    <div *ngIf="products().length > 0" class="products-grid">
+      <div *ngFor="let product of products()" class="product-card">
+        <!-- Product Image -->
+        <div class="product-image-container">
+          <img [src]="product.front_image_url" [alt]="product.name" class="product-image">
+          <div class="status-badge" [class.active]="product.is_active" [class.inactive]="!product.is_active">
+            {{ product.is_active ? '✓ Published' : '⊘ Unpublished' }}
+          </div>
+        </div>
+
+        <!-- Product Info -->
+        <div class="product-info">
+          <h3 class="product-name">{{ product.name }}</h3>
+          <div class="product-meta">
+            <span class="category-badge">{{ product.category }}</span>
+            <span *ngIf="product.brand" class="brand-text">{{ product.brand }}</span>
+          </div>
+          
+          <div class="product-details">
+            <div class="detail-item">
+              <strong>₱{{ product.retail_price }}</strong>
+              <span class="text-muted">Base Price</span>
+            </div>
+            <div class="detail-item">
+              <strong>{{ product.available_sizes?.length || 0 }}</strong>
+              <span class="text-muted">Sizes</span>
+            </div>
+            <div class="detail-item">
+              <strong>{{ product.available_colors?.length || 0 }}</strong>
+              <span class="text-muted">Colors</span>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="product-actions">
+            <button class="btn btn-sm btn-outline-primary" (click)="viewDetails(product)" title="View Details">
+              👁️ View
+            </button>
+            <button class="btn btn-sm btn-outline-secondary" (click)="editProduct(product)" title="Edit">
+              ✏️ Edit
+            </button>
+            <button 
+              class="btn btn-sm" 
+              [class.btn-success]="!product.is_active"
+              [class.btn-warning]="product.is_active"
+              (click)="toggleActive(product)" 
+              [title]="product.is_active ? 'Unpublish' : 'Publish'">
+              {{ product.is_active ? '⊘ Unpublish' : '✓ Publish' }}
+            </button>
+            <button class="btn btn-sm btn-outline-danger" (click)="deleteProduct(product)" title="Delete">
+              🗑️ Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Product Details Modal -->
+  <div *ngIf="showDetails() && selectedProduct()" class="details-modal">
+    <div class="modal-overlay" (click)="closeDetails()"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>{{ selectedProduct()!.name }}</h3>
+        <button class="btn-close" (click)="closeDetails()">✕</button>
+      </div>
+      
+      <div class="modal-body">
+        <!-- Images Section -->
+        <section class="detail-section">
+          <h4>Product Images</h4>
+          <div class="images-grid">
+            <div class="image-item">
+              <img [src]="selectedProduct()!.front_image_url" alt="Front View">
+              <p>Front View</p>
+            </div>
+            <div class="image-item" *ngIf="selectedProduct()!.back_image_url">
+              <img [src]="selectedProduct()!.back_image_url" alt="Back View">
+              <p>Back View</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Basic Info -->
+        <section class="detail-section">
+          <h4>Basic Information</h4>
+          <div class="info-grid">
+            <div class="info-item">
+              <label>Category:</label>
+              <span>{{ selectedProduct()!.category }}</span>
+            </div>
+            <div class="info-item" *ngIf="selectedProduct()!.brand">
+              <label>Brand:</label>
+              <span>{{ selectedProduct()!.brand }}</span>
+            </div>
+            <div class="info-item">
+              <label>Retail Price:</label>
+              <span class="price">₱{{ selectedProduct()!.retail_price }}</span>
+            </div>
+            <div class="info-item">
+              <label>Status:</label>
+              <span [class.text-success]="selectedProduct()!.is_active" [class.text-danger]="!selectedProduct()!.is_active">
+                {{ selectedProduct()!.is_active ? '✓ Published' : '⊘ Unpublished' }}
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Sizes -->
+        <section class="detail-section" *ngIf="selectedProduct()!.available_sizes && selectedProduct()!.available_sizes.length > 0">
+          <h4>Available Sizes</h4>
+          <div class="chips">
+            <span class="chip" *ngFor="let size of selectedProduct()!.available_sizes">{{ size }}</span>
+          </div>
+          
+          <!-- Size Pricing -->
+          <div *ngIf="selectedProduct()!.size_pricing" class="mt-3">
+            <h5>Size Pricing</h5>
+            <div class="size-pricing-list">
+              <div *ngFor="let size of selectedProduct()!.available_sizes" class="size-price-item">
+                <span class="size-label">{{ size }}:</span>
+                <span class="price-label">
+                  {{ selectedProduct()!.size_pricing[size] ? '+₱' + selectedProduct()!.size_pricing[size] : '₱0 (Base Price)' }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Colors -->
+        <section class="detail-section" *ngIf="selectedProduct()!.available_colors && selectedProduct()!.available_colors.length > 0">
+          <h4>Available Colors</h4>
+          <div class="colors-list">
+            <div class="color-item" *ngFor="let color of selectedProduct()!.available_colors">
+              <div class="color-swatch" [style.background-color]="color.hex"></div>
+              <span>{{ color.name }}</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Created Date -->
+        <section class="detail-section">
+          <p class="text-muted small">
+            Created: {{ selectedProduct()!.created_at | date:'medium' }}
+          </p>
+        </section>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeDetails()">Close</button>
+        <button class="btn btn-primary" (click)="editProduct(selectedProduct()!)">Edit Product</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Form -->
+  <div *ngIf="showForm()">
+    <div class="form-header">
+      <button class="btn btn-outline-secondary" (click)="showForm.set(false)">
+        ← Back to List
+      </button>
+    </div>
+    <ng-container *ngComponentOutlet="formComponent"></ng-container>
+  </div>
+</div>

@@ -1,0 +1,25 @@
+<div class="panel">
+  <div class="panel-header">
+    <h3>My templates</h3>
+    <button class="close-btn" (click)="onClose()">✕</button>
+  </div>
+
+  <div class="panel-body">
+    <div class="templates-grid">
+      <div class="template-item" *ngFor="let template of templates" (click)="onSelectTemplate(template)">
+        <div class="template-preview">
+          <img [src]="template.thumbnail" [alt]="template.name">
+        </div>
+        <div class="template-info">
+          <span class="template-name">{{ template.name }}</span>
+          <span class="template-category">{{ template.category }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="create-new">
+      <button class="create-btn">+ Create new template</button>
+      <p class="help-text">Save your current design as a template</p>
+    </div>
+  </div>
+</div>

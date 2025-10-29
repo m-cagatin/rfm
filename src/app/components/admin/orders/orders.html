@@ -1,60 +1,184 @@
 <div class="orders-container">
-  <button class="btn btn-primary ms-auto" data-bs-toggle="modal" data-bs-target="#addOrdersModal">
-    <i class="bi bi-plus circle me-2"></i>
-    Add Orders
-  </button>
-
-<!-- Kanban container -->
-<div class="kanban-wrapper mt-3">
-  <div class="kanban-header d-flex align-items-center justify-content-between mb-2">
-    <h5 class="m-0">Production Board</h5>
-    <small class="text-muted">Drag a card to move between stages</small>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">
+      <i class="bi bi-kanban me-2"></i>
+      Production Board
+    </h4>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-primary btn-sm" (click)="loadOrders()" [disabled]="loading()">
+        <i class="bi bi-arrow-clockwise me-1"></i>
+        Refresh
+      </button>
+    </div>
   </div>
 
-  <div class="kanban-board" role="region" aria-label="Production Kanban">
-    <!-- Iterate stages -->
-    <div class="kanban-column" *ngFor="let s of stages">
-      <div class="column-title">
-        <span>{{ s.title }}</span>
+  @if (loading()) {
+    <div class="text-center py-4">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading orders...</span>
+      </div>
+      <p class="mt-2 text-muted">Loading orders...</p>
+    </div>
+  }
+
+  @if (error()) {
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>
+      {{ error() }}
+      <button type="button" class="btn-close" (click)="clearError()"></button>
+    </div>
+  }
+
+  @if (!loading()) {
+    <!-- Kanban container -->
+    <div class="kanban-wrapper mt-3">
+      <div class="kanban-header d-flex align-items-center justify-content-between mb-2">
+        <h5 class="m-0">Order Management</h5>
+        <small class="text-muted">Drag cards to move between stages</small>
       </div>
 
-      <div class="kanban-list" cdkDropList [id]="s.key" [cdkDropListData]="s.data"
-        [cdkDropListConnectedTo]="connectedLists" (cdkDropListDropped)="onDrop($event, s.key)">
-        <div class="kanban-card" *ngFor="let order of s.data; trackBy: trackByOrder" cdkDrag [ngClass]="{
-            'card-designing': s.key === 'designing',
-            'card-ripping': s.key === 'ripping',
-            'card-heatpress': s.key === 'heatpress',
-            'card-cutting': s.key === 'cutting',
-            'card-assembly': s.key === 'assembly',
-            'card-qc': s.key === 'qc',
-            'card-done': s.key === 'done'
-          }">
-          <div class="card-head d-flex justify-content-between">
-            <div>
-              <div class="ref">{{ order.orderRef }}</div>
-              <div class="client">{{ order.client }}</div>
-            </div>
-            <div class="qty-badge">Qty {{ order.qty }}</div>
+      <div class="kanban-board" role="region" aria-label="Production Kanban">
+        <!-- Iterate stages -->
+        <div class="kanban-column" *ngFor="let s of stages">
+          <div class="column-title bg-{{ s.color }}">
+            <span>{{ s.title }}</span>
+            <span class="badge bg-light text-dark ms-2">{{ s.data().length }}</span>
           </div>
 
-          <div class="card-meta d-flex justify-content-between align-items-center mt-2">
-            <small class="date">{{ order.date || '' }}</small>
+          <div class="kanban-list" cdkDropList [id]="s.key" [cdkDropListData]="s.data()"
+            [cdkDropListConnectedTo]="connectedLists" (cdkDropListDropped)="onDrop($event, s.key)">
+            <div class="kanban-card" *ngFor="let order of s.data(); trackBy: trackByOrder" cdkDrag 
+                 [ngClass]="'card-' + s.key" (click)="viewOrderDetails(order)">
+              <div class="card-head d-flex justify-content-between">
+                <div>
+                  <div class="ref">{{ order.orderRef }}</div>
+                  <div class="client">{{ order.client }}</div>
+                </div>
+                <div class="qty-badge">₱{{ order.total_amount.toFixed(2) }}</div>
+              </div>
 
-            <select class="form-select form-select-sm status-select"
-              (change)="changeStatus(order, $any($event.target).value)">
-              <option *ngFor="let st of stages" [value]="st.key" [selected]="st.data.includes(order)">{{ st.title }}
-              </option>
-            </select>
+              <div class="card-meta d-flex justify-content-between align-items-center mt-2">
+                <small class="date">{{ formatDate(order.date) }}</small>
+                <small class="text-muted">{{ order.customer_email }}</small>
+              </div>
+
+              <div class="card-actions mt-2">
+                <select class="form-select form-select-sm status-select"
+                  (change)="changeStatus(order, $any($event.target).value); $event.stopPropagation()">
+                  <option *ngFor="let st of stages" [value]="st.key" [selected]="st.key === s.key">{{ st.title }}</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Empty placeholder when list has no cards -->
+            <div class="empty-placeholder" *ngIf="s.data().length === 0">
+              <small class="text-muted">No orders</small>
+            </div>
           </div>
         </div>
+      </div>
+    </div>
+  }
+</div>
 
-        <!-- Empty placeholder when list has no cards -->
-        <div class="empty-placeholder" *ngIf="s.data.length === 0">
-          <small class="text-muted">No orders</small>
+<!-- Order Details Modal -->
+@if (showOrderDetails() && selectedOrder()) {
+  <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="bi bi-receipt me-2"></i>
+            Order Details - {{ selectedOrder()!.orderRef }}
+          </h5>
+          <button type="button" class="btn-close" (click)="closeOrderDetails()"></button>
+        </div>
+        
+        <div class="modal-body">
+          <!-- Order Summary -->
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <h6>Order Information</h6>
+              <ul class="list-unstyled">
+                <li><strong>Order Reference:</strong> {{ selectedOrder()!.orderRef }}</li>
+                <li><strong>Order Date:</strong> {{ formatDate(selectedOrder()!.date) }}</li>
+                <li><strong>Status:</strong> 
+                  <span class="badge bg-{{ getStatusColor(selectedOrder()!.status) }}">
+                    {{ getStatusTitle(selectedOrder()!.status) }}
+                  </span>
+                </li>
+                <li><strong>Total Amount:</strong> ₱{{ selectedOrder()!.total_amount.toFixed(2) }}</li>
+              </ul>
+            </div>
+            <div class="col-md-6">
+              <h6>Customer Information</h6>
+              <ul class="list-unstyled">
+                <li><strong>Name:</strong> {{ selectedOrder()!.client }}</li>
+                <li><strong>Email:</strong> {{ selectedOrder()!.customer_email }}</li>
+                @if (selectedOrder()!.customer_phone) {
+                  <li><strong>Phone:</strong> {{ selectedOrder()!.customer_phone }}</li>
+                }
+                @if (selectedOrder()!.customer_address) {
+                  <li><strong>Address:</strong> {{ selectedOrder()!.customer_address }}</li>
+                }
+              </ul>
+            </div>
+          </div>
+
+          <!-- Order Items -->
+          <h6>Order Items</h6>
+          <div class="table-responsive">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Size</th>
+                  <th>Color</th>
+                  <th>Qty</th>
+                  <th>Unit Price</th>
+                  <th>Subtotal</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of orderItems(); track item.item_id) {
+                  <tr>
+                    <td>
+                      <strong>{{ item.product_name }}</strong>
+                      @if (item.customization_data) {
+                        <br><span class="badge bg-info">Customized</span>
+                      }
+                    </td>
+                    <td>{{ item.size || '-' }}</td>
+                    <td>{{ item.color || '-' }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>₱{{ item.unit_price.toFixed(2) }}</td>
+                    <td><strong>₱{{ item.subtotal.toFixed(2) }}</strong></td>
+                  </tr>
+                }
+              </tbody>
+              <tfoot>
+                <tr class="table-primary">
+                  <th colspan="5">Total Amount:</th>
+                  <th>₱{{ selectedOrder()!.total_amount.toFixed(2) }}</th>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          @if (selectedOrder()!.notes) {
+            <div class="mt-3">
+              <h6>Order Notes</h6>
+              <p class="text-muted">{{ selectedOrder()!.notes }}</p>
+            </div>
+          }
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeOrderDetails()">
+            Close
+          </button>
         </div>
       </div>
     </div>
   </div>
-</div>
-
-</div>
+}

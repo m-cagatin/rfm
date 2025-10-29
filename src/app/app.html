@@ -1,80 +1,166 @@
-<!-- Navigation Bar (Only show for customer routes, hide for admin routes) -->
-<nav *ngIf="!isAdminRoute()" class="navbar navbar-expand-lg navbar-dark bg-dark">
-  <div class="container">
-    <a class="navbar-brand" routerLink="/">
-      <div class="logo">RFM</div>
-    </a>
-
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav mx-auto">
-        <li class="nav-item">
-          <a class="nav-link" routerLink="/" routerLinkActive="active"
-            [routerLinkActiveOptions]="{exact: true}">Home</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" routerLink="/apparel" routerLinkActive="active">Apparel</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" routerLink="/customization" routerLinkActive="active">Customize</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" routerLink="/cart" routerLinkActive="active">Cart</a>
-        </li>
-      </ul>
-
-      <ul class="navbar-nav">
-        <!-- Show when user is NOT authenticated -->
-        <ng-container *ngIf="!authService.isAuthenticated()">
-          <li class="nav-item">
-            <a class="nav-link" routerLink="/login" routerLinkActive="active">Login</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" routerLink="/signup" routerLinkActive="active">Sign Up</a>
-          </li>
-        </ng-container>
-
-        <!-- Show when user IS authenticated -->
-        <ng-container *ngIf="authService.isAuthenticated()">
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-              <i class="bi bi-person-circle"></i> {{ authService.currentUser()?.name || 'Account' }}
-            </a>
-            <ul class="dropdown-menu dropdown-menu-end">
-              <li>
-                <span class="dropdown-item-text">
-                  <small class="text-muted">{{ authService.currentUser()?.email }}</small>
-                </span>
-              </li>
-              <li>
-                <hr class="dropdown-divider">
-              </li>
-
-              <!-- Show admin link if user is admin -->
-              <li *ngIf="authService.isAdmin()">
-                <a class="dropdown-item" routerLink="/admin">
-                  <i class="bi bi-speedometer2"></i> Admin Panel
-                </a>
-              </li>
-              <li *ngIf="authService.isAdmin()">
-                <hr class="dropdown-divider">
-              </li>
-
-              <li>
-                <a class="dropdown-item" href="#" (click)="logout(); $event.preventDefault()">
-                  <i class="bi bi-box-arrow-right"></i> Logout
-                </a>
-              </li>
-            </ul>
-          </li>
-        </ng-container>
-      </ul>
+<!-- Printify-Style Sidebar Navigation (Customer Routes Only, NOT on designing route) -->
+<div *ngIf="!isAdminRoute() && !isDesigningRoute()" class="app-layout">
+  <!-- Left Sidebar -->
+  <aside class="sidebar">
+    <!-- Top Section - RFM Logo -->
+    <div class="sidebar-header">
+      <a routerLink="/" class="brand-link">
+        <div class="brand-logo">RFM</div>
+      </a>
     </div>
-  </div>
-</nav>
 
-<!-- Main Content Area -->
-<router-outlet></router-outlet>
+    <!-- Main Navigation -->
+    <nav class="sidebar-nav">
+      <ul class="nav-list">
+        <li class="nav-item">
+          <a routerLink="/catalog" 
+             routerLinkActive="active" 
+             class="nav-link">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"/>
+              <path d="M8 21v-4a2 2 0 012-2h4a2 2 0 012 2v4"/>
+            </svg>
+            <span class="nav-text">Catalog</span>
+          </a>
+        </li>
+        
+        <li class="nav-item">
+          <a routerLink="/designing" 
+             routerLinkActive="active" 
+             class="nav-link">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+            <span class="nav-text">Designing</span>
+          </a>
+        </li>
+        
+        <li class="nav-item">
+          <a routerLink="/cart" 
+             routerLinkActive="active" 
+             class="nav-link">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+            <span class="nav-text">Cart</span>
+            <span *ngIf="cartService.itemCount() > 0" class="nav-badge">{{ cartService.itemCount() }}</span>
+          </a>
+        </li>
+        
+        <li class="nav-item" *ngIf="authService.isAuthenticated()">
+          <a routerLink="/orders" 
+             routerLinkActive="active" 
+             class="nav-link">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+              <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+            </svg>
+            <span class="nav-text">Orders</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <!-- Bottom Section - Account -->
+    <div class="sidebar-footer">
+      <!-- Show when user is NOT authenticated -->
+      <div *ngIf="!authService.isAuthenticated()" class="auth-buttons">
+        <a routerLink="/login" class="auth-link">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+            <polyline points="10,17 15,12 10,7"/>
+            <line x1="15" y1="12" x2="3" y2="12"/>
+          </svg>
+          <span class="nav-text">Login</span>
+        </a>
+        
+        <a routerLink="/signup" class="auth-link signup-link">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="8.5" cy="7" r="4"/>
+            <line x1="20" y1="8" x2="20" y2="14"/>
+            <line x1="23" y1="11" x2="17" y2="11"/>
+          </svg>
+          <span class="nav-text">Sign Up</span>
+        </a>
+      </div>
+
+      <!-- Show when user IS authenticated -->
+      <div *ngIf="authService.isAuthenticated()" class="user-section">
+        <div class="user-dropdown" 
+             [class.active]="userDropdownOpen()"
+             (click)="toggleUserDropdown($event)">
+          <div class="user-info">
+            <div class="user-avatar">
+              {{ (authService.currentUser()?.name || 'U').charAt(0).toUpperCase() }}
+            </div>
+            <div class="user-details">
+              <span class="user-name">{{ authService.currentUser()?.name || 'User' }}</span>
+              <span class="user-email">{{ authService.currentUser()?.email }}</span>
+            </div>
+            <svg class="dropdown-arrow" 
+                 [class.rotated]="userDropdownOpen()"
+                 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6,9 12,15 18,9"/>
+            </svg>
+          </div>
+          
+          <!-- Dropdown Menu -->
+          <div class="dropdown-menu" *ngIf="userDropdownOpen()">
+            <a routerLink="/account-settings" class="dropdown-item" (click)="closeUserDropdown()">
+              <svg class="dropdown-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              <span>My Account</span>
+            </a>
+            
+            <!-- Admin Panel button - only show for admin users -->
+            <a *ngIf="authService.currentUser()?.role === 'employee'" 
+               routerLink="/admin" 
+               class="dropdown-item" 
+               (click)="closeUserDropdown()">
+              <svg class="dropdown-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <rect x="9" y="9" width="6" height="6"/>
+                <path d="M9 1v6"/>
+                <path d="M15 1v6"/>
+                <path d="M9 21v-6"/>
+                <path d="M15 21v-6"/>
+                <path d="M1 9h6"/>
+                <path d="M1 15h6"/>
+                <path d="M17 9h6"/>
+                <path d="M17 15h6"/>
+              </svg>
+              <span>Admin Panel</span>
+            </a>
+            
+            <div class="dropdown-divider"></div>
+            
+            <a href="#" class="dropdown-item logout-item" (click)="logout(); $event.preventDefault(); closeUserDropdown()">
+              <svg class="dropdown-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16,17 21,12 16,7"/>
+                <polyline points="21,12 9,12"/>
+              </svg>
+              <span>Sign Out</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <main class="main-content">
+    <router-outlet></router-outlet>
+  </main>
+</div>
+
+<!-- Designing Route - Render without app layout (no sidebar) -->
+<div *ngIf="!isAdminRoute() && isDesigningRoute()">
+  <router-outlet></router-outlet>
+</div>
+
+<!-- Admin Routes - Use AdminLayoutComponent -->
+<router-outlet *ngIf="isAdminRoute()"></router-outlet>

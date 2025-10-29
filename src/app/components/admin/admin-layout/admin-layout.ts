@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
@@ -14,14 +14,15 @@ declare var bootstrap: any;
   styleUrls: ['./admin-layout.css']
 })
 export class AdminLayoutComponent implements OnInit {
-  currentPage = 'Dashboard';
+  currentPage = 'Payment Verification';
+  dropdownOpen = false;
   
   menuItems = [
-    { name: 'Dashboard', icon: '📊', route: '/admin/dashboard' },
+    { name: 'Payment Verification', icon: '💳', route: '/admin/payment-verification' },
     { name: 'Orders', icon: '🛒', route: '/admin/orders' },
     { name: 'Products', icon: '📦', route: '/admin/products' },
+    { name: 'Customizable Products', icon: '🎨', route: '/admin/customizable-products' },
     { name: 'Employees', icon: '👥', route: '/admin/employees' },
-    { name: 'Mock-ups', icon: '🎨', route: '/admin/mockups' },
     { name: 'Cash flow', icon: '💰', route: '/admin/cashflow' },
     { name: 'Reports', icon: '📈', route: '/admin/reports' }
   ];
@@ -60,5 +61,23 @@ export class AdminLayoutComponent implements OnInit {
 
   logout() {
     this.authService.logout();
+  }
+
+  toggleDropdown() {
+    this.dropdownOpen = !this.dropdownOpen;
+  }
+
+  closeDropdown() {
+    this.dropdownOpen = false;
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    const dropdown = document.querySelector('.admin-dropdown');
+    
+    if (dropdown && !dropdown.contains(target)) {
+      this.dropdownOpen = false;
+    }
   }
 }

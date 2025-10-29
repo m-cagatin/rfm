@@ -1,0 +1,55 @@
+<div class="text-panel">
+  <div class="panel-header">
+    <h3>Add text</h3>
+    <button class="close-btn" (click)="onClose()">✕</button>
+  </div>
+
+  <div class="sticky-search">
+    <input type="text" class="search-input" placeholder="Search fonts" [ngModel]="query()" (ngModelChange)="query.set($event)">
+  </div>
+
+  <div class="scroll-body">
+    <section class="pre-designed">
+      <h4>Pre designed Text</h4>
+      <div class="pre-grid">
+        <div class="pre-item" *ngFor="let item of predesigned" (click)="onSelectPreDesigned(item)">
+          <div class="pre-card">
+            <div class="pre-title" 
+                 [style.font-family]="item.fontFamily"
+                 [style.font-size.px]="item.fontSize * 0.3"
+                 [style.color]="item.fill"
+                 [style.font-weight]="item.fontWeight">
+              {{ item.title }}
+            </div>
+            <div class="pre-sub" 
+                 *ngIf="item.subtitle"
+                 [style.font-family]="item.fontFamily"
+                 [style.font-size.px]="item.subtitleSize * 0.4"
+                 [style.color]="item.fill">
+              {{ item.subtitle }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="upload-fonts">
+      <h4>Upload Fonts</h4>
+      <div class="upload-row">
+        <input #fontInput type="file" accept=".ttf,.otf,.woff,.woff2" multiple hidden (change)="onUploadChange($event)">
+        <button class="upload-btn" (click)="onUploadClick(fontInput)">➕ Upload font files</button>
+        <span class="help">TTF, OTF, WOFF, WOFF2</span>
+      </div>
+    </section>
+
+    <section class="browse-fonts">
+      <h4>Browse Fonts</h4>
+      <ul class="font-list">
+        <li class="font-item" *ngFor="let f of filteredFonts()" (click)="onSelectFont(f)">
+          <span class="font-sample" [style.font-family]="f">Aa</span>
+          <span class="font-name" [style.font-family]="f">{{ f }}</span>
+        </li>
+      </ul>
+    </section>
+  </div>
+</div>

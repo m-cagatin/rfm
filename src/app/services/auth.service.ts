@@ -11,6 +11,15 @@ export interface AuthUser {
   role: 'customer' | 'employee';
   phone?: string;
   address?: string;
+  city?: string;
+  province?: string;
+  postalCode?: string;
+  country?: string;
+  dateOfBirth?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  preferredContactMethod?: 'email' | 'phone' | 'sms';
+  marketingConsent?: boolean;
   roles?: string[];
 }
 
@@ -45,14 +54,23 @@ export class AuthService {
    */
   private loadUserFromStorage(): void {
     const userJson = localStorage.getItem('currentUser');
-    if (userJson) {
+    // Use a single, consistent key for the JWT across the app
+    const token = localStorage.getItem('authToken');
+    
+    if (userJson && token) {
       try {
         const user = JSON.parse(userJson);
-        this.currentUser.set(user);
-        this.isAuthenticated.set(true);
+        // Verify token is still valid before setting authenticated state
+        if (this.isTokenValid(token)) {
+          this.currentUser.set(user);
+          this.isAuthenticated.set(true);
+        } else {
+          // Token expired, clear storage
+          this.clearStorage();
+        }
       } catch (error) {
         console.error('Error parsing stored user:', error);
-        localStorage.removeItem('currentUser');
+        this.clearStorage();
       }
     }
   }
@@ -64,15 +82,33 @@ export class AuthService {
     email: string,
     password: string,
     fullName: string,
-    phone?: string,
-    address?: string
+    phone: string,
+    address: string,
+    city?: string,
+    province?: string,
+    postalCode?: string,
+    country?: string,
+    dateOfBirth?: string,
+    emergencyContactName?: string,
+    emergencyContactPhone?: string,
+    preferredContactMethod?: 'email' | 'phone' | 'sms',
+    marketingConsent?: boolean
   ): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.baseUrl}/register`, {
       email,
       password,
       fullName,
       phone,
-      address
+      address,
+      city,
+      province,
+      postalCode,
+      country,
+      dateOfBirth,
+      emergencyContactName,
+      emergencyContactPhone,
+      preferredContactMethod,
+      marketingConsent
     }).pipe(
       tap(response => {
         if (response.success && response.user && response.token) {
@@ -106,14 +142,37 @@ export class AuthService {
   logout(): void {
     this.http.post(`${this.baseUrl}/logout`, {}).subscribe({
       next: () => {
-        this.clearCurrentUser();
+        this.clearStorage();
         this.router.navigate(['/']);
       },
       error: () => {
         // Even if server request fails, clear local state
-        this.clearCurrentUser();
+        this.clearStorage();
         this.router.navigate(['/']);
       }
+    });
+  }
+
+  /**
+   * Update user profile
+   */
+  updateProfile(profileData: Partial<AuthUser>): Observable<AuthResponse> {
+    return this.http.put<AuthResponse>(`${this.baseUrl}/profile`, profileData).pipe(
+      tap(response => {
+        if (response.success && response.user) {
+          this.setCurrentUser(response.user);
+        }
+      })
+    );
+  }
+
+  /**
+   * Change user password
+   */
+  changePassword(oldPassword: string, newPassword: string): Observable<AuthResponse> {
+    return this.http.put<AuthResponse>(`${this.baseUrl}/password`, {
+      oldPassword,
+      newPassword
     });
   }
 
@@ -151,6 +210,12 @@ export class AuthService {
     this.isAuthenticated.set(false);
     localStorage.removeItem('currentUser');
     localStorage.removeItem('authToken');
+    
+    // Clear cart data on logout for security
+    localStorage.removeItem('rfm_guest_cart');
+    
+    // Notify other services about logout
+    window.dispatchEvent(new CustomEvent('user-logout'));
   }
 
   /**
@@ -193,6 +258,30 @@ export class AuthService {
    */
   isLoggedIn(): boolean {
     return this.isAuthenticated();
+  }
+
+  /**
+   * Check if token is valid (not expired)
+   */
+  private isTokenValid(token: string): boolean {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const currentTime = Math.floor(Date.now() / 1000);
+      return payload.exp > currentTime;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Clear all authentication data from storage
+   */
+  private clearStorage(): void {
+    // Centralized cleanup: remove user and token consistently
+    this.clearCurrentUser();
+    this.removeToken();
+    // Remove any legacy key if it exists
+    localStorage.removeItem('token');
   }
 
   /**

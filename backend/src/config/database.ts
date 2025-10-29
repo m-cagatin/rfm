@@ -13,8 +13,6 @@ export interface DatabaseConfig {
   password: string;
   database: string;
   connectionLimit: number;
-  acquireTimeout: number;
-  timeout: number;
   ssl?: any;
   // Ensure DECIMAL columns (e.g., base_price) are returned as numbers
   decimalNumbers?: boolean;
@@ -27,8 +25,6 @@ export const dbConfig: DatabaseConfig = {
   password: process.env['DB_PASSWORD'] || '',
   database: process.env['DB_NAME'] || 'rfm_db',
   connectionLimit: 10,
-  acquireTimeout: 60000,
-  timeout: 60000,
   decimalNumbers: true,
 };
 
@@ -107,6 +103,34 @@ export async function initializeDatabase(): Promise<void> {
     await connection.execute(createCanvasesTable);
     await connection.execute(createUsersTable);
     
+    // Create customer_accounts table for customer authentication
+    const createCustomerAccountsTable = `
+      CREATE TABLE IF NOT EXISTS customer_accounts (
+        CustomerId INT AUTO_INCREMENT PRIMARY KEY,
+        CustomerEmail VARCHAR(255) UNIQUE NOT NULL,
+        CustomerPasswordHash CHAR(60) NOT NULL,
+        CustomerFullName VARCHAR(255) NOT NULL,
+        CustomerPhone VARCHAR(20) NOT NULL,
+        CustomerAddress TEXT NOT NULL,
+        CustomerCity VARCHAR(100),
+        CustomerProvince VARCHAR(100),
+        CustomerPostalCode VARCHAR(20),
+        CustomerCountry VARCHAR(100) DEFAULT 'Philippines',
+        DateOfBirth DATE,
+        EmergencyContactName VARCHAR(255),
+        EmergencyContactPhone VARCHAR(20),
+        PreferredContactMethod ENUM('email', 'phone', 'sms') DEFAULT 'email',
+        MarketingConsent BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_login TIMESTAMP NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_email (CustomerEmail),
+        INDEX idx_phone (CustomerPhone)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `;
+    await connection.execute(createCustomerAccountsTable);
+    console.log('✅ customer_accounts table created');
+    
     // Create catalog_clothing table if it doesn't exist
     const createCatalogClothingTable = `
       CREATE TABLE IF NOT EXISTS catalog_clothing (
@@ -130,6 +154,99 @@ export async function initializeDatabase(): Promise<void> {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `;
     await connection.execute(createCatalogClothingTable);
+    
+    // Enhance catalog_clothing with new columns for ordering system
+    const enhanceCatalogTable = `
+      ALTER TABLE catalog_clothing
+        ADD COLUMN colors JSON DEFAULT NULL,
+        ADD COLUMN images JSON DEFAULT NULL,
+        ADD COLUMN material VARCHAR(100),
+        ADD COLUMN gender ENUM('Men', 'Women', 'Unisex', 'Kids') DEFAULT 'Unisex',
+        ADD COLUMN stock_by_size_color JSON DEFAULT NULL,
+        ADD COLUMN allows_customization BOOLEAN DEFAULT TRUE,
+        ADD COLUMN customization_areas JSON DEFAULT NULL,
+        ADD COLUMN production_days INT DEFAULT 3;
+    `;
+
+    try {
+      await connection.execute(enhanceCatalogTable);
+      console.log('✅ catalog_clothing enhanced with new columns');
+    } catch (error: any) {
+      if (error.code === 'ER_DUP_FIELDNAME') {
+        console.log('ℹ️  Catalog enhancement columns already exist');
+      } else {
+        console.error('Error enhancing catalog:', error);
+      }
+    }
+    
+    // Create cart_items table
+    const createCartItemsTable = `
+      CREATE TABLE IF NOT EXISTS cart_items (
+        cart_item_id INT AUTO_INCREMENT PRIMARY KEY,
+        customer_id INT NOT NULL,
+        product_id INT NOT NULL,
+        product_name VARCHAR(255) NOT NULL,
+        quantity INT NOT NULL DEFAULT 1,
+        size VARCHAR(20),
+        color VARCHAR(50),
+        unit_price DECIMAL(10, 2) NOT NULL,
+        customization_data JSON,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_customer_id (customer_id),
+        UNIQUE KEY unique_cart_item (customer_id, product_id, size, color),
+        FOREIGN KEY (customer_id) REFERENCES customer_accounts(CustomerId) ON DELETE CASCADE,
+        FOREIGN KEY (product_id) REFERENCES catalog_clothing(product_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `;
+    await connection.execute(createCartItemsTable);
+
+    // Create orders table
+    const createOrdersTable = `
+      CREATE TABLE IF NOT EXISTS orders (
+        order_id INT AUTO_INCREMENT PRIMARY KEY,
+        order_ref VARCHAR(50) UNIQUE NOT NULL,
+        customer_id INT NOT NULL,
+        customer_name VARCHAR(255) NOT NULL,
+        customer_email VARCHAR(255) NOT NULL,
+        customer_phone VARCHAR(20),
+        customer_address TEXT,
+        total_amount DECIMAL(10, 2) NOT NULL,
+        status ENUM('payment_pending', 'pending', 'designing', 'ripping', 'heatpress', 'cutting', 'assembly', 'qc', 'done', 'cancelled') DEFAULT 'payment_pending',
+        order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        estimated_completion DATE,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_customer_id (customer_id),
+        INDEX idx_status (status),
+        INDEX idx_order_date (order_date),
+        FOREIGN KEY (customer_id) REFERENCES customer_accounts(CustomerId)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `;
+    await connection.execute(createOrdersTable);
+
+    // Create order_items table
+    const createOrderItemsTable = `
+      CREATE TABLE IF NOT EXISTS order_items (
+        item_id INT AUTO_INCREMENT PRIMARY KEY,
+        order_id INT NOT NULL,
+        product_id INT NOT NULL,
+        product_name VARCHAR(255) NOT NULL,
+        quantity INT NOT NULL,
+        size VARCHAR(20),
+        color VARCHAR(50),
+        unit_price DECIMAL(10, 2) NOT NULL,
+        subtotal DECIMAL(10, 2) NOT NULL,
+        customization_data JSON,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,
+        FOREIGN KEY (product_id) REFERENCES catalog_clothing(product_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `;
+    await connection.execute(createOrderItemsTable);
+
+    console.log('✅ Ordering tables (cart_items, orders, order_items) created');
     
     // Insert sample users if table is empty
     const [rows] = await connection.execute('SELECT COUNT(*) as count FROM Users');

@@ -1,0 +1,267 @@
+<div class="container mt-4 mb-5">
+  <!-- Loading State -->
+  @if (loading()) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading product...</span>
+      </div>
+      <p class="mt-3">Loading product details...</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (error()) {
+    <div class="alert alert-danger" role="alert">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>
+      {{ error() }}
+      <div class="mt-3">
+        <button class="btn btn-outline-primary" (click)="goBack()">
+          <i class="bi bi-arrow-left me-2"></i>Back to Products
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Product Details -->
+  @if (!loading() && !error() && product()) {
+    <div class="row">
+      <!-- Back Button -->
+      <div class="col-12 mb-3">
+        <button class="btn btn-outline-secondary" (click)="goBack()">
+          <i class="bi bi-arrow-left me-2"></i>Back to Products
+        </button>
+      </div>
+
+      <!-- Product Images -->
+      <div class="col-lg-6 mb-4">
+        <div class="product-images">
+          <!-- Main Image -->
+          <div class="main-image mb-3">
+            <img [src]="getProductImages()[selectedImageIndex()] || product()!.image_url" 
+                 [alt]="product()!.product_name"
+                 class="img-fluid rounded shadow-sm"
+                 style="width: 100%; height: 500px; object-fit: cover;">
+          </div>
+
+          <!-- Image Thumbnails -->
+          @if (getProductImages().length > 1) {
+            <div class="image-thumbnails">
+              <div class="row g-2">
+                @for (image of getProductImages(); track $index) {
+                  <div class="col-3">
+                    <img [src]="image" 
+                         [alt]="product()!.product_name + ' - Image ' + ($index + 1)"
+                         class="img-fluid rounded cursor-pointer thumbnail-image"
+                         [class.active]="selectedImageIndex() === $index"
+                         (click)="selectImage($index)"
+                         style="height: 80px; object-fit: cover; width: 100%;">
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Product Information -->
+      <div class="col-lg-6">
+        <div class="product-info">
+          <!-- Product Title & Price -->
+          <div class="mb-4">
+            <h1 class="h2 mb-2">{{ product()!.product_name }}</h1>
+            <div class="d-flex align-items-center mb-3">
+              <span class="h3 text-primary mb-0 me-3">₱{{ product()!.base_price.toFixed(2) }}</span>
+              <span class="badge" [class]="getStockBadgeClass()">
+                {{ getStockStatus() }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Product Description -->
+          @if (product()!.description) {
+            <div class="mb-4">
+              <h5>Description</h5>
+              <p class="text-muted">{{ product()!.description }}</p>
+            </div>
+          }
+
+          <!-- Product Attributes -->
+          <div class="product-attributes mb-4">
+            <div class="row g-3">
+              @if (product()!.material) {
+                <div class="col-6">
+                  <strong>Material:</strong>
+                  <span class="text-muted ms-2">{{ product()!.material }}</span>
+                </div>
+              }
+              
+              @if (product()!.gender) {
+                <div class="col-6">
+                  <strong>Gender:</strong>
+                  <span class="text-muted ms-2">{{ product()!.gender }}</span>
+                </div>
+              }
+              
+              @if (product()!.production_days) {
+                <div class="col-6">
+                  <strong>Production Time:</strong>
+                  <span class="text-muted ms-2">{{ product()!.production_days }} days</span>
+                </div>
+              }
+              
+              @if (product()!.allows_customization) {
+                <div class="col-6">
+                  <strong>Customizable:</strong>
+                  <span class="text-success ms-2">
+                    <i class="bi bi-check-circle-fill me-1"></i>Yes
+                  </span>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Color Selection -->
+          @if (parseJsonField(product()!.colors).length > 0) {
+            <div class="mb-4">
+              <h6>Color:</h6>
+              <div class="color-options">
+                @for (color of parseJsonField(product()!.colors); track color) {
+                  <button class="btn btn-outline-secondary me-2 mb-2"
+                          [class.active]="selectedColor() === color"
+                          (click)="selectColor(color)">
+                    {{ color }}
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Size Selection -->
+          @if (parseJsonField(product()!.sizes).length > 0) {
+            <div class="mb-4">
+              <h6>Size:</h6>
+              <div class="size-options">
+                @for (size of parseJsonField(product()!.sizes); track size) {
+                  <button class="btn btn-outline-secondary me-2 mb-2"
+                          [class.active]="selectedSize() === size"
+                          (click)="selectSize(size)">
+                    {{ size }}
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Quantity Selection -->
+          <div class="mb-4">
+            <h6>Quantity:</h6>
+            <div class="quantity-selector d-flex align-items-center">
+              <button class="btn btn-outline-secondary" 
+                      (click)="decreaseQuantity()"
+                      [disabled]="quantity() <= 1">
+                <i class="bi bi-dash"></i>
+              </button>
+              <span class="mx-3 fw-bold">{{ quantity() }}</span>
+              <button class="btn btn-outline-secondary" 
+                      (click)="increaseQuantity()"
+                      [disabled]="quantity() >= getAvailableStock()">
+                <i class="bi bi-plus"></i>
+              </button>
+              <small class="text-muted ms-3">
+                ({{ getAvailableStock() }} available)
+              </small>
+            </div>
+          </div>
+
+          <!-- Success Message -->
+          @if (addToCartSuccess()) {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+              <i class="bi bi-check-circle-fill me-2"></i>
+              Product added to cart successfully!
+              <button type="button" class="btn-close" (click)="addToCartSuccess.set(false)"></button>
+            </div>
+          }
+
+          <!-- Action Buttons -->
+          <div class="action-buttons mb-4">
+            <div class="d-grid gap-2">
+              <button class="btn btn-primary btn-lg" 
+                      (click)="addToCart()"
+                      [disabled]="!isInStock() || addingToCart()">
+                @if (addingToCart()) {
+                  <span class="spinner-border spinner-border-sm me-2"></span>
+                  Adding to Cart...
+                } @else {
+                  <i class="bi bi-cart-plus me-2"></i>
+                  Add to Cart
+                }
+              </button>
+
+              @if (product()!.allows_customization) {
+                <button class="btn btn-outline-primary" 
+                        (click)="goToCustomization()">
+                  <i class="bi bi-palette me-2"></i>
+                  Customize This Product
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Additional Actions -->
+          <div class="additional-actions">
+            <div class="row g-2">
+              <div class="col-6">
+                <button class="btn btn-outline-secondary w-100" (click)="shareProduct()">
+                  <i class="bi bi-share me-2"></i>Share
+                </button>
+              </div>
+              <div class="col-6">
+                <button class="btn btn-outline-secondary w-100" routerLink="/cart">
+                  <i class="bi bi-cart me-2"></i>View Cart
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Product Features -->
+          <div class="product-features mt-4">
+            <div class="row g-3">
+              <div class="col-12">
+                <div class="d-flex align-items-center text-muted">
+                  <i class="bi bi-truck me-2"></i>
+                  <small>Free shipping on orders over ₱1,000</small>
+                </div>
+              </div>
+              <div class="col-12">
+                <div class="d-flex align-items-center text-muted">
+                  <i class="bi bi-arrow-clockwise me-2"></i>
+                  <small>30-day return policy</small>
+                </div>
+              </div>
+              <div class="col-12">
+                <div class="d-flex align-items-center text-muted">
+                  <i class="bi bi-shield-check me-2"></i>
+                  <small>Quality guaranteed</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Related Products Section (Optional) -->
+    <div class="row mt-5">
+      <div class="col-12">
+        <hr>
+        <h4 class="mb-4">You might also like</h4>
+        <div class="text-center text-muted">
+          <p>Related products coming soon...</p>
+          <button class="btn btn-outline-primary" (click)="goBack()">
+            Browse All Products
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

@@ -3,46 +3,37 @@
   <header class="admin-header">
     <div class="header-center">
       <button class="menu-toggle">☰</button>
-      <h1 class="page-title">{{currentPage}}</h1>
+      <h1 class="page-title font-semibold text-2xl">{{currentPage}}</h1>
     </div>
     
     <div class="header-right">
-      <!-- Bootstrap 5 Dropdown -->
-      <div class="dropdown">
-        <button class="btn btn-link text-decoration-none dropdown-toggle d-flex align-items-center gap-2" 
+      <!-- Custom Admin Dropdown -->
+      <div class="admin-dropdown" (click)="$event.stopPropagation()">
+        <button class="admin-dropdown-toggle" 
                 type="button" 
-                id="adminDropdown" 
-                data-bs-toggle="dropdown" 
-                aria-expanded="false">
+                (click)="toggleDropdown()">
           <i class="bi bi-person-circle fs-4"></i>
-          <span class="text-dark">{{ authService.currentUser()?.name || 'ADMIN USER' }}</span>
+          <span>{{ authService.currentUser()?.name || 'ADMIN USER' }}</span>
+          <i class="bi bi-chevron-down ms-2"></i>
         </button>
         
-        <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="adminDropdown">
-          <li>
-            <h6 class="dropdown-header">
-              <strong>{{ authService.currentUser()?.name }}</strong><br>
-              <small class="text-muted">{{ authService.currentUser()?.email }}</small>
-            </h6>
-          </li>
-          <li><hr class="dropdown-divider"></li>
-          <li>
-            <a class="dropdown-item" href="#" (click)="openProfileModal(); $event.preventDefault()">
-              <i class="bi bi-person"></i> My Profile
-            </a>
-          </li>
-          <li>
-            <a class="dropdown-item" href="#" (click)="goToCustomerPanel(); $event.preventDefault()">
-              <i class="bi bi-shop"></i> Customer Panel
-            </a>
-          </li>
-          <li><hr class="dropdown-divider"></li>
-          <li>
-            <a class="dropdown-item text-danger" href="#" (click)="logout(); $event.preventDefault()">
-              <i class="bi bi-box-arrow-right"></i> Logout
-            </a>
-          </li>
-        </ul>
+        <div class="admin-dropdown-menu" [class.show]="dropdownOpen">
+          <div class="dropdown-header">
+            <strong>{{ authService.currentUser()?.name }}</strong><br>
+            <small class="text-muted">{{ authService.currentUser()?.email }}</small>
+          </div>
+          <hr class="dropdown-divider">
+          <a class="dropdown-item" href="#" (click)="openProfileModal(); $event.preventDefault(); closeDropdown()">
+            <i class="bi bi-person"></i> My Profile
+          </a>
+          <a class="dropdown-item" href="#" (click)="goToCustomerPanel(); $event.preventDefault(); closeDropdown()">
+            <i class="bi bi-shop"></i> Customer Panel
+          </a>
+          <hr class="dropdown-divider">
+          <a class="dropdown-item text-danger" href="#" (click)="logout(); $event.preventDefault(); closeDropdown()">
+            <i class="bi bi-box-arrow-right"></i> Logout
+          </a>
+        </div>
       </div>
     </div>
   </header>

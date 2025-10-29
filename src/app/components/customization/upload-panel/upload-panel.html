@@ -1,105 +1,60 @@
 <div class="upload-panel">
-  <!-- Upload Section -->
-  <div class="upload-section">
-    <div class="upload-header">
-      <h3>Upload Image / Logo</h3>
-      <i class="expand-icon">></i>
+  <div class="upload-header">
+    <h3>New upload</h3>
+    <button class="close-btn" (click)="onClose()">✕</button>
+  </div>
+
+  <!-- Buttons -->
+  <div class="button-stack">
+    <input #fileInput type="file" accept="image/png,image/jpeg,image/svg+xml" (change)="onFileInput($event)" hidden>
+    <button class="pick-btn primary" (click)="onPickDevice(fileInput)">
+      <span class="btn-icon">🖥️</span>
+      <span>My device</span>
+    </button>
+    <button class="pick-btn" (click)="pickDropbox()">
+      <span class="btn-icon">🗂️</span>
+      <span>Dropbox</span>
+    </button>
+    <button class="pick-btn" (click)="pickDrive()">
+      <span class="btn-icon">📁</span>
+      <span>Google Drive</span>
+    </button>
+  </div>
+
+  <!-- Drag & drop area -->
+  <div class="upload-area" [class.drag-over]="isDragging()" (drop)="onDrop($event)" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)">
+    <div class="upload-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
     </div>
-    
-    <!-- Upload Area (shown when no image is uploaded) -->
-    <div class="upload-area" *ngIf="!uploadedImageUrl()"
-         [class.drag-over]="isDragOver()"
-         [class.uploading]="isUploading()"
-         (dragover)="onDragOver($event)"
-         (dragleave)="onDragLeave($event)"
-         (drop)="onDrop($event)"
-         (click)="fileInput.click()">
-      
-      <div class="upload-content" *ngIf="!isUploading()">
-        <div class="upload-icon">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7,10 12,15 17,10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
-        </div>
-        <div class="upload-text">
-          <p class="main-text">Drag & Drop or Browse</p>
-          <p class="sub-text">Maximum file size: 5MB</p>
-        </div>
-      </div>
-      
-      <div class="upload-loading" *ngIf="isUploading()">
-        <div class="loading-spinner"></div>
-        <p>Uploading...</p>
-      </div>
-      
-      <input #fileInput type="file" hidden (change)="onFileInput($event)"
-             accept="image/jpeg,image/jpg,image/png,image/svg+xml">
-    </div>
-    
-    <!-- Uploaded Image Preview -->
-    <div class="uploaded-preview" *ngIf="uploadedImageUrl()">
-      <div class="preview-header">
-        <span class="preview-title">Uploaded Image</span>
-        <button class="remove-btn" (click)="removeUploadedImage()" title="Remove image">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-      <div class="preview-image">
-        <img [src]="uploadedImageUrl()" [alt]="uploadedFile()?.name" />
-      </div>
-      <div class="preview-info">
-        <p class="file-name">{{ uploadedFile()?.name }}</p>
-        <p class="file-size">{{ (uploadedFile()?.size! / 1024 / 1024).toFixed(2) }} MB</p>
-      </div>
-    </div>
-    
-    <!-- Supported Formats -->
-    <div class="supported-formats">
-      <p class="format-label">Supported File Formats</p>
-      <p class="format-list">{{ supportedFormats.join(', ') }}</p>
-    </div>
-    
-    <!-- Processing Options -->
-    <div class="processing-options">
-      <div class="option-item">
-        <div class="option-toggle" 
-             [class.active]="removeBackground()"
-             (click)="toggleRemoveBackground()">
-          <span class="toggle-dot"></span>
-        </div>
-        <label class="option-label">Remove Background</label>
-      </div>
-      
-      <div class="option-item">
-        <div class="option-toggle" 
-             [class.active]="enhanceQuality()"
-             (click)="toggleEnhanceQuality()">
-          <span class="toggle-dot"></span>
-        </div>
-        <label class="option-label">Enhance Image Quality</label>
-      </div>
+    <div class="upload-text">
+      <p class="main-text">Drag & drop files here</p>
+      <p class="sub-text">or click My device to browse</p>
     </div>
   </div>
-  
-  <!-- Design Templates Section -->
-  <div class="templates-section">
-    <h3>Design Templates</h3>
-    
-    <div class="template-grid">
-      <div class="template-item"
-           *ngFor="let template of templates"
-           (click)="selectTemplate(template.id)">
-        <div class="template-preview" [ngClass]="template.id + '-template'">
-          <div class="template-content">{{ template.name }}</div>
-        </div>
-        <p class="template-name">{{ template.name }}</p>
-        <p class="template-description">{{ template.preview }}</p>
-      </div>
+
+  <!-- Preview -->
+  <div class="uploaded-preview" *ngIf="previewUrl() || fileName()">
+    <div class="preview-header">
+      <div class="preview-title">Selected file</div>
+      <button class="remove-btn" (click)="removeSelected()">Remove</button>
     </div>
+    <div class="preview-image" *ngIf="previewUrl()">
+      <img [src]="previewUrl()" alt="Preview">
+    </div>
+    <div class="preview-info">
+      <p class="file-name">{{ fileName() }}</p>
+      <p class="file-size" *ngIf="fileSize()">{{ (fileSize()!/1024/1024) | number:'1.0-2' }} MB</p>
+    </div>
+  </div>
+
+  <!-- Requirements -->
+  <div class="requirements">
+    <h4>Print file requirements</h4>
+    <ul>
+      <li>JPG, PNG and SVG file types supported</li>
+      <li>Maximum 100 MiB (JPG, PNG) or 20 MiB (SVG)</li>
+      <li>Print area size <strong>4500 × 3000 px</strong> (300 DPI)</li>
+      <li>Maximum resolution 30000 × 30000 px</li>
+    </ul>
   </div>
 </div>

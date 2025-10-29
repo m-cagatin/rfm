@@ -1,56 +1,544 @@
-
-<!-- Main Content - Customization Page -->
-<div class="container mt-5">
-    <h2 class="text-center mb-4">Customize Your Apparel</h2>
-    
-    <!-- Integrated Fabric.js Canvas Editor -->
-    
-
 <div class="customization-container">
-  <!-- Main Customization Interface -->
-  <div class="customization-main">
-    <!-- Left Panel - Upload & Templates -->
-    <div class="left-panel">
-      <app-upload-panel 
-        (imageUploaded)="onImageUploaded($event)"
-        (templateSelected)="onTemplateSelected($event)">
-      </app-upload-panel>
+  <!-- Left Sidebar -->
+  <div class="left-sidebar">
+    <div class="back-section">
+      <button class="back-btn" (click)="goBack()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="19" y1="12" x2="5" y2="12"/>
+          <polyline points="12 19 5 12 12 5"/>
+        </svg>
+        <span class="back-btn-label">Back</span>
+      </button>
     </div>
-
-    <!-- Center Panel - Product Preview -->
-    <div class="center-panel">
-      <app-product-preview
-        [selectedColor]="selectedShirtColor()"
-        [designImage]="uploadedImage()"
-        [activeView]="activeProductView()"
-        (viewChanged)="onViewChanged($event)">
-      </app-product-preview>
+    
+    <div class="sidebar-item with-dropdown">
+      <button class="sidebar-btn" (click)="openUpload()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+        </svg>
+        <span class="sidebar-btn-label">Upload</span>
+      </button>
+      <!-- Dropdown panel beside the icon -->
+      <div class="dropdown-panel" *ngIf="showUpload()" (click)="$event.stopPropagation()">
+        <app-upload-panel (closed)="closeUpload()" (fileSelected)="onFileSelected($event)"></app-upload-panel>
+        <div class="dropdown-arrow"></div>
+      </div>
     </div>
-
-    <!-- Right Panel - Options & Pricing -->
-    <div class="right-panel">
-      <app-options-panel
-        [basePrice]="basePrice()"
-        (colorChanged)="onColorChanged($event)"
-        (sizeChanged)="onSizeChanged($event)"
-        (textOptionsChanged)="onTextOptionsChanged($event)"
-        (priceUpdated)="onPriceUpdated($event)">
-      </app-options-panel>
-    </div>
+    <button class="sidebar-btn" (click)="openTextFrom($event)">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="4 7 4 4 20 4 20 7"/>
+        <line x1="9" y1="20" x2="15" y2="20"/>
+        <line x1="12" y1="4" x2="12" y2="20"/>
+      </svg>
+      <span class="sidebar-btn-label">Add text</span>
+    </button>
+    <button class="sidebar-btn" (click)="openLibraryFrom($event)">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+      </svg>
+      <span class="sidebar-btn-label">My library</span>
+    </button>
+    <button class="sidebar-btn" (click)="openGraphicsFrom($event)">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+        <circle cx="8.5" cy="8.5" r="1.5"/>
+        <polyline points="21 15 16 10 5 21"/>
+      </svg>
+      <span class="sidebar-btn-label">Graphics</span>
+    </button>
+    <button class="sidebar-btn" (click)="openTemplatesFrom($event)">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+        <polyline points="10 9 9 9 8 9"/>
+      </svg>
+      <span class="sidebar-btn-label">My templates</span>
+    </button>
+    <button class="sidebar-btn" (click)="openPatternsFrom($event)">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="m21 21-4.35-4.35"/>
+      </svg>
+      <span class="sidebar-btn-label">Pattern / Texture</span>
+    </button>
   </div>
 
-  <!-- Bottom Action Bar -->
-  <div class="action-bar">
-    <div class="shipping-info">
-      <span class="shipping-label">Shipping center</span>
-      <span class="shipping-price">₱100.00</span>
+  <!-- Main Content -->
+  <div class="main-content" (click)="onMainContentClick($event)">
+    <!-- Top Bar -->
+    <div class="top-bar">
+      <div class="top-bar-left">
+        <button class="info-btn" (click)="togglePanel()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="16" x2="12" y2="12"/>
+            <line x1="12" y1="8" x2="12.01" y2="8"/>
+          </svg>
+        </button>
+        <button 
+          class="undo-btn" 
+          (click)="undoAction()"
+          [disabled]="!canvasService.canUndo()"
+          [class.disabled]="!canvasService.canUndo()"
+          title="Undo (Ctrl+Z)">
+          ↶
+        </button>
+        <button 
+          class="redo-btn" 
+          (click)="redoAction()"
+          [disabled]="!canvasService.canRedo()"
+          [class.disabled]="!canvasService.canRedo()"
+          title="Redo (Ctrl+Shift+Z or Ctrl+Y)">
+          ↷
+        </button>
+      </div>
+
+      <!-- Text Formatting Toolbar (centered, appears when text is selected) -->
+      <div class="top-bar-center" *ngIf="showToolbar()">
+        <div class="text-toolbar">
+          <div class="toolbar-section">
+            <button class="toolbar-btn" title="Position">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="7 10 12 15 17 10"/>
+              </svg>
+              Position
+            </button>
+          </div>
+
+          <div class="toolbar-divider"></div>
+
+          <!-- Font Family -->
+          <div class="toolbar-section">
+            <select class="font-select" [value]="selectedFontFamily()" (change)="onFontFamilyChange($any($event.target).value)">
+              <option value="Arial">Arial</option>
+              <option value="Helvetica">Helvetica</option>
+              <option value="Times New Roman">Times New Roman</option>
+              <option value="Georgia">Georgia</option>
+              <option value="Courier New">Courier New</option>
+              <option value="Roboto">Roboto</option>
+              <option value="Open Sans">Open Sans</option>
+              <option value="Lato">Lato</option>
+              <option value="Montserrat">Montserrat</option>
+              <option value="Poppins">Poppins</option>
+              <option value="Oswald">Oswald</option>
+              <option value="Playfair Display">Playfair Display</option>
+              <option value="Inter">Inter</option>
+            </select>
+          </div>
+
+          <!-- Font Size -->
+          <div class="toolbar-section font-size-control">
+            <button class="size-btn" (click)="decreaseFontSize()">−</button>
+            <input 
+              type="number" 
+              class="size-input" 
+              [value]="selectedFontSize()" 
+              (input)="onFontSizeChange(+$any($event.target).value)"
+              min="8"
+              max="200"
+            />
+            <button class="size-btn" (click)="increaseFontSize()">+</button>
+          </div>
+
+          <div class="toolbar-divider"></div>
+
+          <!-- Text Formatting -->
+          <div class="toolbar-section">
+            <button class="toolbar-btn-icon" [class.active]="isBold()" (click)="toggleBoldAction()" title="Bold">
+              <strong>B</strong>
+            </button>
+            <button class="toolbar-btn-icon" [class.active]="isItalic()" (click)="toggleItalicAction()" title="Italic">
+              <em>I</em>
+            </button>
+            <button class="toolbar-btn-icon" [class.active]="isUnderline()" (click)="toggleUnderlineAction()" title="Underline">
+              <u>U</u>
+            </button>
+          </div>
+
+          <div class="toolbar-divider"></div>
+
+          <!-- Text Alignment -->
+          <div class="toolbar-section">
+            <button class="toolbar-btn-icon" [class.active]="textAlignment() === 'left'" (click)="setAlignment('left')" title="Align Left">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="17" y1="10" x2="3" y2="10"/>
+                <line x1="21" y1="6" x2="3" y2="6"/>
+                <line x1="21" y1="14" x2="3" y2="14"/>
+                <line x1="17" y1="18" x2="3" y2="18"/>
+              </svg>
+            </button>
+            <button class="toolbar-btn-icon" [class.active]="textAlignment() === 'center'" (click)="setAlignment('center')" title="Align Center">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="10" x2="6" y2="10"/>
+                <line x1="21" y1="6" x2="3" y2="6"/>
+                <line x1="21" y1="14" x2="3" y2="14"/>
+                <line x1="18" y1="18" x2="6" y2="18"/>
+              </svg>
+            </button>
+            <button class="toolbar-btn-icon" [class.active]="textAlignment() === 'right'" (click)="setAlignment('right')" title="Align Right">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="21" y1="10" x2="7" y2="10"/>
+                <line x1="21" y1="6" x2="3" y2="6"/>
+                <line x1="21" y1="14" x2="3" y2="14"/>
+                <line x1="21" y1="18" x2="7" y2="18"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="toolbar-divider"></div>
+
+          <!-- Text Color -->
+          <div class="toolbar-section">
+            <input 
+              type="color" 
+              class="color-picker" 
+              [value]="selectedTextColor()" 
+              (input)="onTextColorChange($any($event.target).value)"
+              title="Text Color"
+            />
+          </div>
+
+          <div class="toolbar-divider"></div>
+
+          <!-- Group/Ungroup Buttons -->
+          <div class="toolbar-section">
+            <button 
+              class="toolbar-btn-icon" 
+              (click)="groupSelected()"
+              title="Group (Ctrl+G)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"/>
+                <rect x="14" y="3" width="7" height="7"/>
+                <rect x="14" y="14" width="7" height="7"/>
+                <rect x="3" y="14" width="7" height="7"/>
+              </svg>
+            </button>
+            <button 
+              class="toolbar-btn-icon" 
+              (click)="ungroupSelected()"
+              title="Ungroup (Ctrl+Shift+G)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"/>
+                <rect x="14" y="14" width="7" height="7"/>
+                <line x1="10" y1="3" x2="14" y2="7"/>
+                <line x1="21" y1="10" x2="17" y2="14"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="toolbar-divider"></div>
+
+          <!-- Delete Button -->
+          <div class="toolbar-section">
+            <button 
+              class="toolbar-btn-icon delete-btn" 
+              (click)="deleteSelectedObject()" 
+              (mousedown)="$event.preventDefault()"
+              title="Delete">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="top-bar-right">
+        <button class="btn-edit">Edit</button>
+        <button class="btn-preview">Preview</button>
+        <button class="tools-btn" (click)="toggleToolsPanel()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 1v6m0 6v6M5.6 5.6l4.2 4.2m4.2 4.2l4.2 4.2M1 12h6m6 0h6M5.6 18.4l4.2-4.2m4.2-4.2l4.2-4.2"/>
+          </svg>
+        </button>
+      </div>
     </div>
-    <div class="action-buttons">
-      <button class="btn btn-outline" (click)="saveDesign()">Save Design</button>
-      <button class="btn btn-outline" (click)="exportDesign()">Export</button>
-      <button class="btn btn-secondary" (click)="addToCart()">Add to Cart</button>
-      <button class="btn btn-primary" (click)="buyNow()">Buy Now</button>
+
+    <!-- Canvas Area -->
+    <div class="canvas-area" (click)="onCanvasAreaClick($event)">
+
+      <!-- Tools Panel -->
+      <div class="tools-panel" *ngIf="showToolsPanel()">
+        <div class="panel-header">
+          <span class="panel-title">Variants and tools</span>
+          <button class="panel-close" (click)="closeToolsPanel()">✕</button>
+        </div>
+        <div class="panel-content">
+          
+          <!-- Product Type Selection -->
+          <div class="tools-section">
+            <h3>Product Type</h3>
+            <select class="variant-select" [(ngModel)]="selectedProductType" (change)="onProductTypeChange()">
+              <option value="tshirt">T-Shirt</option>
+              <option value="jogging-pants">Jogging Pants</option>
+              <option value="polo-shirt">Polo Shirt</option>
+              <option value="sando">Sando (Jersey)</option>
+              <option value="shorts">Shorts</option>
+              <option value="warmers">Warmers</option>
+              <option value="varsity-jacket">Varsity Jacket</option>
+            </select>
+          </div>
+
+          <!-- Neckline Selection (for T-Shirt and Sando) -->
+          <div class="tools-section" *ngIf="showNecklineOptions()">
+            <h3>Neckline</h3>
+            <select class="variant-select" [(ngModel)]="selectedNeckline">
+              <option *ngFor="let neckline of getNecklineOptions()" [value]="neckline">
+                {{ neckline }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Sando Special Options -->
+          <div class="tools-section" *ngIf="selectedProductType() === 'sando'">
+            <h3>Style</h3>
+            <div class="checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="isNBACut">
+                NBA Cut
+              </label>
+            </div>
+          </div>
+
+          <!-- Size Selection -->
+          <div class="tools-section">
+            <h3>Size Category</h3>
+            <div class="size-category-tabs">
+              <button 
+                class="size-tab" 
+                [class.active]="selectedSizeCategory() === 'regular'"
+                (click)="selectSizeCategory('regular')">
+                Regular
+              </button>
+              <button 
+                class="size-tab" 
+                [class.active]="selectedSizeCategory() === 'kids'"
+                (click)="selectSizeCategory('kids')">
+                Kids
+              </button>
+              <button 
+                class="size-tab" 
+                [class.active]="selectedSizeCategory() === 'custom'"
+                (click)="selectSizeCategory('custom')">
+                Custom
+              </button>
+            </div>
+          </div>
+
+          <!-- Regular Sizes -->
+          <div class="tools-section" *ngIf="selectedSizeCategory() === 'regular'">
+            <h3>Size</h3>
+            <div class="size-grid">
+              <button 
+                *ngFor="let size of regularSizes" 
+                class="size-btn"
+                [class.selected]="selectedSize() === size.value"
+                (click)="selectSize(size.value, size.priceAdd)">
+                {{ size.label }}
+                <span class="size-price" *ngIf="size.priceAdd > 0">+₱{{ size.priceAdd }}</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Kids Sizes -->
+          <div class="tools-section" *ngIf="selectedSizeCategory() === 'kids'">
+            <h3>Kids Size</h3>
+            <div class="size-grid">
+              <button 
+                *ngFor="let size of kidsSizes" 
+                class="size-btn"
+                [class.selected]="selectedSize() === size"
+                (click)="selectSize(size, 0)">
+                {{ size }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Custom Size -->
+          <div class="tools-section" *ngIf="selectedSizeCategory() === 'custom'">
+            <h3>Custom Size</h3>
+            <p class="custom-size-note">Enter custom measurements for plus size or super small</p>
+            <div class="custom-size-inputs">
+              <div class="input-group">
+                <label>Chest (inches)</label>
+                <input type="number" class="size-input" [(ngModel)]="customChest" placeholder="e.g., 42">
+              </div>
+              <div class="input-group">
+                <label>Length (inches)</label>
+                <input type="number" class="size-input" [(ngModel)]="customLength" placeholder="e.g., 28">
+              </div>
+              <div class="input-group" *ngIf="selectedProductType() !== 'tshirt' && selectedProductType() !== 'polo-shirt'">
+                <label>Waist (inches)</label>
+                <input type="number" class="size-input" [(ngModel)]="customWaist" placeholder="e.g., 32">
+              </div>
+            </div>
+          </div>
+
+          <!-- Color Selection -->
+          <div class="tools-section">
+            <h3>Color</h3>
+            <div class="color-grid">
+              <button 
+                *ngFor="let color of colors" 
+                class="color-btn"
+                [class.selected]="selectedColor() === color.value"
+                [style.background-color]="color.value"
+                (click)="selectColor(color.value)"
+                [title]="color.name">
+              </button>
+            </div>
+          </div>
+
+          <!-- Price Display -->
+          <div class="tools-section price-section">
+            <div class="price-row">
+              <span class="price-label">Base Price:</span>
+              <span class="price-value">₱{{ basePrice() }}</span>
+            </div>
+            <div class="price-row" *ngIf="sizePriceAdd() > 0">
+              <span class="price-label">Size Add-on:</span>
+              <span class="price-value">₱{{ sizePriceAdd() }}</span>
+            </div>
+            <div class="price-row total-price">
+              <span class="price-label">Total Price:</span>
+              <span class="price-value">₱{{ getTotalPrice() }}</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Product Info Panel -->
+      <div class="product-info-panel" [style.display]="isPanelVisible() ? 'block' : 'none'">
+        <div class="panel-header">
+          <span class="panel-title">Important product information</span>
+          <button class="panel-close" (click)="closePanel()">✕</button>
+        </div>
+        <div class="panel-content">
+          <div class="product-preview">
+            <img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=500&fit=crop" alt="T-shirt">
+          </div>
+          <div class="product-name">Unisex Softstyle T-Shirt</div>
+          <div class="product-meta">
+            Gildan - 64000<br>
+            Fulfilled by Printify Choice<br>
+            3 of 427 out of stock<br>
+            <span class="product-link">See details</span>
+          </div>
+        </div>
+        <div class="expandable-section">
+          <span>Production cost: USD 9.88–15.02</span>
+          <span>⌄</span>
+        </div>
+        <div class="expandable-section">
+          <span>Print area size: 3852 × 4398 px</span>
+          <span>⌄</span>
+        </div>
+        <div class="checkbox-container">
+          <input type="checkbox" id="hideInfo">
+          <label for="hideInfo">Hide this info in the future.</label>
+        </div>
+      </div>
+
+      <!-- T-shirt Canvas -->
+      <div class="tshirt-canvas">
+        <div class="print-area-box" 
+             [style.width.px]="canvasWidth()"
+             [style.height.px]="canvasHeight()">
+          <canvas #fabricCanvas></canvas>
+          
+          <!-- Resize handles -->
+          <div class="resize-handle resize-handle-e" 
+               (mousedown)="startResize($event, 'e')"
+               title="Resize width"></div>
+          <div class="resize-handle resize-handle-s" 
+               (mousedown)="startResize($event, 's')"
+               title="Resize height"></div>
+          <div class="resize-handle resize-handle-se" 
+               (mousedown)="startResize($event, 'se')"
+               title="Resize"></div>
+        </div>
+      </div>
+
+      <!-- Bottom Controls -->
+      <div class="bottom-controls">
+        <button 
+          class="view-btn" 
+          [class.inactive]="activeView() !== 0"
+          (click)="selectView(0)">
+          Front side
+        </button>
+        <button 
+          class="view-btn" 
+          [class.inactive]="activeView() !== 1"
+          (click)="selectView(1)">
+          Back side
+        </button>
+        <button 
+          class="view-btn" 
+          [class.inactive]="activeView() !== 2"
+          (click)="selectView(2)">
+          Neck label inner
+        </button>
+      </div>
+
+      <!-- Zoom Controls -->
+      <div class="zoom-controls">
+        <button class="zoom-btn" (click)="zoomOut()">−</button>
+        <span class="zoom-level">{{ zoomLevel() }}%</span>
+        <button class="zoom-btn" (click)="zoomIn()">+</button>
+        <button class="zoom-fit" (click)="zoomFit()">⊡</button>
+      </div>
+
+      <!-- Save Button -->
+      <button class="save-btn" (click)="saveProduct()">Save product</button>
     </div>
   </div>
->>>>>>> signup-dev
+</div>
+<!-- Upload Modal Overlay -->
+<div class="upload-overlay" *ngIf="showUpload()" (click)="closeUpload()">
+  <div class="upload-modal" (click)="$event.stopPropagation()">
+    <app-upload-panel (closed)="closeUpload()" (fileSelected)="onFileSelected($event)"></app-upload-panel>
+  </div>
+  <button class="overlay-close" (click)="closeUpload()">✕</button>
+  <div class="overlay-backdrop"></div>
+</div>
+
+<!-- Text Dropdown Panel (anchored near sidebar) -->
+<div class="panel-catcher" *ngIf="showTextPanel()" (click)="closeText()"></div>
+<div class="text-dropdown" *ngIf="showTextPanel()" (click)="$event.stopPropagation()" [style.top.px]="textPanelPos().top" [style.left.px]="textPanelPos().left">
+  <app-text-panel (closed)="closeText()" (fontSelected)="onFontSelected($event)" (preDesignedSelected)="onPreDesignedTextSelected($event)"></app-text-panel>
+  <div class="text-dropdown-arrow"></div>
+</div>
+
+<!-- Library Panel -->
+<div class="panel-catcher" *ngIf="showLibraryPanel()" (click)="closeLibrary()"></div>
+<div class="text-dropdown" *ngIf="showLibraryPanel()" (click)="$event.stopPropagation()" [style.top.px]="activePanelPos().top" [style.left.px]="activePanelPos().left">
+  <app-library-panel (closed)="closeLibrary()" (itemSelected)="onLibraryItemSelected($event)"></app-library-panel>
+  <div class="text-dropdown-arrow"></div>
+</div>
+
+<!-- Graphics Panel -->
+<div class="panel-catcher" *ngIf="showGraphicsPanel()" (click)="closeGraphics()"></div>
+<div class="text-dropdown" *ngIf="showGraphicsPanel()" (click)="$event.stopPropagation()" [style.top.px]="activePanelPos().top" [style.left.px]="activePanelPos().left">
+  <app-graphics-panel (closed)="closeGraphics()" (graphicSelected)="onGraphicSelected($event)"></app-graphics-panel>
+  <div class="text-dropdown-arrow"></div>
+</div>
+
+<!-- Templates Panel -->
+<div class="panel-catcher" *ngIf="showTemplatesPanel()" (click)="closeTemplates()"></div>
+<div class="text-dropdown" *ngIf="showTemplatesPanel()" (click)="$event.stopPropagation()" [style.top.px]="activePanelPos().top" [style.left.px]="activePanelPos().left">
+  <app-templates-panel (closed)="closeTemplates()" (templateSelected)="onTemplateSelected($event)"></app-templates-panel>
+  <div class="text-dropdown-arrow"></div>
+</div>
+
+<!-- Patterns Panel -->
+<div class="panel-catcher" *ngIf="showPatternsPanel()" (click)="closePatterns()"></div>
+<div class="text-dropdown" *ngIf="showPatternsPanel()" (click)="$event.stopPropagation()" [style.top.px]="activePanelPos().top" [style.left.px]="activePanelPos().left">
+  <app-patterns-panel (closed)="closePatterns()" (patternSelected)="onPatternSelected($event)"></app-patterns-panel>
+  <div class="text-dropdown-arrow"></div>
 </div>

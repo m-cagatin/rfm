@@ -58,6 +58,13 @@ export declare class DatabaseService {
         sku?: string;
         sizes?: string;
         tags?: string;
+        colors?: string;
+        images?: string;
+        material?: string;
+        gender?: string;
+        allows_customization?: boolean;
+        production_days?: number;
+        stock_by_size_color?: string;
     }): Promise<ApiResponse<any>>;
     static getProducts(category?: string, status?: string): Promise<ApiResponse<any[]>>;
     static getProduct(productId: string): Promise<ApiResponse<any>>;

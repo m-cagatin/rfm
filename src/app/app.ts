@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, signal } from '@angular/core';
+import { Component, signal, HostListener } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { AuthService } from './services/auth.service';
+import { CartService } from './services/cart.service';
 
 @Component({
   selector: 'app-root',
@@ -11,13 +12,18 @@ import { AuthService } from './services/auth.service';
   styleUrl: './app.css'
 })
 export class App {
-  protected readonly title = signal('Apparel Store');
+  protected readonly title = signal('RFM Apparel Store');
   protected isAdminRoute = signal(false);
+  protected userDropdownOpen = signal(false);
 
   constructor(
     private router: Router,
-    protected authService: AuthService
+    protected authService: AuthService,
+    protected cartService: CartService
   ) {
+    // Check initial route
+    this.isAdminRoute.set(this.router.url.startsWith('/admin'));
+    
     // Listen to route changes
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
@@ -27,7 +33,31 @@ export class App {
     });
   }
 
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    const dropdown = document.querySelector('.user-dropdown');
+    
+    if (dropdown && !dropdown.contains(target)) {
+      this.userDropdownOpen.set(false);
+    }
+  }
+
   logout(): void {
     this.authService.logout();
+    this.userDropdownOpen.set(false);
+  }
+
+  toggleUserDropdown(event: Event): void {
+    event.stopPropagation();
+    this.userDropdownOpen.set(!this.userDropdownOpen());
+  }
+
+  closeUserDropdown(): void {
+    this.userDropdownOpen.set(false);
+  }
+
+  isDesigningRoute(): boolean {
+    return this.router.url.includes('/designing');
   }
 }

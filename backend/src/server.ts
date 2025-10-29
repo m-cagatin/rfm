@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import express from 'express';
@@ -5,8 +8,14 @@ import { closeDatabase, initializeDatabase, testConnection } from './config/data
 import authRoutes from './routes/auth.routes';
 import canvasRoutes from './routes/canvas.routes';
 import catalogRoutes from './routes/catalog.routes';
+import customizableProductsRoutes from './routes/customizable-products.routes';
 import usersRoutes from './routes/users.routes';
+import cartRoutes from './routes/cart.routes';
+import ordersRoutes from './routes/orders.routes';
+import paymentRoutes from './routes/payment.routes';
+import inventoryRoutes from './routes/inventory.routes';
 import { DatabaseService } from './services/database.service';
+import { EmailService } from './services/email.service';
 
 const app = express();
 
@@ -46,7 +55,12 @@ app.get('/api/health', async (req: express.Request, res: express.Response) => {
 app.use('/api/canvas', canvasRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/catalog', catalogRoutes);
+app.use('/api/customizable-products', customizableProductsRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/orders', ordersRoutes);
+app.use('/api/payment', paymentRoutes);
+app.use('/api/inventory', inventoryRoutes);
 
 // Default route
 app.get('/', (req: express.Request, res: express.Response) => {
@@ -84,6 +98,22 @@ app.get('/', (req: express.Request, res: express.Response) => {
         update: 'PUT /api/users/:id',
         delete: 'DELETE /api/users/:id',
         updateLogin: 'PATCH /api/users/:id/login'
+      },
+      cart: {
+        get: 'GET /api/cart',
+        add: 'POST /api/cart',
+        update: 'PUT /api/cart/:itemId',
+        remove: 'DELETE /api/cart/:itemId',
+        clear: 'DELETE /api/cart',
+        merge: 'POST /api/cart/merge'
+      },
+      orders: {
+        create: 'POST /api/orders',
+        list: 'GET /api/orders',
+        get: 'GET /api/orders/:id',
+        customer: 'GET /api/orders/customer/:customerId',
+        updateStatus: 'PATCH /api/orders/:id/status',
+        cancel: 'DELETE /api/orders/:id'
       }
     }
   });
@@ -122,6 +152,9 @@ async function startServer() {
 
     // Initialize database tables
     await initializeDatabase();
+
+    // Initialize email service
+    EmailService.initialize();
 
     // Start the server
     app.listen(port, () => {

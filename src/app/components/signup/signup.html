@@ -2,7 +2,7 @@
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-6">
-            <h2 class="text-center mb-4">Sign Up</h2>
+            <h2 class="text-center mb-4 font-semibold text-2xl">Sign Up</h2>
 
             <!-- Success Message -->
             <div *ngIf="successMessage" class="alert alert-success" role="alert">
@@ -46,7 +46,7 @@
                 </div>
 
                 <div class="mb-3">
-                    <label for="phone" class="form-label">Phone Number</label>
+                    <label for="phone" class="form-label">Phone Number *</label>
                     <input 
                         type="tel" 
                         class="form-control" 
@@ -55,18 +55,163 @@
                         [class.is-invalid]="phone?.invalid && phone?.touched"
                         placeholder="+63 XXX XXX XXXX">
                     <div *ngIf="phone?.invalid && phone?.touched" class="invalid-feedback">
+                        <div *ngIf="phone?.errors?.['required']">Phone number is required</div>
                         <div *ngIf="phone?.errors?.['pattern']">Please enter a valid phone number</div>
                     </div>
                 </div>
 
                 <div class="mb-3">
-                    <label for="address" class="form-label">Address</label>
+                    <label for="address" class="form-label">Address *</label>
                     <textarea 
                         class="form-control" 
                         id="address" 
                         formControlName="address"
                         rows="2"
-                        placeholder="Enter your address (optional)"></textarea>
+                        [class.is-invalid]="address?.invalid && address?.touched"
+                        placeholder="Enter your complete address"></textarea>
+                    <div *ngIf="address?.invalid && address?.touched" class="invalid-feedback">
+                        <div *ngIf="address?.errors?.['required']">Address is required</div>
+                        <div *ngIf="address?.errors?.['minlength']">Address must be at least 10 characters</div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="city" class="form-label">City *</label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                id="city" 
+                                formControlName="city"
+                                [class.is-invalid]="city?.invalid && city?.touched"
+                                placeholder="Enter your city">
+                            <div *ngIf="city?.invalid && city?.touched" class="invalid-feedback">
+                                <div *ngIf="city?.errors?.['required']">City is required</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="province" class="form-label">Province *</label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                id="province" 
+                                formControlName="province"
+                                [class.is-invalid]="province?.invalid && province?.touched"
+                                placeholder="Enter your province">
+                            <div *ngIf="province?.invalid && province?.touched" class="invalid-feedback">
+                                <div *ngIf="province?.errors?.['required']">Province is required</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="postalCode" class="form-label">Postal Code *</label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                id="postalCode" 
+                                formControlName="postalCode"
+                                [class.is-invalid]="postalCode?.invalid && postalCode?.touched"
+                                placeholder="Enter postal code">
+                            <div *ngIf="postalCode?.invalid && postalCode?.touched" class="invalid-feedback">
+                                <div *ngIf="postalCode?.errors?.['required']">Postal code is required</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="country" class="form-label">Country *</label>
+                            <select 
+                                class="form-control" 
+                                id="country" 
+                                formControlName="country"
+                                [class.is-invalid]="country?.invalid && country?.touched">
+                                <option value="Philippines">Philippines</option>
+                                <option value="United States">United States</option>
+                                <option value="Canada">Canada</option>
+                                <option value="Australia">Australia</option>
+                                <option value="United Kingdom">United Kingdom</option>
+                                <option value="Other">Other</option>
+                            </select>
+                            <div *ngIf="country?.invalid && country?.touched" class="invalid-feedback">
+                                <div *ngIf="country?.errors?.['required']">Country is required</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="dateOfBirth" class="form-label">Date of Birth</label>
+                    <input 
+                        type="date" 
+                        class="form-control" 
+                        id="dateOfBirth" 
+                        formControlName="dateOfBirth"
+                        placeholder="Select your date of birth">
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="emergencyContactName" class="form-label">Emergency Contact Name</label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                id="emergencyContactName" 
+                                formControlName="emergencyContactName"
+                                placeholder="Emergency contact person">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="emergencyContactPhone" class="form-label">Emergency Contact Phone</label>
+                            <input 
+                                type="tel" 
+                                class="form-control" 
+                                id="emergencyContactPhone" 
+                                formControlName="emergencyContactPhone"
+                                [class.is-invalid]="emergencyContactPhone?.invalid && emergencyContactPhone?.touched"
+                                placeholder="+63 XXX XXX XXXX">
+                            <div *ngIf="emergencyContactPhone?.invalid && emergencyContactPhone?.touched" class="invalid-feedback">
+                                <div *ngIf="emergencyContactPhone?.errors?.['pattern']">Please enter a valid phone number</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="preferredContactMethod" class="form-label">Preferred Contact Method *</label>
+                    <select 
+                        class="form-control" 
+                        id="preferredContactMethod" 
+                        formControlName="preferredContactMethod"
+                        [class.is-invalid]="preferredContactMethod?.invalid && preferredContactMethod?.touched">
+                        <option value="email">Email</option>
+                        <option value="phone">Phone Call</option>
+                        <option value="sms">SMS/Text Message</option>
+                    </select>
+                    <div *ngIf="preferredContactMethod?.invalid && preferredContactMethod?.touched" class="invalid-feedback">
+                        <div *ngIf="preferredContactMethod?.errors?.['required']">Preferred contact method is required</div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input 
+                            class="form-check-input" 
+                            type="checkbox" 
+                            id="marketingConsent" 
+                            formControlName="marketingConsent">
+                        <label class="form-check-label" for="marketingConsent">
+                            I agree to receive marketing communications and promotional offers
+                        </label>
+                    </div>
                 </div>
 
                 <div class="mb-3">

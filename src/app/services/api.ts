@@ -70,8 +70,16 @@ export interface ProductData {
   status?: 'Active' | 'Inactive' | 'Archived';
   stock_quantity?: number;
   sku?: string | null;
-  sizes?: string | string[] | null; // Can be JSON string or array
-  tags?: string | string[] | null;  // Can be JSON string or array
+  sizes?: string | null; // JSON string
+  tags?: string | null;  // JSON string
+  // NEW FIELDS
+  colors?: string | null;               // JSON string
+  images?: string | null;               // JSON string - multiple image URLs
+  material?: string | null;             // VARCHAR
+  gender?: 'Men' | 'Women' | 'Unisex' | 'Kids' | null;
+  allows_customization?: boolean;
+  production_days?: number;
+  stock_by_size_color?: string | null;  // JSON string
   created_at?: string;
   updated_at?: string;
 }
@@ -171,5 +179,26 @@ export class ApiService {
 
   deleteProductPermanently(id: string): Observable<ApiResponse> {
     return this.http.delete<ApiResponse>(`${this.baseUrl}/catalog/${id}`);
+  }
+
+  // Customizable Products API
+  createCustomizableProduct(productData: any): Observable<ApiResponse> {
+    return this.http.post<ApiResponse>(`${this.baseUrl}/customizable-products`, productData);
+  }
+
+  getCustomizableProducts(): Observable<ApiResponse> {
+    return this.http.get<ApiResponse>(`${this.baseUrl}/customizable-products`);
+  }
+
+  getCustomizableProductById(id: string): Observable<ApiResponse> {
+    return this.http.get<ApiResponse>(`${this.baseUrl}/customizable-products/${id}`);
+  }
+
+  updateCustomizableProduct(id: string, productData: any): Observable<ApiResponse> {
+    return this.http.put<ApiResponse>(`${this.baseUrl}/customizable-products/${id}`, productData);
+  }
+
+  deleteCustomizableProduct(id: string): Observable<ApiResponse> {
+    return this.http.delete<ApiResponse>(`${this.baseUrl}/customizable-products/${id}`);
   }
 }

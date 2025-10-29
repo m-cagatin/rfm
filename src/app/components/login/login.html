@@ -5,12 +5,12 @@
       <button class="back-btn" routerLink="/">
         <i class="bi bi-arrow-left"></i>
       </button>
-      <h2 class="login-title">Sign In</h2>
+      <h2 class="login-title font-semibold text-2xl">Sign In</h2>
       <span></span>
     </div>
 
     <!-- Form -->
-    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" autocomplete="on">
       <!-- Error Message -->
       <div *ngIf="errorMessage" class="alert alert-danger" role="alert">
         {{ errorMessage }}
@@ -19,7 +19,8 @@
       <div class="form-group mb-3">
         <label for="email">Email Address</label>
         <input type="email" id="email" formControlName="email" class="form-control"
-          [class.is-invalid]="email?.invalid && email?.touched" placeholder="Enter your Email" />
+          [class.is-invalid]="email?.invalid && email?.touched" placeholder="Enter your Email" 
+          autocomplete="email" />
         <div *ngIf="email?.invalid && email?.touched" class="invalid-feedback">
           <div *ngIf="email?.errors?.['required']">Email is required</div>
           <div *ngIf="email?.errors?.['email']">Please enter a valid email</div>
@@ -29,7 +30,8 @@
       <div class="form-group mb-4">
         <label for="password">Password</label>
         <input type="password" id="password" formControlName="password" class="form-control"
-          [class.is-invalid]="password?.invalid && password?.touched" placeholder="Enter your Password" />
+          [class.is-invalid]="password?.invalid && password?.touched" placeholder="Enter your Password" 
+          autocomplete="current-password" />
         <div *ngIf="password?.invalid && password?.touched" class="invalid-feedback">
           <div *ngIf="password?.errors?.['required']">Password is required</div>
           <div *ngIf="password?.errors?.['minlength']">Password must be at least 6 characters</div>

@@ -291,8 +291,10 @@ class DatabaseService {
         try {
             const connection = await database_1.pool.getConnection();
             const [result] = await connection.execute(`INSERT INTO catalog_clothing 
-         (product_name, category, base_price, description, image_url, cloudinary_public_id, status, stock_quantity, sku, sizes, tags) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+         (product_name, category, base_price, description, image_url, cloudinary_public_id, 
+          status, stock_quantity, sku, sizes, tags, 
+          colors, images, material, gender, allows_customization, production_days, stock_by_size_color) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
                 productData.product_name,
                 productData.category,
                 productData.base_price,
@@ -303,7 +305,14 @@ class DatabaseService {
                 productData.stock_quantity || 0,
                 productData.sku || null,
                 productData.sizes || null,
-                productData.tags || null
+                productData.tags || null,
+                productData.colors || null,
+                productData.images || null,
+                productData.material || null,
+                productData.gender || 'Unisex',
+                productData.allows_customization ?? true,
+                productData.production_days || 3,
+                productData.stock_by_size_color || null
             ]);
             connection.release();
             return {
@@ -323,29 +332,39 @@ class DatabaseService {
     static async getProducts(category, status) {
         try {
             const connection = await database_1.pool.getConnection();
-            let query = 'SELECT * FROM catalog_clothing WHERE 1=1';
+            let query = 'SELECT * FROM catalog_clothing';
             const params = [];
-            if (category) {
-                query += ' AND category = ?';
-                params.push(category);
+            if (category || status) {
+                query += ' WHERE ';
+                const conditions = [];
+                if (category) {
+                    conditions.push('category = ?');
+                    params.push(category);
+                }
+                if (status) {
+                    conditions.push('status = ?');
+                    params.push(status);
+                }
+                query += conditions.join(' AND ');
             }
-            if (status) {
-                query += ' AND status = ?';
-                params.push(status);
-            }
-            query += ' ORDER BY created_at DESC';
             const [rows] = await connection.execute(query, params);
             connection.release();
             const normalized = rows.map((r) => ({
                 ...r,
                 base_price: r.base_price !== undefined && r.base_price !== null ? Number(r.base_price) : r.base_price,
                 stock_quantity: r.stock_quantity !== undefined && r.stock_quantity !== null ? Number(r.stock_quantity) : r.stock_quantity,
+                production_days: r.production_days !== undefined && r.production_days !== null ? Number(r.production_days) : r.production_days,
+                images: r.images ? (typeof r.images === 'string' ? r.images : JSON.stringify(r.images)) : null,
+                colors: r.colors ? (typeof r.colors === 'string' ? r.colors : JSON.stringify(r.colors)) : null,
+                sizes: r.sizes ? (typeof r.sizes === 'string' ? r.sizes : JSON.stringify(r.sizes)) : null,
+                tags: r.tags ? (typeof r.tags === 'string' ? r.tags : JSON.stringify(r.tags)) : null,
+                stock_by_size_color: r.stock_by_size_color ? (typeof r.stock_by_size_color === 'string' ? r.stock_by_size_color : JSON.stringify(r.stock_by_size_color)) : null,
             }));
             return { success: true, data: normalized };
         }
         catch (error) {
             console.error('Database error in getProducts:', error);
-            return { success: false, message: 'Database error occurred', error: error.message };
+            return { success: false, message: 'Failed to fetch products', error: error.message };
         }
     }
     static async getProduct(productId) {
@@ -357,6 +376,12 @@ class DatabaseService {
                 ...r,
                 base_price: r.base_price !== undefined && r.base_price !== null ? Number(r.base_price) : r.base_price,
                 stock_quantity: r.stock_quantity !== undefined && r.stock_quantity !== null ? Number(r.stock_quantity) : r.stock_quantity,
+                production_days: r.production_days !== undefined && r.production_days !== null ? Number(r.production_days) : r.production_days,
+                images: r.images ? (typeof r.images === 'string' ? r.images : JSON.stringify(r.images)) : null,
+                colors: r.colors ? (typeof r.colors === 'string' ? r.colors : JSON.stringify(r.colors)) : null,
+                sizes: r.sizes ? (typeof r.sizes === 'string' ? r.sizes : JSON.stringify(r.sizes)) : null,
+                tags: r.tags ? (typeof r.tags === 'string' ? r.tags : JSON.stringify(r.tags)) : null,
+                stock_by_size_color: r.stock_by_size_color ? (typeof r.stock_by_size_color === 'string' ? r.stock_by_size_color : JSON.stringify(r.stock_by_size_color)) : null,
             }));
             if (products.length === 0) {
                 return { success: false, message: 'Product not found' };

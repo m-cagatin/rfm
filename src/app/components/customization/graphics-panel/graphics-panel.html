@@ -1,0 +1,117 @@
+<div class="graphics-panel">
+  <div class="panel-header">
+    <h3>Graphics</h3>
+    <button class="close-btn" (click)="closed.emit()">×</button>
+  </div>
+
+  <div class="panel-content">
+    <!-- Search -->
+    <div class="search-box">
+      <input 
+        type="text" 
+        placeholder="Search graphics..." 
+        [(ngModel)]="query"
+        (ngModelChange)="query.set($event)"
+      />
+    </div>
+
+    <!-- Categories -->
+    <div class="categories">
+      <button 
+        *ngFor="let cat of categories"
+        [class.active]="selectedCategory() === cat.id"
+        (click)="selectCategory(cat.id)"
+      >
+        {{ cat.name }}
+        <span class="count" *ngIf="cat.count > 0">({{ cat.count }})</span>
+      </button>
+    </div>
+
+    <!-- Graphics Grid -->
+    <div class="graphics-grid">
+      <!-- Shapes with inline SVG elements -->
+      <div 
+        *ngFor="let graphic of filteredGraphics()"
+        class="graphic-item"
+        (click)="graphicSelected.emit(graphic)"
+      >
+        <!-- Circle -->
+        <svg *ngIf="graphic.id === 'circle'" viewBox="0 0 100 100" width="80" height="80">
+          <circle cx="50" cy="50" r="40" fill="#4ecdc4"/>
+        </svg>
+        
+        <!-- Square -->
+        <svg *ngIf="graphic.id === 'square'" viewBox="0 0 100 100" width="80" height="80">
+          <rect x="15" y="15" width="70" height="70" fill="#ff6b6b"/>
+        </svg>
+        
+        <!-- Rectangle -->
+        <svg *ngIf="graphic.id === 'rectangle'" viewBox="0 0 100 100" width="80" height="80">
+          <rect x="10" y="25" width="80" height="50" fill="#a29bfe"/>
+        </svg>
+        
+        <!-- Triangle -->
+        <svg *ngIf="graphic.id === 'triangle'" viewBox="0 0 100 100" width="80" height="80">
+          <path d="M50,15 L85,85 L15,85 Z" fill="#fdcb6e"/>
+        </svg>
+        
+        <!-- Star -->
+        <svg *ngIf="graphic.id === 'star'" viewBox="0 0 100 100" width="80" height="80">
+          <path d="M50,15 L58,40 L85,40 L65,55 L73,85 L50,67 L27,85 L35,55 L15,40 L42,40 Z" fill="#feca57"/>
+        </svg>
+        
+        <!-- Heart -->
+        <svg *ngIf="graphic.id === 'heart'" viewBox="0 0 100 100" width="80" height="80">
+          <path d="M50,85 C50,85 15,60 15,40 C15,25 25,20 35,25 C40,28 45,35 50,40 C55,35 60,28 65,25 C75,20 85,25 85,40 C85,60 50,85 50,85 Z" fill="#ff6b6b"/>
+        </svg>
+        
+        <!-- Hexagon -->
+        <svg *ngIf="graphic.id === 'hexagon'" viewBox="0 0 100 100" width="80" height="80">
+          <path d="M50,10 L85,30 L85,70 L50,90 L15,70 L15,30 Z" fill="#00b894"/>
+        </svg>
+        
+        <!-- Octagon -->
+        <svg *ngIf="graphic.id === 'octagon'" viewBox="0 0 100 100" width="80" height="80">
+          <path d="M30,10 L70,10 L90,30 L90,70 L70,90 L30,90 L10,70 L10,30 Z" fill="#6c5ce7"/>
+        </svg>
+        
+        <!-- Pentagon -->
+        <svg *ngIf="graphic.id === 'pentagon'" viewBox="0 0 100 100" width="80" height="80">
+          <path d="M50,10 L90,40 L73,85 L27,85 L10,40 Z" fill="#fab1a0"/>
+        </svg>
+        
+        <!-- Diamond -->
+        <svg *ngIf="graphic.id === 'diamond'" viewBox="0 0 100 100" width="80" height="80">
+          <path d="M50,10 L90,50 L50,90 L10,50 Z" fill="#74b9ff"/>
+        </svg>
+        
+        <!-- Arrow Right -->
+        <svg *ngIf="graphic.id === 'arrow-right'" viewBox="0 0 100 100" width="80" height="80">
+          <path d="M10,50 L70,50 L70,30 L90,50 L70,70 L70,50 Z" fill="#636e72"/>
+        </svg>
+        
+        <!-- Arrow Left -->
+        <svg *ngIf="graphic.id === 'arrow-left'" viewBox="0 0 100 100" width="80" height="80">
+          <path d="M90,50 L30,50 L30,30 L10,50 L30,70 L30,50 Z" fill="#636e72"/>
+        </svg>
+        
+        <!-- Placeholder images for other categories -->
+        <img 
+          *ngIf="graphic.thumbnail" 
+          [src]="graphic.thumbnail" 
+          [alt]="graphic.name"
+          width="80"
+          height="80"
+        />
+        
+        <span class="graphic-name">{{ graphic.name }}</span>
+      </div>
+    </div>
+
+    <!-- Empty state for categories with no graphics -->
+    <div class="empty-state" *ngIf="activeSection() !== 'shapes' && filteredGraphics().length === 4">
+      <p>🎨 Graphics coming soon!</p>
+      <p class="empty-subtitle">This section will be populated with amazing graphics.</p>
+    </div>
+  </div>
+</div>

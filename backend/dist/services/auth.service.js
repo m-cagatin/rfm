@@ -45,7 +45,7 @@ class AuthService {
     static async comparePassword(password, hash) {
         return await bcrypt.compare(password, hash);
     }
-    static async registerCustomer(email, password, fullName, phone, address) {
+    static async registerCustomer(email, password, fullName, phone, address, city, province, postalCode, country, dateOfBirth, emergencyContactName, emergencyContactPhone, preferredContactMethod, marketingConsent) {
         try {
             const connection = await database_1.pool.getConnection();
             const [existing] = await connection.execute('SELECT CustomerId FROM customer_accounts WHERE CustomerEmail = ?', [email]);
@@ -59,15 +59,31 @@ class AuthService {
             }
             const passwordHash = await this.hashPassword(password);
             const [result] = await connection.execute(`INSERT INTO customer_accounts 
-         (CustomerEmail, CustomerPasswordHash, CustomerFullName, CustomerPhone, CustomerAddress) 
-         VALUES (?, ?, ?, ?, ?)`, [email, passwordHash, fullName, phone || null, address || null]);
+         (CustomerEmail, CustomerPasswordHash, CustomerFullName, CustomerPhone, CustomerAddress, 
+          CustomerCity, CustomerProvince, CustomerPostalCode, CustomerCountry, DateOfBirth,
+          EmergencyContactName, EmergencyContactPhone, PreferredContactMethod, MarketingConsent) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+                email, passwordHash, fullName, phone, address,
+                city || null, province || null, postalCode || null, country || 'Philippines',
+                dateOfBirth || null, emergencyContactName || null, emergencyContactPhone || null,
+                preferredContactMethod || 'email', marketingConsent || false
+            ]);
             const userData = {
                 id: result.insertId,
                 email,
                 name: fullName,
                 role: 'customer',
                 phone,
-                address
+                address,
+                city,
+                province,
+                postalCode,
+                country: country || 'Philippines',
+                dateOfBirth,
+                emergencyContactName,
+                emergencyContactPhone,
+                preferredContactMethod: preferredContactMethod || 'email',
+                marketingConsent: marketingConsent || false
             };
             const token = jwt_service_1.JwtService.generateToken({
                 userId: result.insertId,
@@ -95,7 +111,9 @@ class AuthService {
         try {
             const connection = await database_1.pool.getConnection();
             const [customerRows] = await connection.execute(`SELECT CustomerId, CustomerEmail, CustomerPasswordHash, CustomerFullName, 
-                CustomerPhone, CustomerAddress 
+                CustomerPhone, CustomerAddress, CustomerCity, CustomerProvince, 
+                CustomerPostalCode, CustomerCountry, DateOfBirth, EmergencyContactName,
+                EmergencyContactPhone, PreferredContactMethod, MarketingConsent
          FROM customer_accounts 
          WHERE CustomerEmail = ?`, [email]);
             if (customerRows.length > 0) {
@@ -109,7 +127,16 @@ class AuthService {
                         name: customer['CustomerFullName'],
                         role: 'customer',
                         phone: customer['CustomerPhone'],
-                        address: customer['CustomerAddress']
+                        address: customer['CustomerAddress'],
+                        city: customer['CustomerCity'],
+                        province: customer['CustomerProvince'],
+                        postalCode: customer['CustomerPostalCode'],
+                        country: customer['CustomerCountry'],
+                        dateOfBirth: customer['DateOfBirth'],
+                        emergencyContactName: customer['EmergencyContactName'],
+                        emergencyContactPhone: customer['EmergencyContactPhone'],
+                        preferredContactMethod: customer['PreferredContactMethod'],
+                        marketingConsent: customer['MarketingConsent']
                     };
                     const token = jwt_service_1.JwtService.generateToken({
                         userId: customer['CustomerId'],
@@ -185,7 +212,7 @@ class AuthService {
             return {
                 success: false,
                 message: 'Email not found',
-                error: 'USER_NOT_FOUND'
+                error: 'EMAIL_NOT_FOUND'
             };
         }
         catch (error) {
@@ -201,7 +228,9 @@ class AuthService {
         try {
             const connection = await database_1.pool.getConnection();
             const [rows] = await connection.execute(`SELECT CustomerId, CustomerEmail, CustomerFullName, CustomerPhone, 
-                CustomerAddress, created_at, last_login
+                CustomerAddress, CustomerCity, CustomerProvince, CustomerPostalCode, 
+                CustomerCountry, DateOfBirth, EmergencyContactName, EmergencyContactPhone,
+                PreferredContactMethod, MarketingConsent, created_at, last_login
          FROM customer_accounts 
          WHERE CustomerId = ?`, [customerId]);
             connection.release();
@@ -220,7 +249,16 @@ class AuthService {
                     name: customer['CustomerFullName'],
                     role: 'customer',
                     phone: customer['CustomerPhone'],
-                    address: customer['CustomerAddress']
+                    address: customer['CustomerAddress'],
+                    city: customer['CustomerCity'],
+                    province: customer['CustomerProvince'],
+                    postalCode: customer['CustomerPostalCode'],
+                    country: customer['CustomerCountry'],
+                    dateOfBirth: customer['DateOfBirth'],
+                    emergencyContactName: customer['EmergencyContactName'],
+                    emergencyContactPhone: customer['EmergencyContactPhone'],
+                    preferredContactMethod: customer['PreferredContactMethod'],
+                    marketingConsent: customer['MarketingConsent']
                 }
             };
         }
@@ -265,6 +303,186 @@ class AuthService {
             return {
                 success: false,
                 message: 'Failed to fetch employee profile',
+                error: error instanceof Error ? error.message : 'Unknown error'
+            };
+        }
+    }
+    static async updateCustomerProfile(customerId, profileData) {
+        try {
+            const connection = await database_1.pool.getConnection();
+            if (profileData.email) {
+                const [existingCustomer] = await connection.execute('SELECT CustomerId FROM customer_accounts WHERE CustomerEmail = ? AND CustomerId != ?', [profileData.email, customerId]);
+                const [existingUser] = await connection.execute('SELECT UserId FROM Users WHERE Email = ?', [profileData.email]);
+                if (existingCustomer.length > 0 || existingUser.length > 0) {
+                    connection.release();
+                    return {
+                        success: false,
+                        message: 'Email already exists',
+                        error: 'DUPLICATE_EMAIL'
+                    };
+                }
+            }
+            const updateFields = [];
+            const params = [];
+            if (profileData.name) {
+                updateFields.push('CustomerFullName = ?');
+                params.push(profileData.name);
+            }
+            if (profileData.email) {
+                updateFields.push('CustomerEmail = ?');
+                params.push(profileData.email);
+            }
+            if (profileData.phone) {
+                updateFields.push('CustomerPhone = ?');
+                params.push(profileData.phone);
+            }
+            if (profileData.address) {
+                updateFields.push('CustomerAddress = ?');
+                params.push(profileData.address);
+            }
+            if (profileData.city !== undefined) {
+                updateFields.push('CustomerCity = ?');
+                params.push(profileData.city);
+            }
+            if (profileData.province !== undefined) {
+                updateFields.push('CustomerProvince = ?');
+                params.push(profileData.province);
+            }
+            if (profileData.postalCode !== undefined) {
+                updateFields.push('CustomerPostalCode = ?');
+                params.push(profileData.postalCode);
+            }
+            if (profileData.country !== undefined) {
+                updateFields.push('CustomerCountry = ?');
+                params.push(profileData.country);
+            }
+            if (profileData.dateOfBirth !== undefined) {
+                updateFields.push('DateOfBirth = ?');
+                params.push(profileData.dateOfBirth);
+            }
+            if (profileData.emergencyContactName !== undefined) {
+                updateFields.push('EmergencyContactName = ?');
+                params.push(profileData.emergencyContactName);
+            }
+            if (profileData.emergencyContactPhone !== undefined) {
+                updateFields.push('EmergencyContactPhone = ?');
+                params.push(profileData.emergencyContactPhone);
+            }
+            if (profileData.preferredContactMethod !== undefined) {
+                updateFields.push('PreferredContactMethod = ?');
+                params.push(profileData.preferredContactMethod);
+            }
+            if (profileData.marketingConsent !== undefined) {
+                updateFields.push('MarketingConsent = ?');
+                params.push(profileData.marketingConsent ? 1 : 0);
+            }
+            if (updateFields.length === 0) {
+                connection.release();
+                return {
+                    success: false,
+                    message: 'No fields to update'
+                };
+            }
+            params.push(customerId);
+            const query = `UPDATE customer_accounts SET ${updateFields.join(', ')} WHERE CustomerId = ?`;
+            await connection.execute(query, params);
+            const [rows] = await connection.execute(`SELECT CustomerId, CustomerEmail, CustomerFullName, CustomerPhone, 
+                CustomerAddress, CustomerCity, CustomerProvince, CustomerPostalCode, 
+                CustomerCountry, DateOfBirth, EmergencyContactName, EmergencyContactPhone,
+                PreferredContactMethod, MarketingConsent, created_at, last_login
+         FROM customer_accounts 
+         WHERE CustomerId = ?`, [customerId]);
+            connection.release();
+            if (rows.length === 0) {
+                return {
+                    success: false,
+                    message: 'Customer not found'
+                };
+            }
+            const customer = rows[0];
+            return {
+                success: true,
+                message: 'Profile updated successfully',
+                user: {
+                    id: customer['CustomerId'],
+                    email: customer['CustomerEmail'],
+                    name: customer['CustomerFullName'],
+                    role: 'customer',
+                    phone: customer['CustomerPhone'],
+                    address: customer['CustomerAddress'],
+                    city: customer['CustomerCity'],
+                    province: customer['CustomerProvince'],
+                    postalCode: customer['CustomerPostalCode'],
+                    country: customer['CustomerCountry'],
+                    dateOfBirth: customer['DateOfBirth'],
+                    emergencyContactName: customer['EmergencyContactName'],
+                    emergencyContactPhone: customer['EmergencyContactPhone'],
+                    preferredContactMethod: customer['PreferredContactMethod'],
+                    marketingConsent: customer['MarketingConsent']
+                }
+            };
+        }
+        catch (error) {
+            console.error('Error updating customer profile:', error);
+            return {
+                success: false,
+                message: 'Failed to update profile',
+                error: error instanceof Error ? error.message : 'Unknown error'
+            };
+        }
+    }
+    static async changePassword(userId, role, oldPassword, newPassword) {
+        try {
+            const connection = await database_1.pool.getConnection();
+            let currentHash;
+            if (role === 'customer') {
+                const [rows] = await connection.execute('SELECT CustomerPasswordHash FROM customer_accounts WHERE CustomerId = ?', [userId]);
+                if (rows.length === 0) {
+                    connection.release();
+                    return {
+                        success: false,
+                        message: 'Customer not found'
+                    };
+                }
+                currentHash = rows[0]['CustomerPasswordHash'];
+            }
+            else {
+                const [rows] = await connection.execute('SELECT PasswordHash FROM Users WHERE UserId = ?', [userId]);
+                if (rows.length === 0) {
+                    connection.release();
+                    return {
+                        success: false,
+                        message: 'Employee not found'
+                    };
+                }
+                currentHash = rows[0]['PasswordHash'];
+            }
+            const isOldPasswordValid = await this.comparePassword(oldPassword, currentHash);
+            if (!isOldPasswordValid) {
+                connection.release();
+                return {
+                    success: false,
+                    message: 'Current password is incorrect'
+                };
+            }
+            const newPasswordHash = await this.hashPassword(newPassword);
+            if (role === 'customer') {
+                await connection.execute('UPDATE customer_accounts SET CustomerPasswordHash = ? WHERE CustomerId = ?', [newPasswordHash, userId]);
+            }
+            else {
+                await connection.execute('UPDATE Users SET PasswordHash = ? WHERE UserId = ?', [newPasswordHash, userId]);
+            }
+            connection.release();
+            return {
+                success: true,
+                message: 'Password changed successfully'
+            };
+        }
+        catch (error) {
+            console.error('Error changing password:', error);
+            return {
+                success: false,
+                message: 'Failed to change password',
                 error: error instanceof Error ? error.message : 'Unknown error'
             };
         }

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 * {
     margin: 0;
@@ -7,8 +7,479 @@
 }
 
 body {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-weight: 400;
+    line-height: 1.5;
     overflow-x: hidden;
+    background-color: #f8f9fa;
+    color: #1a1a1a;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* TEST: This should make text more readable */
+    font-size: 16px;
+}
+
+/* Netlify-Style Typography System */
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    color: #1a1a1a;
+    margin: 0;
+}
+
+h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+}
+
+h2 {
+    font-size: 2rem;
+    font-weight: 600;
+}
+
+h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+h4 {
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+h5 {
+    font-size: 1.125rem;
+    font-weight: 500;
+}
+
+h6 {
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+p {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #4a4a4a;
+    margin: 0;
+}
+
+/* Typography Utility Classes */
+.text-xs {
+    font-size: 0.75rem;
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+}
+
+.text-sm {
+    font-size: 0.875rem;
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+}
+
+.text-base {
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+.text-lg {
+    font-size: 1.125rem;
+    line-height: 1.5;
+    letter-spacing: -0.01em;
+}
+
+.text-xl {
+    font-size: 1.25rem;
+    line-height: 1.4;
+    letter-spacing: -0.02em;
+}
+
+.text-2xl {
+    font-size: 1.5rem;
+    line-height: 1.3;
+    letter-spacing: -0.02em;
+}
+
+.text-3xl {
+    font-size: 1.875rem;
+    line-height: 1.2;
+    letter-spacing: -0.03em;
+}
+
+.text-4xl {
+    font-size: 2.25rem;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+}
+
+.font-normal {
+    font-weight: 400;
+}
+
+.font-medium {
+    font-weight: 500;
+}
+
+.font-semibold {
+    font-weight: 600;
+}
+
+.font-bold {
+    font-weight: 700;
+}
+
+/* Button Typography */
+.btn {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-weight: 500;
+    font-size: 0.875rem;
+    letter-spacing: -0.01em;
+}
+
+.btn-lg {
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.btn-sm {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+/* Printify-Style Sidebar Layout */
+.app-layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* Customer Sidebar Styles - Only apply to customer layout */
+.app-layout .sidebar {
+    width: 260px;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    height: 100vh;
+    left: 0;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.08);
+    border-right: 1px solid #e9ecef;
+    overflow: visible;
+}
+
+/* Customer Sidebar Header */
+.app-layout .sidebar-header {
+    padding: 1.5rem 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.app-layout .brand-link {
+    text-decoration: none;
+    display: block;
+}
+
+.app-layout .brand-logo {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #0d6efd;
+    text-align: center;
+    padding: 0 1.25rem;
+    transition: color 0.2s ease;
+    letter-spacing: -0.5px;
+    margin: 0;
+    display: block;
+}
+
+.app-layout .brand-logo:hover {
+    color: #0b5ed7;
+}
+
+/* Customer Sidebar Navigation */
+.app-layout .sidebar-nav {
+    flex: 1;
+    padding: 20px 0;
+}
+
+.app-layout .nav-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.app-layout .nav-item {
+    margin: 0;
+}
+
+.app-layout .nav-link {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1.25rem;
+    color: #6c757d;
+    text-decoration: none;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease;
+    position: relative;
+    font-weight: 500;
+    font-size: 0.95rem;
+    margin: 0.25rem 0.75rem;
+}
+
+.app-layout .nav-link:hover {
+    background: #e7f1ff;
+    color: #0d6efd;
+}
+
+.app-layout .nav-link.active {
+    background: #0d6efd;
+    color: white;
+    font-weight: 600;
+}
+
+.app-layout .nav-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.app-layout .nav-text {
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+}
+
+.app-layout .nav-badge {
+    background: #dc3545;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.15rem 0.4rem;
+    border-radius: 10rem;
+    margin-left: auto;
+    min-width: 1.25rem;
+    text-align: center;
+}
+
+/* Sidebar Footer */
+.app-layout .sidebar-footer {
+    padding: 1.25rem 0;
+    border-top: 1px solid #e9ecef;
+    position: relative;
+    z-index: 1000;
+    margin-top: auto;
+}
+
+/* Auth Buttons */
+.app-layout .auth-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.app-layout .auth-link {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1.25rem;
+    color: #6c757d;
+    text-decoration: none;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease;
+    font-weight: 500;
+    font-size: 0.95rem;
+    margin: 0.25rem 0.75rem;
+}
+
+.app-layout .auth-link:hover {
+    background: #e7f1ff;
+    color: #0d6efd;
+}
+
+.app-layout .signup-link {
+    background: #0d6efd;
+    color: white !important;
+}
+
+.app-layout .signup-link:hover {
+    background: #0b5ed7;
+    color: white !important;
+}
+
+/* User Section */
+.app-layout .user-section {
+    position: relative;
+    z-index: 1001;
+}
+
+.app-layout .user-dropdown {
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.app-layout .user-dropdown:hover {
+    background: #f8f9fa;
+}
+
+.app-layout .user-info {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1.25rem;
+}
+
+.app-layout .user-avatar {
+    width: 40px;
+    height: 40px;
+    background: #0d6efd;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
+    margin-right: 0.75rem;
+    flex-shrink: 0;
+}
+
+.app-layout .user-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.app-layout .user-name {
+    display: block;
+    color: #212529;
+    font-weight: 600;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.app-layout .user-email {
+    display: block;
+    color: #6c757d;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.app-layout .dropdown-arrow {
+    width: 16px;
+    height: 16px;
+    color: #6c757d;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+}
+
+.app-layout .dropdown-arrow.rotated {
+    transform: rotate(180deg);
+}
+
+/* Dropdown Menu */
+.app-layout .dropdown-menu {
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 100% !important;
+    margin-left: 8px !important;
+    min-width: 200px !important;
+    background: white !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+    overflow: visible !important;
+    animation: slideRight 0.2s ease !important;
+    z-index: 9999 !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+@keyframes slideRight {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.app-layout .dropdown-item {
+    display: flex !important;
+    align-items: center;
+    padding: 12px 16px !important;
+    color: #333 !important;
+    text-decoration: none !important;
+    font-size: 14px !important;
+    font-weight: 400 !important;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    visibility: visible !important;
+}
+
+.app-layout .dropdown-item:hover {
+    background: #f8f9fa;
+}
+
+.app-layout .dropdown-item.logout-item {
+    color: #ff4757;
+}
+
+.app-layout .dropdown-item.logout-item:hover {
+    background: #ffe6e6;
+}
+
+.app-layout .dropdown-icon {
+    width: 18px;
+    height: 18px;
+    margin-right: 10px;
+    flex-shrink: 0;
+    stroke-width: 1.5;
+}
+
+.app-layout .dropdown-divider {
+    height: 1px;
+    background: #e9ecef;
+    margin: 4px 0;
+}
+
+/* Main Content */
+.app-layout .main-content {
+    flex: 1;
+    margin-left: 260px;
+    min-height: 100vh;
+    background: #f8f9fa;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: fixed;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+    }
+    
+    .sidebar.open {
+        transform: translateX(0);
+    }
+    
+    .app-layout .main-content {
+        margin-left: 0;
+        width: 100%;
+    }
+    
+    .app-layout {
+        flex-direction: column;
+    }
 }
 
 .hero-section {
@@ -103,15 +574,15 @@ body {
 }
 
 .navbar-nav .nav-link {
-    color: rgba(255, 255, 255, 0.8) !important;
+    color: rgba(255, 255, 255, 0.9) !important;
     font-weight: 500;
-    margin: 0 1rem;
-    transition: all 0.3s ease;
+    margin: 0 0.75rem;
+    transition: all 0.2s ease;
 }
 
 .navbar-nav .nav-link:hover {
     color: white !important;
-    transform: translateY(-2px);
+    opacity: 1;
 }
 
 .btn-signup {

@@ -1,102 +1,93 @@
 import { Component, EventEmitter, Output, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, NgIf } from '@angular/common';
 
 @Component({
   selector: 'app-upload-panel',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, NgIf],
   templateUrl: './upload-panel.html',
   styleUrl: './upload-panel.css'
 })
 export class UploadPanelComponent {
-  @Output() imageUploaded = new EventEmitter<File>();
-  @Output() templateSelected = new EventEmitter<string>();
+  @Output() closed = new EventEmitter<void>();
+  @Output() fileSelected = new EventEmitter<File>();
 
-  protected isDragOver = signal(false);
-  protected supportedFormats = ['JPG', 'PNG', 'SVG'];
-  protected removeBackground = signal(true);
-  protected enhanceQuality = signal(false);
-  protected uploadedFile = signal<File | null>(null);
-  protected uploadedImageUrl = signal<string | null>(null);
-  protected isUploading = signal(false);
+  protected isDragging = signal(false);
+  protected uploading = signal(false);
+  protected previewUrl = signal<string | null>(null);
+  protected fileName = signal<string | null>(null);
+  protected fileSize = signal<number | null>(null);
 
-  onDragOver(event: DragEvent): void {
-    event.preventDefault();
-    this.isDragOver.set(true);
+  constructor() {}
+
+  onClose(): void {
+    this.closed.emit();
   }
 
-  onDragLeave(event: DragEvent): void {
-    event.preventDefault();
-    this.isDragOver.set(false);
+  onPickDevice(input: HTMLInputElement): void {
+    input.click();
   }
 
-  onDrop(event: DragEvent): void {
-    event.preventDefault();
-    this.isDragOver.set(false);
-    
-    const files = event.dataTransfer?.files;
-    if (files && files.length > 0) {
-      this.handleFileUpload(files[0]);
+  onFileInput(e: Event): void {
+    const input = e.target as HTMLInputElement;
+    const file = input.files && input.files[0];
+    if (file) {
+      this.handleSelectedFile(file);
     }
   }
 
-  onFileInput(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (input.files && input.files.length > 0) {
-      this.handleFileUpload(input.files[0]);
+  onDrop(e: DragEvent): void {
+    e.preventDefault();
+    e.stopPropagation();
+    this.isDragging.set(false);
+    const file = e.dataTransfer?.files?.[0];
+    if (file) {
+      this.handleSelectedFile(file);
     }
   }
 
-  private handleFileUpload(file: File): void {
-    // Validate file type
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/svg+xml'];
-    if (!validTypes.includes(file.type)) {
-      alert('Please upload a valid image file (JPG, PNG, SVG)');
-      return;
+  onDragOver(e: DragEvent): void {
+    e.preventDefault();
+    this.isDragging.set(true);
+  }
+
+  onDragLeave(e: DragEvent): void {
+    e.preventDefault();
+    this.isDragging.set(false);
+  }
+
+  private handleSelectedFile(file: File): void {
+    this.uploading.set(true);
+    this.fileName.set(file.name);
+    this.fileSize.set(file.size);
+
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        this.previewUrl.set(reader.result as string);
+        this.uploading.set(false);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      this.previewUrl.set(null);
+      this.uploading.set(false);
     }
 
-    // Validate file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
-      alert('File size must be less than 5MB');
-      return;
-    }
-
-    this.isUploading.set(true);
-    this.uploadedFile.set(file);
-
-    // Create preview URL
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      this.uploadedImageUrl.set(e.target?.result as string);
-      this.isUploading.set(false);
-      this.imageUploaded.emit(file);
-    };
-    reader.readAsDataURL(file);
+    // Emit to parent for integration
+    this.fileSelected.emit(file);
   }
 
-  selectTemplate(template: string): void {
-    this.templateSelected.emit(template);
+  removeSelected(): void {
+    this.previewUrl.set(null);
+    this.fileName.set(null);
+    this.fileSize.set(null);
   }
 
-  toggleRemoveBackground(): void {
-    this.removeBackground.set(!this.removeBackground());
+  pickDropbox(): void {
+    alert('Dropbox integration coming soon');
   }
 
-  toggleEnhanceQuality(): void {
-    this.enhanceQuality.set(!this.enhanceQuality());
+  pickDrive(): void {
+    alert('Google Drive integration coming soon');
   }
-
-  removeUploadedImage(): void {
-    this.uploadedFile.set(null);
-    this.uploadedImageUrl.set(null);
-  }
-
-  // Template data
-  protected templates = [
-    { id: 'sports', name: 'Sports', preview: 'Athletic design template' },
-    { id: 'minimal', name: 'Minimal', preview: 'Clean and simple template' },
-    { id: 'vintage', name: 'Vintage', preview: 'Retro style template' },
-    { id: 'modern', name: 'Modern', preview: 'Contemporary design template' }
-  ];
 }

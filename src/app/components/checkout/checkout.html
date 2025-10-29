@@ -1,0 +1,395 @@
+<div class="container mt-5 mb-5">
+  <!-- Success State -->
+  @if (orderSuccess()) {
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="card border-success">
+          <div class="card-header bg-success text-white text-center">
+            <h4 class="mb-0">
+              <i class="bi bi-check-circle-fill me-2"></i>
+              Order Placed Successfully!
+            </h4>
+          </div>
+          <div class="card-body text-center py-5">
+            <div class="mb-4">
+              <i class="bi bi-check-circle display-1 text-success"></i>
+            </div>
+            
+            @if (createdOrder()) {
+              <h5 class="card-title">Thank you for your order!</h5>
+              <p class="card-text">
+                Your order <strong>{{ createdOrder()!.order_ref }}</strong> has been placed successfully.
+              </p>
+              
+              <div class="alert alert-info">
+                <h6><i class="bi bi-info-circle me-2"></i>Order Details:</h6>
+                <ul class="list-unstyled mb-0">
+                  <li><strong>Order Reference:</strong> {{ createdOrder()!.order_ref }}</li>
+                  <li><strong>Total Amount:</strong> ₱{{ createdOrder()!.total_amount.toFixed(2) }}</li>
+                  <li><strong>Status:</strong> <span class="badge bg-warning">{{ createdOrder()!.status }}</span></li>
+                  <li><strong>Order Date:</strong> {{ createdOrder()!.order_date | date:'medium' }}</li>
+                </ul>
+              </div>
+              
+              <p class="text-muted">
+                You will receive an email confirmation shortly. You can track your order status in your order history.
+              </p>
+            }
+            
+            <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+              <button class="btn btn-primary" (click)="viewOrderHistory()">
+                <i class="bi bi-list-ul me-2"></i>
+                View Order History
+              </button>
+              <button class="btn btn-outline-primary" (click)="continueShopping()">
+                <i class="bi bi-arrow-left me-2"></i>
+                Continue Shopping
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Awaiting Payment State -->
+  @if (awaitingPayment() && !orderSuccess()) {
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="card border-warning">
+          <div class="card-header bg-warning text-dark text-center">
+            <h4 class="mb-0">
+              <i class="bi bi-clock-fill me-2"></i>
+              Awaiting Payment
+            </h4>
+          </div>
+          <div class="card-body">
+            @if (paymentMethod() === 'paymongo' && paymentLink()) {
+              <div class="text-center py-4">
+                <h5>Complete Your Payment</h5>
+                <p class="text-muted">Click the button below to complete your payment via PayMongo</p>
+                <a [href]="paymentLink()!" target="_blank" class="btn btn-primary btn-lg mb-3">
+                  <i class="bi bi-credit-card me-2"></i>
+                  Pay Now
+                </a>
+                <p class="text-muted small">
+                  Payment link will open in a new window. After completing payment, return here to view your order.
+                </p>
+                <button class="btn btn-success" (click)="onPaymentComplete()">
+                  <i class="bi bi-check-circle me-2"></i>
+                  I've Completed Payment
+                </button>
+              </div>
+            }
+            
+            @if ((paymentMethod() === 'gcash' || paymentMethod() === 'bank_transfer') && paymentInstructions()) {
+              <div class="py-4">
+                <h5 class="text-center mb-4">Payment Instructions</h5>
+                
+                @if (paymentMethod() === 'gcash') {
+                  <div class="alert alert-info">
+                    <h6><i class="bi bi-phone me-2"></i>GCash Payment Details:</h6>
+                    <ul class="list-unstyled mb-0">
+                      <li><strong>GCash Number:</strong> {{ paymentConfig.gcashNumber }}</li>
+                      <li><strong>Account Name:</strong> {{ paymentConfig.gcashName }}</li>
+                      <li><strong>Amount:</strong> ₱{{ paymentInstructions().amount.toFixed(2) }}</li>
+                      <li><strong>Reference:</strong> {{ paymentInstructions().orderRef }}</li>
+                    </ul>
+                  </div>
+                }
+                
+                @if (paymentMethod() === 'bank_transfer') {
+                  <div class="alert alert-info">
+                    <h6><i class="bi bi-bank me-2"></i>Bank Transfer Details:</h6>
+                    <ul class="list-unstyled mb-0">
+                      <li><strong>Bank:</strong> {{ paymentConfig.bankName }}</li>
+                      <li><strong>Account Number:</strong> {{ paymentConfig.bankAccountNumber }}</li>
+                      <li><strong>Account Name:</strong> {{ paymentConfig.bankAccountName }}</li>
+                      <li><strong>Amount:</strong> ₱{{ paymentInstructions().amount.toFixed(2) }}</li>
+                      <li><strong>Reference:</strong> {{ paymentInstructions().orderRef }}</li>
+                    </ul>
+                  </div>
+                }
+                
+                <div class="alert alert-warning">
+                  <h6><i class="bi bi-exclamation-triangle me-2"></i>Important:</h6>
+                  <ol class="mb-0">
+                    <li>Transfer the exact amount shown above</li>
+                    <li>Use the order reference in your transfer notes</li>
+                    <li>After payment, click "I've Completed Payment" below</li>
+                    <li>Your order will be processed once payment is verified</li>
+                  </ol>
+                </div>
+                
+                <div class="text-center">
+                  <button class="btn btn-success btn-lg" (click)="onPaymentComplete()">
+                    <i class="bi bi-check-circle me-2"></i>
+                    I've Completed Payment
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Checkout Form -->
+  @if (!orderSuccess() && !awaitingPayment()) {
+    <div class="row">
+      <div class="col-12">
+        <h2 class="mb-4">
+          <i class="bi bi-credit-card me-2"></i>
+          Checkout
+        </h2>
+      </div>
+    </div>
+
+    @if (loading()) {
+      <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Processing order...</span>
+        </div>
+        <p class="mt-3">Processing your order...</p>
+      </div>
+    }
+
+    @if (error()) {
+      <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        {{ error() }}
+        <button type="button" class="btn-close" (click)="clearError()"></button>
+      </div>
+    }
+
+    @if (!loading()) {
+      <div class="row">
+        <!-- Checkout Form -->
+        <div class="col-lg-8">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0">Shipping Information</h5>
+            </div>
+            <div class="card-body">
+              <form (ngSubmit)="onSubmit()" #form="ngForm">
+                <!-- Customer Name -->
+                <div class="mb-3">
+                  <label for="customerName" class="form-label">Full Name *</label>
+                  <input type="text" 
+                         class="form-control" 
+                         id="customerName"
+                         [(ngModel)]="checkoutForm.customer_name"
+                         name="customerName"
+                         required
+                         placeholder="Enter your full name">
+                </div>
+
+                <!-- Customer Email -->
+                <div class="mb-3">
+                  <label for="customerEmail" class="form-label">Email Address *</label>
+                  <input type="email" 
+                         class="form-control" 
+                         id="customerEmail"
+                         [(ngModel)]="checkoutForm.customer_email"
+                         name="customerEmail"
+                         required
+                         placeholder="Enter your email address">
+                </div>
+
+                <!-- Customer Phone -->
+                <div class="mb-3">
+                  <label for="customerPhone" class="form-label">Phone Number</label>
+                  <input type="tel" 
+                         class="form-control" 
+                         id="customerPhone"
+                         [(ngModel)]="checkoutForm.customer_phone"
+                         name="customerPhone"
+                         placeholder="Enter your phone number">
+                </div>
+
+                <!-- Customer Address -->
+                <div class="mb-3">
+                  <label for="customerAddress" class="form-label">Shipping Address</label>
+                  <textarea class="form-control" 
+                            id="customerAddress"
+                            [(ngModel)]="checkoutForm.customer_address"
+                            name="customerAddress"
+                            rows="3"
+                            placeholder="Enter your shipping address"></textarea>
+                </div>
+
+                <!-- Order Notes -->
+                <div class="mb-3">
+                  <label for="orderNotes" class="form-label">Order Notes</label>
+                  <textarea class="form-control" 
+                            id="orderNotes"
+                            [(ngModel)]="checkoutForm.notes"
+                            name="orderNotes"
+                            rows="2"
+                            placeholder="Any special instructions for your order"></textarea>
+                </div>
+
+                <!-- Payment Method Selection -->
+                <div class="mb-4">
+                  <label class="form-label fw-bold">Payment Method *</label>
+                  <div class="row g-2">
+                    <div class="col-md-6">
+                      <div class="form-check card p-3" 
+                           [class.border-primary]="paymentMethod() === 'paymongo'"
+                           style="cursor: pointer;"
+                           (click)="selectPaymentMethod('paymongo')">
+                        <input class="form-check-input" 
+                               type="radio" 
+                               name="paymentMethod" 
+                               id="paymentPaymongo"
+                               [checked]="paymentMethod() === 'paymongo'"
+                               (change)="selectPaymentMethod('paymongo')">
+                        <label class="form-check-label w-100" for="paymentPaymongo" style="cursor: pointer;">
+                          <strong>PayMongo</strong>
+                          <small class="d-block text-muted">Credit/Debit Card, GCash, Maya, Online Banking</small>
+                        </label>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="form-check card p-3"
+                           [class.border-primary]="paymentMethod() === 'gcash'"
+                           style="cursor: pointer;"
+                           (click)="selectPaymentMethod('gcash')">
+                        <input class="form-check-input" 
+                               type="radio" 
+                               name="paymentMethod" 
+                               id="paymentGcash"
+                               [checked]="paymentMethod() === 'gcash'"
+                               (change)="selectPaymentMethod('gcash')">
+                        <label class="form-check-label w-100" for="paymentGcash" style="cursor: pointer;">
+                          <strong>GCash Transfer</strong>
+                          <small class="d-block text-muted">Manual transfer (requires verification)</small>
+                        </label>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="form-check card p-3"
+                           [class.border-primary]="paymentMethod() === 'bank_transfer'"
+                           style="cursor: pointer;"
+                           (click)="selectPaymentMethod('bank_transfer')">
+                        <input class="form-check-input" 
+                               type="radio" 
+                               name="paymentMethod" 
+                               id="paymentBank"
+                               [checked]="paymentMethod() === 'bank_transfer'"
+                               (change)="selectPaymentMethod('bank_transfer')">
+                        <label class="form-check-label w-100" for="paymentBank" style="cursor: pointer;">
+                          <strong>Bank Transfer</strong>
+                          <small class="d-block text-muted">Direct bank deposit (requires verification)</small>
+                        </label>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="form-check card p-3"
+                           [class.border-primary]="paymentMethod() === 'cod'"
+                           style="cursor: pointer;"
+                           (click)="selectPaymentMethod('cod')">
+                        <input class="form-check-input" 
+                               type="radio" 
+                               name="paymentMethod" 
+                               id="paymentCod"
+                               [checked]="paymentMethod() === 'cod'"
+                               (change)="selectPaymentMethod('cod')">
+                        <label class="form-check-label w-100" for="paymentCod" style="cursor: pointer;">
+                          <strong>Cash on Delivery</strong>
+                          <small class="d-block text-muted">Pay when you receive your order</small>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="d-flex gap-2">
+                  <button type="submit" 
+                          class="btn btn-success btn-lg"
+                          [disabled]="loading() || cartItems().length === 0">
+                    <i class="bi bi-credit-card me-2"></i>
+                    Place Order
+                  </button>
+                  <button type="button" 
+                          class="btn btn-outline-secondary"
+                          (click)="goBackToCart()">
+                    <i class="bi bi-arrow-left me-2"></i>
+                    Back to Cart
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- Order Summary -->
+        <div class="col-lg-4">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0">Order Summary</h5>
+            </div>
+            <div class="card-body">
+              <!-- Cart Items -->
+              <div class="mb-3">
+                <h6>Items ({{ itemCount() }}):</h6>
+                @for (item of cartItems(); track item.cart_item_id || item.product_id) {
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                      <small class="fw-bold">{{ item.product_name }}</small>
+                      @if (item.size || item.color) {
+                        <br>
+                        <small class="text-muted">
+                          @if (item.size) {
+                            Size: {{ item.size }}
+                          }
+                          @if (item.size && item.color) {
+                            • 
+                          }
+                          @if (item.color) {
+                            Color: {{ item.color }}
+                          }
+                        </small>
+                      }
+                    </div>
+                    <div class="text-end">
+                      <small>Qty: {{ item.quantity }}</small><br>
+                      <small class="fw-bold">₱{{ (item.unit_price * item.quantity).toFixed(2) }}</small>
+                    </div>
+                  </div>
+                }
+              </div>
+
+              <hr>
+
+              <!-- Totals -->
+              <div class="d-flex justify-content-between mb-2">
+                <span>Subtotal:</span>
+                <span>₱{{ totalAmount().toFixed(2) }}</span>
+              </div>
+              <div class="d-flex justify-content-between mb-2">
+                <span>Shipping:</span>
+                <span class="text-muted">Calculated at processing</span>
+              </div>
+              <hr>
+              <div class="d-flex justify-content-between mb-3">
+                <strong>Total:</strong>
+                <strong class="text-primary">₱{{ totalAmount().toFixed(2) }}</strong>
+              </div>
+
+              <!-- Security Notice -->
+              <div class="alert alert-info">
+                <small>
+                  <i class="bi bi-shield-check me-1"></i>
+                  Your order is secure and will be processed safely.
+                </small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+  }
+</div>

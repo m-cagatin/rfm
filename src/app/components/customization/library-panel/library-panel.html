@@ -1,0 +1,25 @@
+<div class="panel">
+  <div class="panel-header">
+    <h3>My library</h3>
+    <button class="close-btn" (click)="onClose()">✕</button>
+  </div>
+
+  <div class="panel-body">
+    <div class="empty-state" *ngIf="libraryItems.length === 0">
+      <p>Your library is empty</p>
+      <p class="help-text">Save designs and elements here for quick reuse</p>
+    </div>
+
+    <div class="library-grid" *ngIf="libraryItems.length > 0">
+      <div class="library-item" *ngFor="let item of libraryItems" (click)="onSelectItem(item)">
+        <div class="item-thumbnail">
+          <img [src]="item.thumbnail" [alt]="item.name">
+        </div>
+        <div class="item-info">
+          <span class="item-name">{{ item.name }}</span>
+          <span class="item-type">{{ item.type }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
