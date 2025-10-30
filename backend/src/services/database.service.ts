@@ -42,6 +42,35 @@ export interface ApiResponse<T = any> {
 export class DatabaseService {
 
   // === UTILITIES ===
+  
+  // Generate unique 8-digit product code
+  static async generateProductCode(): Promise<string> {
+    const connection = await pool.getConnection();
+    let attempts = 0;
+    const maxAttempts = 10;
+    
+    while (attempts < maxAttempts) {
+      // Generate random 8-digit number
+      const code = Math.floor(10000000 + Math.random() * 90000000).toString();
+      
+      // Check if it exists
+      const [rows] = await connection.execute<RowDataPacket[]>(
+        'SELECT product_code FROM catalog_clothing WHERE product_code = ?',
+        [code]
+      );
+      
+      if (rows.length === 0) {
+        connection.release();
+        return code;
+      }
+      
+      attempts++;
+    }
+    
+    connection.release();
+    throw new Error('Failed to generate unique product code');
+  }
+  
   static parseRoles(raw: any): string[] {
     try {
       if (Array.isArray(raw)) return raw;
@@ -328,8 +357,7 @@ export class DatabaseService {
     category: string;
     base_price: number;
     description?: string;
-    image_url: string;
-    cloudinary_public_id?: string;
+    images?: Array<{ url: string; publicId?: string }>;
     status?: string;
     stock_quantity?: number;
     sku?: string;
@@ -337,35 +365,38 @@ export class DatabaseService {
     tags?: string;
     // NEW FIELDS
     colors?: string;
-    images?: string;
     material?: string;
     gender?: string;
     allows_customization?: boolean;
     production_days?: number;
     stock_by_size_color?: string;
   }): Promise<ApiResponse<any>> {
+    const connection = await pool.getConnection();
     try {
-      const connection = await pool.getConnection();
+      await connection.beginTransaction();
+      
+      // Generate unique product code
+      const productCode = await this.generateProductCode();
+      
+      // Insert product (without image fields)
       const [result] = await connection.execute<ResultSetHeader>(
         `INSERT INTO catalog_clothing 
-         (product_name, category, base_price, description, image_url, cloudinary_public_id, 
+         (product_code, product_name, category, base_price, description, 
           status, stock_quantity, sku, sizes, tags, 
-          colors, images, material, gender, allows_customization, production_days, stock_by_size_color) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          colors, material, gender, allows_customization, production_days, stock_by_size_color) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
+          productCode,
           productData.product_name,
           productData.category,
           productData.base_price,
           productData.description || null,
-          productData.image_url,
-          productData.cloudinary_public_id || null,
           productData.status || 'Active',
           productData.stock_quantity || 0,
           productData.sku || null,
           productData.sizes || null,
           productData.tags || null,
           productData.colors || null,
-          productData.images || null,
           productData.material || null,
           productData.gender || 'Unisex',
           productData.allows_customization ?? true,
@@ -373,13 +404,36 @@ export class DatabaseService {
           productData.stock_by_size_color || null
         ]
       );
+      
+      const productId = result.insertId;
+      
+      // Insert images into product_images table
+      if (productData.images && productData.images.length > 0) {
+        for (let i = 0; i < productData.images.length; i++) {
+          const image = productData.images[i];
+          await connection.execute(
+            `INSERT INTO product_images (product_id, image_url, cloudinary_public_id, display_order)
+             VALUES (?, ?, ?, ?)`,
+            [productId, image.url, image.publicId || null, i + 1]
+          );
+        }
+      }
+      
+      await connection.commit();
       connection.release();
+      
       return {
         success: true,
         message: 'Product created successfully',
-        data: { product_id: result.insertId, ...productData }
+        data: { 
+          product_id: productId, 
+          product_code: productCode,
+          ...productData 
+        }
       };
     } catch (error: any) {
+      await connection.rollback();
+      connection.release();
       console.error('Database error in createProduct:', error);
       // Handle duplicate product name
       if (error.code === 'ER_DUP_ENTRY') {
@@ -393,22 +447,41 @@ export class DatabaseService {
   static async getProducts(category?: string, status?: string): Promise<ApiResponse<any[]>> {
     try {
       const connection = await pool.getConnection();
-      let query = 'SELECT * FROM catalog_clothing';
+      
+      // Query products with their images
+      let query = `
+        SELECT 
+          p.*,
+          GROUP_CONCAT(
+            JSON_OBJECT(
+              'image_id', i.image_id,
+              'url', i.image_url,
+              'publicId', i.cloudinary_public_id,
+              'displayOrder', i.display_order
+            )
+            ORDER BY i.display_order
+          ) as images
+        FROM catalog_clothing p
+        LEFT JOIN product_images i ON p.product_id = i.product_id
+      `;
+      
       const params: any[] = [];
       
       if (category || status) {
         query += ' WHERE ';
         const conditions = [];
         if (category) {
-          conditions.push('category = ?');
+          conditions.push('p.category = ?');
           params.push(category);
         }
         if (status) {
-          conditions.push('status = ?');
+          conditions.push('p.status = ?');
           params.push(status);
         }
         query += conditions.join(' AND ');
       }
+      
+      query += ' GROUP BY p.product_id';
       
       const [rows] = await connection.execute(query, params);
       connection.release();
@@ -421,8 +494,10 @@ export class DatabaseService {
         stock_quantity: r.stock_quantity !== undefined && r.stock_quantity !== null ? Number(r.stock_quantity) : r.stock_quantity,
         production_days: r.production_days !== undefined && r.production_days !== null ? Number(r.production_days) : r.production_days,
         
+        // Parse images from GROUP_CONCAT result
+        images: r.images ? JSON.parse(`[${r.images}]`) : [],
+        
         // Normalize JSON fields to strings (MySQL JSON columns might return as Buffer/Object)
-        images: r.images ? (typeof r.images === 'string' ? r.images : JSON.stringify(r.images)) : null,
         colors: r.colors ? (typeof r.colors === 'string' ? r.colors : JSON.stringify(r.colors)) : null,
         sizes: r.sizes ? (typeof r.sizes === 'string' ? r.sizes : JSON.stringify(r.sizes)) : null,
         tags: r.tags ? (typeof r.tags === 'string' ? r.tags : JSON.stringify(r.tags)) : null,
@@ -439,11 +514,28 @@ export class DatabaseService {
   static async getProduct(productId: string): Promise<ApiResponse<any>> {
     try {
       const connection = await pool.getConnection();
+      
+      // Query product with images
       const [rows] = await connection.execute(
-        'SELECT * FROM catalog_clothing WHERE product_id = ?',
+        `SELECT 
+          p.*,
+          GROUP_CONCAT(
+            JSON_OBJECT(
+              'image_id', i.image_id,
+              'url', i.image_url,
+              'publicId', i.cloudinary_public_id,
+              'displayOrder', i.display_order
+            )
+            ORDER BY i.display_order
+          ) as images
+        FROM catalog_clothing p
+        LEFT JOIN product_images i ON p.product_id = i.product_id
+        WHERE p.product_id = ?
+        GROUP BY p.product_id`,
         [productId]
       );
       connection.release();
+      
       const products = (rows as any[]).map((r) => ({
         ...r,
         // Normalize DECIMAL fields to numbers
@@ -451,13 +543,16 @@ export class DatabaseService {
         stock_quantity: r.stock_quantity !== undefined && r.stock_quantity !== null ? Number(r.stock_quantity) : r.stock_quantity,
         production_days: r.production_days !== undefined && r.production_days !== null ? Number(r.production_days) : r.production_days,
         
+        // Parse images from GROUP_CONCAT result
+        images: r.images ? JSON.parse(`[${r.images}]`) : [],
+        
         // Normalize JSON fields to strings (MySQL JSON columns might return as Buffer/Object)
-        images: r.images ? (typeof r.images === 'string' ? r.images : JSON.stringify(r.images)) : null,
         colors: r.colors ? (typeof r.colors === 'string' ? r.colors : JSON.stringify(r.colors)) : null,
         sizes: r.sizes ? (typeof r.sizes === 'string' ? r.sizes : JSON.stringify(r.sizes)) : null,
         tags: r.tags ? (typeof r.tags === 'string' ? r.tags : JSON.stringify(r.tags)) : null,
         stock_by_size_color: r.stock_by_size_color ? (typeof r.stock_by_size_color === 'string' ? r.stock_by_size_color : JSON.stringify(r.stock_by_size_color)) : null,
       }));
+      
       if (products.length === 0) {
         return { success: false, message: 'Product not found' };
       }
@@ -470,27 +565,57 @@ export class DatabaseService {
 
   // Update product
   static async updateProduct(productId: string, updateData: any): Promise<ApiResponse<any>> {
+    const connection = await pool.getConnection();
     try {
-      const connection = await pool.getConnection();
-      const fields = Object.keys(updateData);
-      const values = Object.values(updateData);
+      await connection.beginTransaction();
       
-      if (fields.length === 0) {
-        return { success: false, message: 'No fields to update' };
+      // Separate images from other fields
+      const { images, ...productFields } = updateData;
+      
+      // Update product fields if any
+      if (Object.keys(productFields).length > 0) {
+        const fields = Object.keys(productFields);
+        const values = Object.values(productFields);
+        const setClause = fields.map(field => `${field} = ?`).join(', ');
+        const query = `UPDATE catalog_clothing SET ${setClause} WHERE product_id = ?`;
+        
+        const [result] = await connection.execute<ResultSetHeader>(query, [...values, productId]);
+        
+        if (result.affectedRows === 0) {
+          await connection.rollback();
+          connection.release();
+          return { success: false, message: 'Product not found' };
+        }
       }
       
-      const setClause = fields.map(field => `${field} = ?`).join(', ');
-      const query = `UPDATE catalog_clothing SET ${setClause} WHERE product_id = ?`;
+      // Update images if provided
+      if (images !== undefined) {
+        // Delete all existing images for this product
+        await connection.execute(
+          'DELETE FROM product_images WHERE product_id = ?',
+          [productId]
+        );
+        
+        // Insert new images
+        if (Array.isArray(images) && images.length > 0) {
+          for (let i = 0; i < images.length; i++) {
+            const image = images[i];
+            await connection.execute(
+              `INSERT INTO product_images (product_id, image_url, cloudinary_public_id, display_order)
+               VALUES (?, ?, ?, ?)`,
+              [productId, image.url, image.publicId || null, i + 1]
+            );
+          }
+        }
+      }
       
-      const [result] = await connection.execute<ResultSetHeader>(query, [...values, productId]);
+      await connection.commit();
       connection.release();
-      
-      if (result.affectedRows === 0) {
-        return { success: false, message: 'Product not found' };
-      }
       
       return { success: true, message: 'Product updated successfully' };
     } catch (error: any) {
+      await connection.rollback();
+      connection.release();
       console.error('Database error in updateProduct:', error);
       // Handle duplicate product name
       if (error.code === 'ER_DUP_ENTRY') {

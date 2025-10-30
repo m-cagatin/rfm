@@ -14,6 +14,7 @@ import cartRoutes from './routes/cart.routes';
 import ordersRoutes from './routes/orders.routes';
 import paymentRoutes from './routes/payment.routes';
 import inventoryRoutes from './routes/inventory.routes';
+import cloudinaryRoutes from './routes/cloudinary.routes';
 import { DatabaseService } from './services/database.service';
 import { EmailService } from './services/email.service';
 
@@ -61,6 +62,7 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/orders', ordersRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/inventory', inventoryRoutes);
+app.use('/api/cloudinary', cloudinaryRoutes);
 
 // Default route
 app.get('/', (req: express.Request, res: express.Response) => {

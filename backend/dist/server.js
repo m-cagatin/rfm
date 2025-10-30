@@ -20,6 +20,7 @@ const cart_routes_1 = __importDefault(require("./routes/cart.routes"));
 const orders_routes_1 = __importDefault(require("./routes/orders.routes"));
 const payment_routes_1 = __importDefault(require("./routes/payment.routes"));
 const inventory_routes_1 = __importDefault(require("./routes/inventory.routes"));
+const cloudinary_routes_1 = __importDefault(require("./routes/cloudinary.routes"));
 const database_service_1 = require("./services/database.service");
 const email_service_1 = require("./services/email.service");
 const app = (0, express_1.default)();
@@ -62,6 +63,7 @@ app.use('/api/cart', cart_routes_1.default);
 app.use('/api/orders', orders_routes_1.default);
 app.use('/api/payment', payment_routes_1.default);
 app.use('/api/inventory', inventory_routes_1.default);
+app.use('/api/cloudinary', cloudinary_routes_1.default);
 app.get('/', (req, res) => {
     res.json({
         message: 'RFM Backend API Server',

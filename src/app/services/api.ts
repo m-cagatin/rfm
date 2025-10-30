@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
@@ -61,12 +61,11 @@ export interface AuthResponse {
 
 export interface ProductData {
   product_id?: number;
+  product_code?: string;
   product_name: string;
   category: string;
   base_price: number;
   description?: string | null;
-  image_url: string;
-  cloudinary_public_id?: string | null;
   status?: 'Active' | 'Inactive' | 'Archived';
   stock_quantity?: number;
   sku?: string | null;
@@ -74,7 +73,7 @@ export interface ProductData {
   tags?: string | null;  // JSON string
   // NEW FIELDS
   colors?: string | null;               // JSON string
-  images?: string | null;               // JSON string - multiple image URLs
+  images?: Array<{url: string; publicId?: string; displayOrder?: number}> | null; // Array of image objects
   material?: string | null;             // VARCHAR
   gender?: 'Men' | 'Women' | 'Unisex' | 'Kids' | null;
   allows_customization?: boolean;
@@ -89,6 +88,13 @@ export interface ProductData {
 })
 export class ApiService {
   private baseUrl = environment.api.baseUrl;
+
+  // Headers to prevent caching for admin operations
+  private noCacheHeaders = new HttpHeaders({
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  });
 
   constructor(private http: HttpClient) { }
 
@@ -154,11 +160,21 @@ export class ApiService {
       if (status) queryParams.push(`status=${encodeURIComponent(status)}`);
       params = '?' + queryParams.join('&');
     }
-    return this.http.get<ApiResponse<ProductData[]>>(`${this.baseUrl}/catalog${params}`);
+    // Add timestamp to prevent caching
+    const timestamp = new Date().getTime();
+    const separator = params ? '&' : '?';
+    return this.http.get<ApiResponse<ProductData[]>>(
+      `${this.baseUrl}/catalog${params}${separator}_t=${timestamp}`,
+      { headers: this.noCacheHeaders }
+    );
   }
 
   getProduct(id: string): Observable<ApiResponse<ProductData>> {
-    return this.http.get<ApiResponse<ProductData>>(`${this.baseUrl}/catalog/${id}`);
+    const timestamp = new Date().getTime();
+    return this.http.get<ApiResponse<ProductData>>(
+      `${this.baseUrl}/catalog/${id}?_t=${timestamp}`,
+      { headers: this.noCacheHeaders }
+    );
   }
 
   createProduct(productData: Omit<ProductData, 'product_id' | 'created_at' | 'updated_at'>): Observable<ApiResponse<ProductData>> {

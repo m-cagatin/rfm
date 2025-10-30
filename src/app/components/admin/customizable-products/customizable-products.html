@@ -20,6 +20,48 @@
 
   <!-- Products List -->
   <div *ngIf="!showForm() && !showDetails() && !loading()">
+    <!-- Toolbar with Filters and Bulk Actions -->
+    <div *ngIf="products().length > 0" class="toolbar">
+      <div class="toolbar-left">
+        <!-- Filter Tabs -->
+        <div class="filter-tabs">
+          <button 
+            [class.active]="filterStatus() === 'all'" 
+            (click)="filterStatus.set('all')"
+            class="filter-tab">
+            All ({{ products().length }})
+          </button>
+          <button 
+            [class.active]="filterStatus() === 'active'" 
+            (click)="filterStatus.set('active')"
+            class="filter-tab">
+            Published ({{ activeCount }})
+          </button>
+          <button 
+            [class.active]="filterStatus() === 'inactive'" 
+            (click)="filterStatus.set('inactive')"
+            class="filter-tab">
+            Archived ({{ archivedCount }})
+          </button>
+        </div>
+      </div>
+
+      <!-- Bulk Actions -->
+      <div class="toolbar-right" *ngIf="selectedProducts().length > 0">
+        <span class="selected-count">{{ selectedProducts().length }} selected</span>
+        <button class="btn btn-sm btn-warning" (click)="bulkArchive()">
+          📦 Archive Selected
+        </button>
+        <!-- Delete button only shows when viewing archived products and all selected are archived -->
+        <button 
+          *ngIf="filterStatus() === 'inactive' && areAllSelectedArchived()" 
+          class="btn btn-sm btn-danger" 
+          (click)="bulkDelete()">
+          🗑️ Delete Selected
+        </button>
+      </div>
+    </div>
+
     <!-- Empty State -->
     <div *ngIf="products().length === 0" class="empty-state card">
       <div class="card-body text-center py-5">
@@ -33,13 +75,32 @@
     </div>
 
     <!-- Products Grid -->
-    <div *ngIf="products().length > 0" class="products-grid">
-      <div *ngFor="let product of products()" class="product-card">
+    <div *ngIf="filteredProducts.length > 0" class="products-grid">
+      <!-- Select All Checkbox (sticky header) -->
+      <div class="select-all-header" *ngIf="products().length > 0">
+        <label class="checkbox-label">
+          <input 
+            type="checkbox" 
+            [checked]="selectAll()" 
+            (change)="toggleSelectAll()">
+          <span>Select All</span>
+        </label>
+      </div>
+
+      <div *ngFor="let product of filteredProducts" class="product-card" [class.selected]="isProductSelected(product.id)">
+        <!-- Selection Checkbox -->
+        <div class="product-checkbox">
+          <input 
+            type="checkbox" 
+            [checked]="isProductSelected(product.id)"
+            (change)="toggleProductSelection(product.id)">
+        </div>
+
         <!-- Product Image -->
         <div class="product-image-container">
           <img [src]="product.front_image_url" [alt]="product.name" class="product-image">
           <div class="status-badge" [class.active]="product.is_active" [class.inactive]="!product.is_active">
-            {{ product.is_active ? '✓ Published' : '⊘ Unpublished' }}
+            {{ product.is_active ? '✓ Published' : '📦 Archived' }}
           </div>
         </div>
 
@@ -48,7 +109,6 @@
           <h3 class="product-name">{{ product.name }}</h3>
           <div class="product-meta">
             <span class="category-badge">{{ product.category }}</span>
-            <span *ngIf="product.brand" class="brand-text">{{ product.brand }}</span>
           </div>
           
           <div class="product-details">
@@ -57,11 +117,11 @@
               <span class="text-muted">Base Price</span>
             </div>
             <div class="detail-item">
-              <strong>{{ product.available_sizes?.length || 0 }}</strong>
+              <strong>{{ product.available_sizes.length || 0 }}</strong>
               <span class="text-muted">Sizes</span>
             </div>
             <div class="detail-item">
-              <strong>{{ product.available_colors?.length || 0 }}</strong>
+              <strong>{{ product.available_colors.length || 0 }}</strong>
               <span class="text-muted">Colors</span>
             </div>
           </div>
@@ -71,18 +131,32 @@
             <button class="btn btn-sm btn-outline-primary" (click)="viewDetails(product)" title="View Details">
               👁️ View
             </button>
-            <button class="btn btn-sm btn-outline-secondary" (click)="editProduct(product)" title="Edit">
+            <button class="btn btn-sm btn-outline-secondary" (click)="editProduct(product)" title="Edit Product">
               ✏️ Edit
             </button>
+            
+            <!-- Archive/Publish Toggle -->
             <button 
-              class="btn btn-sm" 
-              [class.btn-success]="!product.is_active"
-              [class.btn-warning]="product.is_active"
-              (click)="toggleActive(product)" 
-              [title]="product.is_active ? 'Unpublish' : 'Publish'">
-              {{ product.is_active ? '⊘ Unpublish' : '✓ Publish' }}
+              *ngIf="product.is_active" 
+              class="btn btn-sm btn-outline-warning" 
+              (click)="archiveProduct(product)" 
+              title="Archive Product">
+              📦 Archive
             </button>
-            <button class="btn btn-sm btn-outline-danger" (click)="deleteProduct(product)" title="Delete">
+            <button 
+              *ngIf="!product.is_active" 
+              class="btn btn-sm btn-outline-success" 
+              (click)="toggleActive(product)" 
+              title="Publish Product">
+              ✓ Publish
+            </button>
+            
+            <!-- Delete (only for archived products) -->
+            <button 
+              *ngIf="!product.is_active"
+              class="btn btn-sm btn-outline-danger" 
+              (click)="deleteProduct(product)" 
+              title="Delete Permanently">
               🗑️ Delete
             </button>
           </div>
@@ -113,6 +187,11 @@
               <img [src]="selectedProduct()!.back_image_url" alt="Back View">
               <p>Back View</p>
             </div>
+            <!-- Additional Images -->
+            <div class="image-item" *ngFor="let imgUrl of selectedProduct()!.additional_image_urls; let i = index">
+              <img [src]="imgUrl" [alt]="'Additional Image ' + (i + 1)">
+              <p>Additional Image {{ i + 1 }}</p>
+            </div>
           </div>
         </section>
 
@@ -124,19 +203,50 @@
               <label>Category:</label>
               <span>{{ selectedProduct()!.category }}</span>
             </div>
-            <div class="info-item" *ngIf="selectedProduct()!.brand">
-              <label>Brand:</label>
-              <span>{{ selectedProduct()!.brand }}</span>
+            <div class="info-item">
+              <label>Gender:</label>
+              <span>{{ selectedProduct()!.gender || 'N/A' }}</span>
+            </div>
+            <div class="info-item">
+              <label>Fit Type:</label>
+              <span>{{ selectedProduct()!.fit_type || 'N/A' }}</span>
             </div>
             <div class="info-item">
               <label>Retail Price:</label>
               <span class="price">₱{{ selectedProduct()!.retail_price }}</span>
             </div>
             <div class="info-item">
+              <label>Base Cost:</label>
+              <span class="price">₱{{ selectedProduct()!.base_cost || 0 }}</span>
+            </div>
+            <div class="info-item">
               <label>Status:</label>
               <span [class.text-success]="selectedProduct()!.is_active" [class.text-danger]="!selectedProduct()!.is_active">
                 {{ selectedProduct()!.is_active ? '✓ Published' : '⊘ Unpublished' }}
               </span>
+            </div>
+          </div>
+          <div class="info-item full-width" *ngIf="selectedProduct()!.description">
+            <label>Description:</label>
+            <p>{{ selectedProduct()!.description }}</p>
+          </div>
+        </section>
+
+        <!-- Fabric Information -->
+        <section class="detail-section" *ngIf="selectedProduct()!.fabric_composition || selectedProduct()!.fabric_weight || selectedProduct()!.texture">
+          <h4>Fabric Information</h4>
+          <div class="info-grid">
+            <div class="info-item" *ngIf="selectedProduct()!.fabric_composition">
+              <label>Composition:</label>
+              <span>{{ selectedProduct()!.fabric_composition }}</span>
+            </div>
+            <div class="info-item" *ngIf="selectedProduct()!.fabric_weight">
+              <label>Weight:</label>
+              <span>{{ selectedProduct()!.fabric_weight }}</span>
+            </div>
+            <div class="info-item" *ngIf="selectedProduct()!.texture">
+              <label>Texture:</label>
+              <span>{{ selectedProduct()!.texture }}</span>
             </div>
           </div>
         </section>
@@ -148,6 +258,20 @@
             <span class="chip" *ngFor="let size of selectedProduct()!.available_sizes">{{ size }}</span>
           </div>
           
+          <!-- Fit Description -->
+          <div *ngIf="selectedProduct()!.fit_description" class="mt-3">
+            <label>Fit:</label>
+            <p>{{ selectedProduct()!.fit_description }}</p>
+          </div>
+
+          <!-- Size Chart -->
+          <div *ngIf="selectedProduct()!.size_chart_url" class="mt-3">
+            <label>Size Chart:</label>
+            <a [href]="selectedProduct()!.size_chart_url" target="_blank" class="btn btn-sm btn-outline-primary">
+              📊 View Size Chart
+            </a>
+          </div>
+          
           <!-- Size Pricing -->
           <div *ngIf="selectedProduct()!.size_pricing" class="mt-3">
             <h5>Size Pricing</h5>
@@ -155,7 +279,7 @@
               <div *ngFor="let size of selectedProduct()!.available_sizes" class="size-price-item">
                 <span class="size-label">{{ size }}:</span>
                 <span class="price-label">
-                  {{ selectedProduct()!.size_pricing[size] ? '+₱' + selectedProduct()!.size_pricing[size] : '₱0 (Base Price)' }}
+                  {{ selectedProduct()!.size_pricing[size] ? '+₱' + selectedProduct()!.size_pricing[size] : '₱0 (Retail Price)' }}
                 </span>
               </div>
             </div>
@@ -165,10 +289,59 @@
         <!-- Colors -->
         <section class="detail-section" *ngIf="selectedProduct()!.available_colors && selectedProduct()!.available_colors.length > 0">
           <h4>Available Colors</h4>
-          <div class="colors-list">
-            <div class="color-item" *ngFor="let color of selectedProduct()!.available_colors">
-              <div class="color-swatch" [style.background-color]="color.hex"></div>
-              <span>{{ color.name }}</span>
+          <div class="colors-list-grid">
+            <div class="color-item-card" *ngFor="let color of selectedProduct()!.available_colors">
+              <div class="color-swatch-large" [style.background-color]="color.hex"></div>
+              <span class="color-name">{{ color.name }}</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Variants -->
+        <section class="detail-section" *ngIf="selectedProduct()!.variants && selectedProduct()!.variants!.length > 0">
+          <h4>Available Variants</h4>
+          <div class="variants-list">
+            <div class="variant-item-detail" *ngFor="let variant of selectedProduct()!.variants">
+              <div class="variant-image" *ngIf="variant.image_url">
+                <img [src]="variant.image_url" [alt]="variant.name">
+              </div>
+              <span class="variant-name">{{ variant.name }}</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Print & Customization -->
+        <section class="detail-section" *ngIf="selectedProduct()!.print_method || selectedProduct()!.print_areas || selectedProduct()!.design_requirements">
+          <h4>Print & Customization</h4>
+          <div class="info-grid">
+            <div class="info-item" *ngIf="selectedProduct()!.print_method">
+              <label>Print Method:</label>
+              <span>{{ selectedProduct()!.print_method }}</span>
+            </div>
+            <div class="info-item full-width" *ngIf="selectedProduct()!.print_areas && selectedProduct()!.print_areas!.length > 0">
+              <label>Print Areas:</label>
+              <div class="chips">
+                <span class="chip" *ngFor="let area of selectedProduct()!.print_areas">{{ area }}</span>
+              </div>
+            </div>
+            <div class="info-item full-width" *ngIf="selectedProduct()!.design_requirements">
+              <label>Design Requirements:</label>
+              <p>{{ selectedProduct()!.design_requirements }}</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Order Requirements -->
+        <section class="detail-section" *ngIf="selectedProduct()!.turnaround_time || selectedProduct()!.minimum_order_qty">
+          <h4>Order Requirements</h4>
+          <div class="info-grid">
+            <div class="info-item" *ngIf="selectedProduct()!.turnaround_time">
+              <label>Turnaround Time:</label>
+              <span>{{ selectedProduct()!.turnaround_time }}</span>
+            </div>
+            <div class="info-item" *ngIf="selectedProduct()!.minimum_order_qty">
+              <label>Minimum Order Quantity:</label>
+              <span>{{ selectedProduct()!.minimum_order_qty }}</span>
             </div>
           </div>
         </section>
@@ -177,6 +350,9 @@
         <section class="detail-section">
           <p class="text-muted small">
             Created: {{ selectedProduct()!.created_at | date:'medium' }}
+          </p>
+          <p class="text-muted small" *ngIf="selectedProduct()!.updated_at">
+            Last Updated: {{ selectedProduct()!.updated_at | date:'medium' }}
           </p>
         </section>
       </div>
@@ -191,10 +367,14 @@
   <!-- Add/Edit Form -->
   <div *ngIf="showForm()">
     <div class="form-header">
-      <button class="btn btn-outline-secondary" (click)="showForm.set(false)">
+      <button class="btn btn-outline-secondary" (click)="handleFormCancel()">
         ← Back to List
       </button>
     </div>
-    <ng-container *ngComponentOutlet="formComponent"></ng-container>
+    <app-customizable-product-form 
+      [productToEdit]="editingProduct()"
+      (formCancelled)="handleFormCancel()" 
+      (productSaved)="onProductSaved()">
+    </app-customizable-product-form>
   </div>
 </div>

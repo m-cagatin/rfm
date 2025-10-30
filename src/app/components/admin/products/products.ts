@@ -91,6 +91,9 @@ export class AdminProductsComponent implements OnInit {
   protected newColor = '';
   protected isEditMode = signal(false);
   protected editingProductId = signal<number | null>(null);
+  
+  // Track removed image URLs for deletion from Cloudinary
+  private removedImageUrls: string[] = [];
 
   // Tab and product list signals
   protected activeTab = signal<'active' | 'archived'>('active');
@@ -223,7 +226,10 @@ export class AdminProductsComponent implements OnInit {
     
     const colors = this.parseJsonField(product.colors);
     const sizes = this.parseJsonField(product.sizes);
-    const images = this.parseJsonField(product.images);
+    // Backend now returns array of objects: [{url, publicId, displayOrder}]
+    const images = Array.isArray(product.images) 
+      ? product.images.map((img: any) => img.url || img)
+      : [];
     
     this.productForm = {
       name: product.product_name,
@@ -233,8 +239,8 @@ export class AdminProductsComponent implements OnInit {
       stockQuantity: product.stock_quantity || 0,
       sku: product.sku || '',
       sizes: sizes,
-      imageUrl: product.image_url,
-      cloudinary_public_id: product.cloudinary_public_id || undefined,
+      imageUrl: images[0] || '',
+      cloudinary_public_id: undefined,
       colors: colors,
       material: product.material || '',
       gender: (product.gender as any) || 'Unisex',
@@ -364,6 +370,9 @@ export class AdminProductsComponent implements OnInit {
       // PRESERVE existing images and upload new ones
       let allImageUrls = [...this.productForm.imageUrls];
 
+      console.log('🖼️ Current imageUrls in form:', this.productForm.imageUrls);
+      console.log('🖼️ All image URLs before upload:', allImageUrls);
+
       if (this.productForm.imageFiles.length > 0) {
         this.showMessage('📤 Uploading product images...', 'info');
         
@@ -374,6 +383,15 @@ export class AdminProductsComponent implements OnInit {
         
         const newImageUrls = multipleResults.map(r => r.secure_url);
         allImageUrls = [...allImageUrls, ...newImageUrls];
+      }
+
+      console.log('🖼️ Final allImageUrls:', allImageUrls);
+
+      // Validate: Must have at least one image
+      if (allImageUrls.length === 0) {
+        this.isUploading.set(false);
+        alert('⚠️ Product must have at least one image. Please upload an image or keep an existing one.');
+        return;
       }
 
       // First image is the primary image
@@ -389,8 +407,6 @@ export class AdminProductsComponent implements OnInit {
         category: this.productForm.category,
         base_price: numericPrice,
         description: this.productForm.description,
-        image_url: primaryImageUrl,
-        cloudinary_public_id: cloudinaryPublicId || undefined,
         status: 'Active' as const,
         stock_quantity: this.productForm.stockQuantity || 0,
         sku: this.productForm.sku || null,
@@ -398,15 +414,45 @@ export class AdminProductsComponent implements OnInit {
         tags: null,
         // NEW FIELDS
         colors: JSON.stringify(this.productForm.colors),
-        images: allImageUrls.length > 0 ? JSON.stringify(allImageUrls) : null,
+        images: allImageUrls.map((url, index) => ({
+          url: url,
+          publicId: this.cloudinaryService.extractPublicIdFromUrl(url) || undefined,
+          displayOrder: index + 1
+        })),
         material: this.productForm.material || null,
         gender: this.productForm.gender,
         allows_customization: this.productForm.allows_customization,
         production_days: this.productForm.production_days
       };
 
+      console.log('📦 Product data being sent to API:', productData);
+
       // Call appropriate API method
       if (this.isEditMode()) {
+        // Delete removed images from Cloudinary before updating
+        if (this.removedImageUrls.length > 0) {
+          this.showMessage('🗑️ Deleting removed images from Cloudinary...', 'info');
+          
+          console.log('🔍 URLs marked for deletion:', this.removedImageUrls);
+          
+          const publicIds = this.removedImageUrls
+            .map(url => {
+              const publicId = this.cloudinaryService.extractPublicIdFromUrl(url);
+              console.log(`📝 Extracted public_id from ${url} → ${publicId}`);
+              return publicId;
+            })
+            .filter(id => id !== null) as string[];
+          
+          console.log('🗑️ Public IDs to delete:', publicIds);
+          
+          if (publicIds.length > 0) {
+            await this.cloudinaryService.deleteMultipleImages(publicIds);
+            console.log(`✓ Deleted ${publicIds.length} image(s) from Cloudinary`);
+          } else {
+            console.warn('⚠️ No valid public IDs extracted from URLs');
+          }
+        }
+        
         this.apiService.updateProduct(this.editingProductId()!.toString(), productData).subscribe({
           next: (response) => {
             if (response.success) {
@@ -521,6 +567,7 @@ export class AdminProductsComponent implements OnInit {
       production_days: 3
     };
     this.newImagePreviews = [];
+    this.removedImageUrls = []; // Clear removed images tracker
     this.isUploading.set(false);
     this.message.set('');
     this.messageType.set('');
@@ -553,6 +600,7 @@ export class AdminProductsComponent implements OnInit {
       production_days: 3
     };
     this.newImagePreviews = [];
+    this.removedImageUrls = []; // Clear removed images tracker
     this.isUploading.set(false);
     this.newColor = '';
     this.isEditMode.set(false);
@@ -646,7 +694,9 @@ export class AdminProductsComponent implements OnInit {
   getProductImages(product: ProductData): string[] {
     if (!product.images) return [];
     try {
-      return typeof product.images === 'string' ? JSON.parse(product.images) : [];
+      // Backend now returns array of objects: [{url, publicId, displayOrder}]
+      const imagesArray = Array.isArray(product.images) ? product.images : [];
+      return imagesArray.map((img: any) => img.url || img);
     } catch {
       return [];
     }
@@ -662,6 +712,16 @@ export class AdminProductsComponent implements OnInit {
   }
 
   removeExistingImage(index: number): void {
+    // Get the URL before removing it
+    const removedUrl = this.productForm.imageUrls[index];
+    
+    // Add to removed list for deletion from Cloudinary
+    if (removedUrl) {
+      this.removedImageUrls.push(removedUrl);
+      console.log('📝 Marked for deletion:', removedUrl);
+    }
+    
+    // Remove from the form
     this.productForm.imageUrls.splice(index, 1);
   }
 

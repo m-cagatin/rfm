@@ -28,7 +28,7 @@ router.post('/', async (req: Request, res: Response) => {
 
     const query = `
       INSERT INTO customizable_products (
-        name, category, brand, gender, fit_type, description,
+        name, category, gender, fit_type, description,
         front_image_url, back_image_url, additional_image_urls,
         fabric_composition, fabric_weight, texture,
         available_sizes, size_chart_url, fit_description, size_pricing,
@@ -36,11 +36,11 @@ router.post('/', async (req: Request, res: Response) => {
         print_method, print_areas, design_requirements,
         base_cost, retail_price, is_active,
         turnaround_time, minimum_order_qty
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const values = [
-      name, category, brand || null, gender || 'Unisex', fit_type || 'Classic', description || null,
+      name, category, gender || 'Unisex', fit_type || 'Classic', description || null,
       front_image_url, back_image_url, JSON.stringify(additional_image_urls || []),
       fabric_composition || null, fabric_weight || null, texture || null,
       JSON.stringify(available_sizes || []), size_chart_url || null, fit_description || null, 
@@ -157,10 +157,10 @@ router.put('/:id', async (req: Request, res: Response) => {
 
     const query = `
       UPDATE customizable_products SET
-        name = ?, category = ?, brand = ?, gender = ?, fit_type = ?, description = ?,
+        name = ?, category = ?, gender = ?, fit_type = ?, description = ?,
         front_image_url = ?, back_image_url = ?, additional_image_urls = ?,
         fabric_composition = ?, fabric_weight = ?, texture = ?,
-        available_sizes = ?, size_chart_url = ?, fit_description = ?,
+        available_sizes = ?, size_chart_url = ?, fit_description = ?, size_pricing = ?,
         available_colors = ?,
         print_method = ?, print_areas = ?, design_requirements = ?,
         base_cost = ?, retail_price = ?, is_active = ?,
@@ -169,13 +169,13 @@ router.put('/:id', async (req: Request, res: Response) => {
     `;
 
     const values = [
-      updateData.name, updateData.category, updateData.brand, updateData.gender, 
+      updateData.name, updateData.category, updateData.gender, 
       updateData.fit_type, updateData.description,
       updateData.front_image_url, updateData.back_image_url, 
       JSON.stringify(updateData.additional_image_urls || []),
       updateData.fabric_composition, updateData.fabric_weight, updateData.texture,
       JSON.stringify(updateData.available_sizes || []), updateData.size_chart_url, 
-      updateData.fit_description,
+      updateData.fit_description, JSON.stringify(updateData.size_pricing || {}),
       JSON.stringify(updateData.available_colors || []),
       updateData.print_method, JSON.stringify(updateData.print_areas || []), 
       updateData.design_requirements,

@@ -1,7 +1,6 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { CloudinaryService } from '../../../services/cloudinary.service';
 import { ApiService } from '../../../services/api';
 
@@ -26,9 +25,8 @@ interface CustomizableProductForm {
   // 1. Basic Info
   name: string;
   category: string;
-  brand: string;
   gender: 'Unisex' | 'Men' | 'Women' | 'Kids';
-  fitType: 'Classic' | 'Slim' | 'Oversized';
+  fitType: 'Classic' | 'Slim Fit' | 'Regular Fit' | 'Relaxed Fit' | 'Oversized' | 'Tapered' | 'Athletic Fit' | 'Muscle Fit';
   description: string;
   // 2. Images
   frontImageFile?: File | null;
@@ -67,38 +65,60 @@ interface CustomizableProductForm {
 @Component({
   selector: 'app-customizable-product-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule],
   templateUrl: './customizable-product-form.html',
   styleUrls: ['./customizable-product-form.css']
 })
-export class CustomizableProductFormComponent {
+export class CustomizableProductFormComponent implements OnInit, OnChanges {
+  @Input() productToEdit: any = null;
+  @Output() formCancelled = new EventEmitter<void>();
+  @Output() productSaved = new EventEmitter<void>();
+  
   message = signal('');
   messageType = signal<'success'|'error'|'info'|''>('');
 
   isUploading = signal(false);
   isSaving = signal(false);
+  isEditMode = false;
 
-  // Adult/Teen sizes
-  adultSizes = ['XS','S','M','L','XL','2XL','3XL'];
-  // Kids sizes
-  kidsSizes = ['K6','K7','K8','K9','K10'];
-  // All sizes combined
-  sizes = [...this.adultSizes, ...this.kidsSizes];
+  // Clothing sizes (Tops: T-Shirts, Polos, Jerseys, Jackets)
+  clothingSizesAdult = ['XS','S','M','L','XL','2XL','3XL','4XL'];
+  clothingSizesKids = ['K6','K7','K8','K9','K10'];
   
-  categories = ['T-Shirt','Hoodie','Sweatshirt','Jacket','Polo Shirt','Long Sleeve','Tank Top','Other'];
+  // Pants/Shorts sizes (Waist measurements)
+  pantsSizesAdult = ['26','28','30','32','34','36','38','40','42'];
+  pantsSizesKids = ['22','24','26','28','30','32'];
+  
+  // Current available sizes (dynamically populated based on category + product type)
+  availableSizes: string[] = [];
+  
+  categories = [
+    'T-Shirt - Chinese Collar',
+    'T-Shirt - V-Neck',
+    'T-Shirt - Round Neck',
+    'Jogging Pants',
+    'Polo Shirt',
+    'Sando (Jersey) - V-Neck',
+    'Sando (Jersey) - Round Neck',
+    'Sando (Jersey) - NBA Cut',
+    'Shorts',
+    'Warmers',
+    'Varsity Jacket',
+    'Other'
+  ];
   colorsCatalog = ['Black','White','Navy','Gray','Red','Green','Blue','Beige'];
   printMethods: Array<CustomizableProductForm['printMethod']> = ['DTG','Screen Print','Embroidery'];
   printAreaOptions = ['Front','Back','Sleeve'];
 
   constructor(
     private cloudinaryService: CloudinaryService,
-    private apiService: ApiService
+    private apiService: ApiService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   form: CustomizableProductForm = {
     name: '',
     category: '',
-    brand: '',
     gender: 'Unisex',
     fitType: 'Classic',
     description: '',
@@ -143,6 +163,112 @@ export class CustomizableProductFormComponent {
   // Size Pricing (e.g., { 'XL': 50, '2XL': 100, '3XL': 150 })
   sizePricing: { [size: string]: number } = {};
 
+  ngOnInit() {
+    console.log('🔍 ngOnInit - productToEdit:', this.productToEdit);
+    // Initialize with default sizes (will update when category/type is selected)
+    this.updateAvailableSizes();
+    
+    // If editing, populate form with existing data
+    if (this.productToEdit) {
+      this.isEditMode = true;
+      this.populateFormWithProduct(this.productToEdit);
+    }
+  }
+  
+  ngOnChanges(changes: SimpleChanges) {
+    console.log('🔄 ngOnChanges called:', changes);
+    if (changes['productToEdit']) {
+      const product = changes['productToEdit'].currentValue;
+      if (product && !changes['productToEdit'].firstChange) {
+        console.log('📥 Product to edit changed:', product);
+        this.isEditMode = true;
+        this.populateFormWithProduct(product);
+      }
+    }
+  }
+  
+  populateFormWithProduct(product: any) {
+    console.log('🔧 Populating form with product:', product);
+    
+    // Clear any existing data first
+    this.resetForm();
+    
+    // Set edit mode
+    this.isEditMode = true;
+    
+    // Basic info
+    this.form.name = product.name || '';
+    this.form.category = product.category || '';
+    this.form.gender = product.gender || '';
+    this.form.fitType = product.fit_type || '';
+    this.form.description = product.description || '';
+    
+    // Images - store existing URLs
+    this.form.frontImageUrl = product.front_image_url || '';
+    this.form.backImageUrl = product.back_image_url || '';
+    this.form.frontImageFile = null; // No file selected yet
+    this.form.backImageFile = null;
+    
+    // Additional images
+    if (product.additional_image_urls && Array.isArray(product.additional_image_urls)) {
+      this.form.additionalImageUrls = [...product.additional_image_urls];
+      this.form.additionalImageFiles = [];
+    }
+    
+    // Fabric
+    this.form.fabricComposition = product.fabric_composition || '';
+    this.form.fabricWeight = product.fabric_weight || '';
+    this.form.texture = product.texture || '';
+    
+    // Sizes
+    this.form.availableSizes = Array.isArray(product.available_sizes) ? [...product.available_sizes] : [];
+    this.form.fitDescription = product.fit_description || '';
+    this.form.sizeChartUrl = product.size_chart_url || '';
+    this.sizePricing = product.size_pricing ? { ...product.size_pricing } : {};
+    
+    // Colors - deep clone
+    this.form.availableColors = Array.isArray(product.available_colors) 
+      ? product.available_colors.map((c: any) => ({ ...c })) 
+      : [];
+    
+    // Variants - deep clone with proper structure
+    if (Array.isArray(product.variants)) {
+      this.variants = product.variants.map((v: any) => ({
+        name: v.name,
+        imageUrl: v.image_url || '',
+        imageFile: undefined
+      }));
+    } else {
+      this.variants = [];
+    }
+    console.log('🎨 Variants populated:', this.variants);
+    
+    // ✅ Manually trigger change detection to update the UI
+    this.cdr.detectChanges();
+    
+    // Print & Customization
+    this.form.printMethod = product.print_method || '';
+    this.form.printAreas = Array.isArray(product.print_areas) ? [...product.print_areas] : [];
+    this.form.designRequirements = product.design_requirements || '';
+    
+    // Pricing
+    this.form.baseCost = product.base_cost || 0;
+    this.form.retailPrice = product.retail_price || 0;
+    
+    // Order requirements
+    this.form.turnaroundTime = product.turnaround_time || '';
+    this.form.minimumOrderQty = product.minimum_order_qty || 1;
+    
+    // Status
+    this.form.isActive = product.is_active === 1 || product.is_active === true;
+    
+    console.log('✅ Form populated. Current form state:', this.form);
+    console.log('✅ Variants:', this.variants);
+    
+    this.message.set('📝 Editing: ' + product.name);
+    this.messageType.set('info');
+  }
+
   onFileSelected(event: Event, field: 'front'|'back'|'logo'|'sizeChart'|'additional') {
     const input = event.target as HTMLInputElement;
     if (!input.files || input.files.length === 0) return;
@@ -182,6 +308,37 @@ export class CustomizableProductFormComponent {
       this.form.stock = this.form.stock.filter(e => e.size !== size);
     }
     this.regenerateStockGrid();
+  }
+
+  // Update available sizes based on category and product type
+  updateAvailableSizes() {
+    const isPants = this.form.category.includes('Jogging Pants') || 
+                    this.form.category.includes('Shorts');
+    const isKids = this.form.gender === 'Kids';
+    
+    if (isPants) {
+      // For pants/shorts, use waist measurements
+      this.availableSizes = isKids ? this.pantsSizesKids : this.pantsSizesAdult;
+    } else {
+      // For tops (T-Shirts, Polos, Jerseys, Jackets), use standard sizes
+      this.availableSizes = isKids ? this.clothingSizesKids : this.clothingSizesAdult;
+    }
+    
+    // Clear previously selected sizes that are no longer valid
+    this.form.availableSizes = [];
+    this.sizePricing = {};
+  }
+
+  onCategoryChange() {
+    this.updateAvailableSizes();
+  }
+
+  onProductTypeChange() {
+    // Update sizes when product type changes
+    this.updateAvailableSizes();
+    // This ensures only appropriate sizes (adult or kids) are selected
+    this.form.availableSizes = [];
+    this.sizePricing = {};
   }
 
   toggleColor(color: string, checked: boolean) {
@@ -347,18 +504,73 @@ export class CustomizableProductFormComponent {
     }
   }
 
+  validateForm(): { valid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    // 1. Basic Info
+    if (!this.form.category) {
+      errors.push('Product Category is required');
+    }
+    if (!this.form.gender) {
+      errors.push('Product Type is required');
+    }
+
+    // 2. Images - only required if creating new product (not editing)
+    if (!this.isEditMode) {
+      if (!this.form.frontImageFile) {
+        errors.push('Front View Image is required');
+      }
+      if (!this.form.backImageFile) {
+        errors.push('Back View Image is required');
+      }
+    } else {
+      // In edit mode, images are optional (keep existing if not uploading new ones)
+      if (!this.form.frontImageFile && !this.form.frontImageUrl) {
+        errors.push('Front View Image is required');
+      }
+      if (!this.form.backImageFile && !this.form.backImageUrl) {
+        errors.push('Back View Image is required');
+      }
+    }
+
+    // 3. Sizes
+    if (this.form.availableSizes.length === 0) {
+      errors.push('Please select at least one size');
+    }
+
+    // 4. Pricing
+    if (!this.form.retailPrice || this.form.retailPrice <= 0) {
+      errors.push('Retail Price must be greater than 0');
+    }
+
+    // 5. Colors
+    if (this.form.availableColors.length === 0) {
+      errors.push('Please add at least one color');
+    }
+
+    // 6. Print Areas
+    if (this.form.printAreas.length === 0) {
+      errors.push('Please select at least one print area');
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors
+    };
+  }
+
   save() {
-    // Basic required checks
-    if (!this.form.name || !this.form.category) {
-      this.setMessage('Please fill in Product Name and Category', 'error');
-      return;
-    }
-    if (!this.form.frontImageFile || !this.form.backImageFile) {
-      this.setMessage('Front and Back images are required', 'error');
-      return;
-    }
-    if (this.form.retailPrice <= 0) {
-      this.setMessage('Please enter a valid retail price', 'error');
+    // Validate form
+    const validation = this.validateForm();
+    
+    if (!validation.valid) {
+      // Show all errors
+      const errorMessage = '⚠️ Please fix the following errors:\n\n' + 
+        validation.errors.map((err, idx) => `${idx + 1}. ${err}`).join('\n');
+      this.setMessage(errorMessage, 'error');
+      
+      // Scroll to top to see error message
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
@@ -370,27 +582,33 @@ export class CustomizableProductFormComponent {
       this.isUploading.set(true);
       this.setMessage('📤 Uploading images to Cloudinary...', 'info');
 
-      // Upload front image
-      const frontResult = await this.cloudinaryService.uploadImageWithProductName(
-        this.form.frontImageFile!,
-        `${this.form.name}-front`,
-        'customizable'
-      );
-      this.form.frontImageUrl = frontResult.secure_url;
+      // Upload front image only if a new file was selected
+      if (this.form.frontImageFile) {
+        const frontResult = await this.cloudinaryService.uploadImageWithProductName(
+          this.form.frontImageFile,
+          `${this.form.category}-front`,
+          'customizable'
+        );
+        this.form.frontImageUrl = frontResult.secure_url;
+      }
+      // If editing and no new file, keep existing URL (already set in form)
 
-      // Upload back image
-      const backResult = await this.cloudinaryService.uploadImageWithProductName(
-        this.form.backImageFile!,
-        `${this.form.name}-back`,
-        'customizable'
-      );
-      this.form.backImageUrl = backResult.secure_url;
+      // Upload back image only if a new file was selected
+      if (this.form.backImageFile) {
+        const backResult = await this.cloudinaryService.uploadImageWithProductName(
+          this.form.backImageFile,
+          `${this.form.category}-back`,
+          'customizable'
+        );
+        this.form.backImageUrl = backResult.secure_url;
+      }
+      // If editing and no new file, keep existing URL (already set in form)
 
       // Upload size chart if provided
       if (this.form.sizeChartFile) {
         const sizeChartResult = await this.cloudinaryService.uploadImageWithProductName(
           this.form.sizeChartFile,
-          `${this.form.name}-sizechart`,
+          `${this.form.category}-sizechart`,
           'customizable'
         );
         this.form.sizeChartUrl = sizeChartResult.secure_url;
@@ -400,7 +618,7 @@ export class CustomizableProductFormComponent {
       if (this.form.additionalImageFiles.length > 0) {
         const additionalResults = await this.cloudinaryService.uploadCustomizableImages(
           this.form.additionalImageFiles,
-          this.form.name
+          this.form.category
         );
         this.form.additionalImageUrls = additionalResults.map(r => r.secure_url);
       }
@@ -410,8 +628,8 @@ export class CustomizableProductFormComponent {
         if (variant.imageFile) {
           const result = await this.cloudinaryService.uploadImageWithProductName(
             variant.imageFile,
-            `${this.form.name}-variant-${variant.name}`,
-            'customizable'
+            `${this.form.category}-variant-${variant.name}`,
+            'customizable/variants'
           );
           variant.imageUrl = result.secure_url;
           delete variant.imageFile; // Remove file object before sending to API
@@ -425,9 +643,8 @@ export class CustomizableProductFormComponent {
 
       // Prepare data for API
       const productData = {
-        name: this.form.name,
+        name: this.form.category, // Use category as product name (e.g., "T-Shirt", "Hoodie")
         category: this.form.category,
-        brand: this.form.brand,
         gender: this.form.gender,
         fit_type: this.form.fitType,
         description: this.form.description,
@@ -453,28 +670,83 @@ export class CustomizableProductFormComponent {
       };
 
       // Save to API
-      this.apiService.createCustomizableProduct(productData).subscribe({
-        next: (response) => {
-          this.isSaving.set(false);
-          this.setMessage('✅ Product saved successfully!', 'success');
-          
-          // Reset form after 2 seconds
-          setTimeout(() => {
-            this.resetForm();
-          }, 2000);
-        },
-        error: (error) => {
-          this.isSaving.set(false);
-          console.error('Save error:', error);
-          this.setMessage(`❌ Failed to save product: ${error.error?.message || error.message}`, 'error');
-        }
-      });
+      if (this.isEditMode && this.productToEdit) {
+        // Update existing product
+        this.apiService.updateCustomizableProduct(String(this.productToEdit.id), productData).subscribe({
+          next: (response) => {
+            this.isSaving.set(false);
+            this.setMessage('✅ Product updated successfully!', 'success');
+            
+            // Emit event to parent and show success for 3 seconds, then reset
+            this.productSaved.emit();
+            setTimeout(() => {
+              this.resetForm();
+              this.clearMessage();
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, 3000);
+          },
+          error: (error) => {
+            this.isSaving.set(false);
+            console.error('Update error:', error);
+            
+            let errorMsg = 'Failed to update product';
+            if (error.error?.message) {
+              errorMsg = error.error.message;
+            } else if (error.message) {
+              errorMsg = error.message;
+            }
+            
+            this.setMessage(errorMsg, 'error');
+          }
+        });
+      } else {
+        // Create new product
+        this.apiService.createCustomizableProduct(productData).subscribe({
+          next: (response) => {
+            this.isSaving.set(false);
+            this.setMessage('✅ Product created successfully!', 'success');
+            
+            // Emit event to parent and show success for 3 seconds, then reset
+            this.productSaved.emit();
+            setTimeout(() => {
+              this.resetForm();
+              this.clearMessage();
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, 3000);
+          },
+          error: (error) => {
+            this.isSaving.set(false);
+            console.error('Save error:', error);
+            
+            let errorMsg = 'Failed to save product';
+            if (error.error?.message) {
+              errorMsg = error.error.message;
+            } else if (error.message) {
+              errorMsg = error.message;
+            } else if (error.status === 0) {
+              errorMsg = 'Cannot connect to server. Please check if the backend is running.';
+            } else if (error.status === 500) {
+              errorMsg = 'Server error. Please check backend logs.';
+            }
+            
+            this.setMessage(`❌ ${errorMsg}`, 'error');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        });
+      }
 
     } catch (error: any) {
       this.isUploading.set(false);
       this.isSaving.set(false);
       console.error('Upload error:', error);
-      this.setMessage(`❌ Upload failed: ${error.message}`, 'error');
+      
+      let errorMsg = 'Image upload failed';
+      if (error.message) {
+        errorMsg = error.message;
+      }
+      
+      this.setMessage(`❌ ${errorMsg}. Please try again.`, 'error');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }
 
@@ -482,7 +754,6 @@ export class CustomizableProductFormComponent {
     this.form = {
       name: '',
       category: '',
-      brand: '',
       gender: 'Unisex',
       fitType: 'Classic',
       description: '',
@@ -524,9 +795,50 @@ export class CustomizableProductFormComponent {
     this.variantImagePreview = null;
   }
 
+  private messageTimeout: any = null;
+
   private setMessage(msg: string, type: 'success'|'error'|'info'){
+    // Clear any existing timeout
+    if (this.messageTimeout) {
+      clearTimeout(this.messageTimeout);
+    }
+    
     this.message.set(msg);
     this.messageType.set(type);
-    setTimeout(()=>{ this.message.set(''); this.messageType.set(''); }, 3000);
+    
+    // Only auto-clear success and info messages after 5 seconds
+    // Error messages stay until manually dismissed or form is submitted successfully
+    if (type === 'success' || type === 'info') {
+      this.messageTimeout = setTimeout(() => { 
+        this.message.set(''); 
+        this.messageType.set('success'); 
+      }, 5000);
+    }
+  }
+
+  clearMessage() {
+    if (this.messageTimeout) {
+      clearTimeout(this.messageTimeout);
+    }
+    this.message.set('');
+    this.messageType.set('success');
+  }
+
+  onCancel() {
+    if (this.isSaving() || this.isUploading()) {
+      return; // Don't allow cancel during save/upload
+    }
+    
+    // Ask for confirmation if form has data
+    const hasData = this.form.name || this.form.category || this.form.frontImageFile || 
+                    this.form.backImageFile || this.form.availableSizes.length > 0;
+    
+    if (hasData) {
+      if (!confirm('Are you sure you want to cancel? Any unsaved changes will be lost.')) {
+        return;
+      }
+    }
+    
+    this.formCancelled.emit();
   }
 }

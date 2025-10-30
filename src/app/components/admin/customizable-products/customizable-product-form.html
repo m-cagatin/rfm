@@ -1,48 +1,123 @@
 <div class="cp-form-container">
-  <div *ngIf="message()" class="alert" [class.alert-success]="messageType()==='success'" [class.alert-danger]="messageType()==='error'" [class.alert-info]="messageType()==='info'">{{message()}}</div>
+  <!-- Alert Messages -->
+  <div *ngIf="message()" class="alert" [class.alert-success]="messageType()==='success'" [class.alert-danger]="messageType()==='error'" [class.alert-info]="messageType()==='info'" style="white-space: pre-line; position: relative;">
+    {{message()}}
+    <button type="button" class="alert-close" (click)="clearMessage()" *ngIf="messageType() === 'error'" title="Dismiss">&times;</button>
+  </div>
 
-  <h2>Add Customizable Product</h2>
+  <h2>{{ isEditMode ? '✏️ Edit Product' : '➕ Add Customizable Product' }}</h2>
+  <p *ngIf="isEditMode" class="text-muted">Update the fields you want to change. Existing data is pre-filled.</p>
   <form>
     <!-- 1. Basic Info -->
     <section class="card-section">
-      <h3>1. Basic Info</h3>
+      <h3>1. Basic Info <span class="required-indicator">* Required</span></h3>
       <div class="row">
         <div class="col">
-          <label>Product Name</label>
-          <input class="form-control" [(ngModel)]="form.name" name="name" placeholder="Premium Cotton T-Shirt" required>
-        </div>
-        <div class="col">
-          <label>Category</label>
-          <select class="form-select" [(ngModel)]="form.category" name="category" required>
-            <option value="">Select category</option>
+          <label>Product Category / Name <span class="text-danger">*</span></label>
+          <select class="form-select" [(ngModel)]="form.category" name="category" required (change)="onCategoryChange()">
+            <option value="">Select product type</option>
             <option *ngFor="let c of categories" [value]="c">{{c}}</option>
           </select>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col">
-          <label>Brand / Supplier</label>
-          <input class="form-control" [(ngModel)]="form.brand" name="brand" placeholder="e.g., Bella+Canvas">
+          <small class="form-text text-muted">This will be the product name (e.g., "T-Shirt - V-Neck")</small>
         </div>
         <div class="col">
-          <label>Gender</label>
-          <select class="form-select" [(ngModel)]="form.gender" name="gender">
+          <label>Product Type <span class="text-danger">*</span></label>
+          <select class="form-select" [(ngModel)]="form.gender" name="gender" (change)="onProductTypeChange()">
             <option>Unisex</option>
             <option>Men</option>
             <option>Women</option>
             <option>Kids</option>
           </select>
+          <small class="form-text text-muted">This determines which sizes are available</small>
         </div>
         <div class="col">
           <label>Fit Type</label>
           <select class="form-select" [(ngModel)]="form.fitType" name="fitType">
             <option>Classic</option>
-            <option>Slim</option>
+            <option>Slim Fit</option>
+            <option>Regular Fit</option>
+            <option>Relaxed Fit</option>
             <option>Oversized</option>
+            <option>Tapered</option>
+            <option>Athletic Fit</option>
+            <option>Muscle Fit</option>
           </select>
         </div>
       </div>
-      <div>
+
+      <!-- Sizes & Fit (Moved here from section 5) -->
+      <div style="margin-top: 20px; padding: 16px; background: #f8f9fa; border-radius: 8px;">
+        <label style="font-weight: 600; margin-bottom: 12px; display: block;">Available Sizes</label>
+        
+        <!-- Dynamic Sizes based on Category and Product Type -->
+        <div *ngIf="availableSizes.length > 0">
+          <small class="form-text text-muted" style="display: block; margin-bottom: 8px;">
+            <span *ngIf="form.category.includes('Pants') || form.category.includes('Shorts')">Waist Sizes (inches)</span>
+            <span *ngIf="!(form.category.includes('Pants') || form.category.includes('Shorts'))">
+              {{ form.gender === 'Kids' ? 'Kids Sizes' : 'Adult/Teen Sizes' }}
+            </span>
+          </small>
+          <div class="chips">
+            <label *ngFor="let s of availableSizes" class="chip">
+              <input type="checkbox" (change)="toggleSize(s, $any($event.target).checked)"> {{s}}
+            </label>
+          </div>
+        </div>
+        
+        <!-- Prompt to select category and product type first -->
+        <div *ngIf="availableSizes.length === 0" style="padding: 20px; text-align: center; color: #6c757d;">
+          <p>👆 Please select <strong>Product Category</strong> and <strong>Product Type</strong> first to see available sizes.</p>
+        </div>
+
+        <!-- Size Pricing -->
+        <div *ngIf="form.availableSizes.length > 0" style="margin-top: 16px; padding: 16px; background: white; border-radius: 8px; border: 1px solid #dee2e6;">
+          <label style="font-size: 14px; font-weight: 600; color: #0066cc; margin-bottom: 8px;">💰 Size Pricing (Optional Add-ons)</label>
+          <small class="form-text" style="display: block; margin-bottom: 12px; color: #6c757d;">
+            Set additional charges for larger sizes. <strong>Leave blank or 0 for standard sizes.</strong>
+          </small>
+          
+          <div class="size-pricing-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px;">
+            <div *ngFor="let size of form.availableSizes" style="background: #f8f9fa; padding: 10px; border-radius: 6px; border: 1px solid #e9ecef;">
+              <label style="font-weight: 600; font-size: 13px; color: #495057; display: block; margin-bottom: 6px;">
+                📏 {{ size }}
+              </label>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text">₱</span>
+                <input 
+                  type="number" 
+                  min="0" 
+                  step="10"
+                  class="form-control" 
+                  [(ngModel)]="sizePricing[size]" 
+                  [name]="'sizePrice_' + size"
+                  placeholder="0"
+                  style="font-weight: 500;">
+              </div>
+            </div>
+          </div>
+          
+          <div style="margin-top: 12px; padding: 10px; background: #fff3cd; border-radius: 6px; border: 1px solid #ffc107;">
+            <small style="color: #856404; font-weight: 500;">
+              💡 <strong>Example:</strong> If retail price is ₱500 and XL has +₱50, customer pays ₱550 for XL.
+            </small>
+          </div>
+        </div>
+
+        <!-- Fit Description & Size Chart -->
+        <div class="row" style="margin-top: 16px;">
+          <div class="col">
+            <label>Size Chart (image)</label>
+            <input type="file" class="form-control form-control-sm" (change)="onFileSelected($event,'sizeChart')" accept="image/*">
+            <img *ngIf="sizeChartPreview" [src]="sizeChartPreview" class="preview" alt="size chart" style="max-height: 150px; margin-top: 8px;">
+          </div>
+          <div class="col">
+            <label>Fit Description</label>
+            <input class="form-control form-control-sm" [(ngModel)]="form.fitDescription" name="fitDescription" placeholder="Runs true to size">
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 20px;">
         <label>Description</label>
         <textarea class="form-control" rows="3" [(ngModel)]="form.description" name="description" placeholder="Product details and selling points"></textarea>
         <small class="form-text text-muted">Describe the product's features, quality, and what makes it special</small>
@@ -64,16 +139,16 @@
 
     <!-- 2. Images -->
     <section class="card-section">
-      <h3>2. Images</h3>
+      <h3>2. Images <span class="required-indicator">* Required</span></h3>
       <div class="row">
         <div class="col">
-          <label>Front View Image (required)</label>
-          <input type="file" class="form-control" (change)="onFileSelected($event,'front')" accept="image/*">
+          <label>Front View Image <span class="text-danger">*</span></label>
+          <input type="file" class="form-control" (change)="onFileSelected($event,'front')" accept="image/*" required>
           <img *ngIf="frontPreview" [src]="frontPreview" class="preview" alt="front preview">
         </div>
         <div class="col">
-          <label>Back View Image (required)</label>
-          <input type="file" class="form-control" (change)="onFileSelected($event,'back')" accept="image/*">
+          <label>Back View Image <span class="text-danger">*</span></label>
+          <input type="file" class="form-control" (change)="onFileSelected($event,'back')" accept="image/*" required>
           <img *ngIf="backPreview" [src]="backPreview" class="preview" alt="back preview">
         </div>
       </div>
@@ -113,13 +188,13 @@
 
     <!-- 4. Pricing -->
     <section class="card-section">
-      <h3>4. Pricing</h3>
+      <h3>4. Pricing <span class="required-indicator">* Required</span></h3>
       <div class="row">
         <div class="col-md-6">
-          <label>Retail Price 💰</label>
+          <label>Retail Price 💰 <span class="text-danger">*</span></label>
           <div class="input-group">
             <span class="input-group-text">₱</span>
-            <input type="number" min="0" step="10" class="form-control" [(ngModel)]="form.retailPrice" name="retailPrice" placeholder="500" style="font-size: 18px; font-weight: 600;">
+            <input type="number" min="0" step="10" class="form-control" [(ngModel)]="form.retailPrice" name="retailPrice" placeholder="500" style="font-size: 18px; font-weight: 600;" required>
           </div>
           <small class="form-text text-muted">Final product price customers pay (before size premiums and shipping)</small>
         </div>
@@ -131,84 +206,9 @@
       </div>
     </section>
 
-    <!-- 5. Sizes & Fit -->
-    <section class="card-section">
-      <h3>5. Sizes & Fit</h3>
-      
-      <!-- Adult/Teen Sizes -->
-      <div>
-        <label>Adult/Teen Sizes</label>
-        <div class="chips">
-          <label *ngFor="let s of adultSizes" class="chip">
-            <input type="checkbox" (change)="toggleSize(s, $any($event.target).checked)"> {{s}}
-          </label>
-        </div>
-      </div>
-
-      <!-- Kids Sizes -->
-      <div style="margin-top: 16px;">
-        <label>Kids Sizes (K6 - K10)</label>
-        <div class="chips">
-          <label *ngFor="let s of kidsSizes" class="chip">
-            <input type="checkbox" (change)="toggleSize(s, $any($event.target).checked)"> {{s}}
-          </label>
-        </div>
-      </div>
-      
-      <!-- Size Pricing Section -->
-      <div *ngIf="form.availableSizes.length > 0" style="margin-top: 24px; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #007bff;">
-        <label style="font-size: 16px; font-weight: 600; color: #007bff; margin-bottom: 8px;">💰 Size Pricing (Optional Add-ons)</label>
-        <small class="form-text" style="display: block; margin-bottom: 16px; color: #6c757d;">
-          Set additional charges for larger sizes (e.g., +₱50 for XL, +₱100 for 2XL). 
-          <strong>Leave blank or 0 for standard sizes with no extra charge.</strong>
-        </small>
-        
-        <div class="size-pricing-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px;">
-          <div *ngFor="let size of form.availableSizes" style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #dee2e6;">
-            <label style="font-weight: 600; font-size: 15px; color: #495057; display: block; margin-bottom: 8px;">
-              📏 Size {{ size }}
-            </label>
-            <div class="input-group">
-              <span class="input-group-text" style="background: #e9ecef;">₱</span>
-              <input 
-                type="number" 
-                min="0" 
-                step="10"
-                class="form-control" 
-                [(ngModel)]="sizePricing[size]" 
-                [name]="'sizePrice_' + size"
-                placeholder="0"
-                style="font-weight: 500;">
-            </div>
-            <small class="form-text text-muted" style="display: block; margin-top: 4px; font-size: 11px;">
-              Additional charge
-            </small>
-          </div>
-        </div>
-        
-        <div style="margin-top: 16px; padding: 12px; background: #fff3cd; border-radius: 6px; border: 1px solid #ffc107;">
-          <small style="color: #856404; font-weight: 500;">
-            💡 <strong>Example:</strong> If retail price is ₱500 and XL has +₱50, customer pays ₱550 for XL (+ shipping at checkout).
-          </small>
-        </div>
-      </div>
-      
-      <div class="row" style="margin-top: 20px;">
-        <div class="col">
-          <label>Size Chart (image)</label>
-          <input type="file" class="form-control" (change)="onFileSelected($event,'sizeChart')" accept="image/*">
-          <img *ngIf="sizeChartPreview" [src]="sizeChartPreview" class="preview" alt="size chart">
-        </div>
-        <div class="col">
-          <label>Fit Description</label>
-          <input class="form-control" [(ngModel)]="form.fitDescription" name="fitDescription" placeholder="Runs true to size">
-        </div>
-      </div>
-    </section>
-
-    <!-- 6. Colors & Variants -->
+    <!-- 5. Colors & Variants -->
     <section class="card-section colors-variants-section">
-      <h3>6. Colors & Variants</h3>
+      <h3>5. Colors & Variants</h3>
       
       <div class="colors-variants-layout">
         <!-- Left Side: Search Colors -->
@@ -227,11 +227,11 @@
           </div>
           
           <!-- Selected Colors List -->
-          <ul class="selected-colors-list">
-            <li *ngFor="let color of form.availableColors; let i = index" class="color-item">
-              <div class="color-circle" [style.background-color]="color.hex"></div>
-              <span class="color-label">{{ color.name }} | {{ color.hex }}</span>
-              <button type="button" class="btn-remove" (click)="removeColor(i)" title="Remove">×</button>
+          <ul class="selected-colors-grid">
+            <li *ngFor="let color of form.availableColors; let i = index" class="color-card-item">
+              <div class="color-preview-large" [style.background-color]="color.hex"></div>
+              <span class="color-card-label">{{ color.name }}</span>
+              <button type="button" class="btn-remove-card" (click)="removeColor(i)" title="Remove">×</button>
             </li>
           </ul>
         </div>
@@ -281,9 +281,9 @@
       </div>
     </section>
 
-    <!-- 7. Print & Customization -->
+    <!-- 6. Print & Customization -->
     <section class="card-section">
-      <h3>7. Print & Customization</h3>
+      <h3>6. Print & Customization</h3>
       <div class="row">
         <div class="col">
           <label>Print Method</label>
@@ -309,9 +309,9 @@
       </div>
     </section>
 
-    <!-- 8. Business Details -->
+    <!-- 7. Business Details -->
     <section class="card-section">
-      <h3>8. Business Details</h3>
+      <h3>7. Business Details</h3>
       <div class="row">
         <div class="col">
           <label>Turnaround Time</label>
@@ -327,11 +327,11 @@
     </section>
 
     <div class="actions sticky-actions">
-      <button type="button" class="btn btn-secondary" routerLink="/admin/customizable-products" [disabled]="isUploading() || isSaving()">Cancel</button>
+      <button type="button" class="btn btn-secondary" (click)="onCancel()" [disabled]="isUploading() || isSaving()">Cancel</button>
       <button type="button" class="btn btn-primary" (click)="save()" [disabled]="isUploading() || isSaving()">
-        <span *ngIf="!isUploading() && !isSaving()">💾 Save Product</span>
+        <span *ngIf="!isUploading() && !isSaving()">{{ isEditMode ? '✅ Update Product' : '💾 Save Product' }}</span>
         <span *ngIf="isUploading()">📤 Uploading images...</span>
-        <span *ngIf="isSaving()">💾 Saving...</span>
+        <span *ngIf="isSaving()">{{ isEditMode ? '✅ Updating...' : '💾 Saving...' }}</span>
       </button>
     </div>
   </form>

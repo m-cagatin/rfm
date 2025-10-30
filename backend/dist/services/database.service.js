@@ -3,6 +3,22 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DatabaseService = void 0;
 const database_1 = require("../config/database");
 class DatabaseService {
+    static async generateProductCode() {
+        const connection = await database_1.pool.getConnection();
+        let attempts = 0;
+        const maxAttempts = 10;
+        while (attempts < maxAttempts) {
+            const code = Math.floor(10000000 + Math.random() * 90000000).toString();
+            const [rows] = await connection.execute('SELECT product_code FROM catalog_clothing WHERE product_code = ?', [code]);
+            if (rows.length === 0) {
+                connection.release();
+                return code;
+            }
+            attempts++;
+        }
+        connection.release();
+        throw new Error('Failed to generate unique product code');
+    }
     static parseRoles(raw) {
         try {
             if (Array.isArray(raw))
@@ -288,40 +304,55 @@ class DatabaseService {
         }
     }
     static async createProduct(productData) {
+        const connection = await database_1.pool.getConnection();
         try {
-            const connection = await database_1.pool.getConnection();
+            await connection.beginTransaction();
+            const productCode = await this.generateProductCode();
             const [result] = await connection.execute(`INSERT INTO catalog_clothing 
-         (product_name, category, base_price, description, image_url, cloudinary_public_id, 
+         (product_code, product_name, category, base_price, description, 
           status, stock_quantity, sku, sizes, tags, 
-          colors, images, material, gender, allows_customization, production_days, stock_by_size_color) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+          colors, material, gender, allows_customization, production_days, stock_by_size_color) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+                productCode,
                 productData.product_name,
                 productData.category,
                 productData.base_price,
                 productData.description || null,
-                productData.image_url,
-                productData.cloudinary_public_id || null,
                 productData.status || 'Active',
                 productData.stock_quantity || 0,
                 productData.sku || null,
                 productData.sizes || null,
                 productData.tags || null,
                 productData.colors || null,
-                productData.images || null,
                 productData.material || null,
                 productData.gender || 'Unisex',
                 productData.allows_customization ?? true,
                 productData.production_days || 3,
                 productData.stock_by_size_color || null
             ]);
+            const productId = result.insertId;
+            if (productData.images && productData.images.length > 0) {
+                for (let i = 0; i < productData.images.length; i++) {
+                    const image = productData.images[i];
+                    await connection.execute(`INSERT INTO product_images (product_id, image_url, cloudinary_public_id, display_order)
+             VALUES (?, ?, ?, ?)`, [productId, image.url, image.publicId || null, i + 1]);
+                }
+            }
+            await connection.commit();
             connection.release();
             return {
                 success: true,
                 message: 'Product created successfully',
-                data: { product_id: result.insertId, ...productData }
+                data: {
+                    product_id: productId,
+                    product_code: productCode,
+                    ...productData
+                }
             };
         }
         catch (error) {
+            await connection.rollback();
+            connection.release();
             console.error('Database error in createProduct:', error);
             if (error.code === 'ER_DUP_ENTRY') {
                 return { success: false, message: 'A product with this name already exists', error: error.message };
@@ -332,21 +363,36 @@ class DatabaseService {
     static async getProducts(category, status) {
         try {
             const connection = await database_1.pool.getConnection();
-            let query = 'SELECT * FROM catalog_clothing';
+            let query = `
+        SELECT 
+          p.*,
+          GROUP_CONCAT(
+            JSON_OBJECT(
+              'image_id', i.image_id,
+              'url', i.image_url,
+              'publicId', i.cloudinary_public_id,
+              'displayOrder', i.display_order
+            )
+            ORDER BY i.display_order
+          ) as images
+        FROM catalog_clothing p
+        LEFT JOIN product_images i ON p.product_id = i.product_id
+      `;
             const params = [];
             if (category || status) {
                 query += ' WHERE ';
                 const conditions = [];
                 if (category) {
-                    conditions.push('category = ?');
+                    conditions.push('p.category = ?');
                     params.push(category);
                 }
                 if (status) {
-                    conditions.push('status = ?');
+                    conditions.push('p.status = ?');
                     params.push(status);
                 }
                 query += conditions.join(' AND ');
             }
+            query += ' GROUP BY p.product_id';
             const [rows] = await connection.execute(query, params);
             connection.release();
             const normalized = rows.map((r) => ({
@@ -354,7 +400,7 @@ class DatabaseService {
                 base_price: r.base_price !== undefined && r.base_price !== null ? Number(r.base_price) : r.base_price,
                 stock_quantity: r.stock_quantity !== undefined && r.stock_quantity !== null ? Number(r.stock_quantity) : r.stock_quantity,
                 production_days: r.production_days !== undefined && r.production_days !== null ? Number(r.production_days) : r.production_days,
-                images: r.images ? (typeof r.images === 'string' ? r.images : JSON.stringify(r.images)) : null,
+                images: r.images ? JSON.parse(`[${r.images}]`) : [],
                 colors: r.colors ? (typeof r.colors === 'string' ? r.colors : JSON.stringify(r.colors)) : null,
                 sizes: r.sizes ? (typeof r.sizes === 'string' ? r.sizes : JSON.stringify(r.sizes)) : null,
                 tags: r.tags ? (typeof r.tags === 'string' ? r.tags : JSON.stringify(r.tags)) : null,
@@ -370,14 +416,28 @@ class DatabaseService {
     static async getProduct(productId) {
         try {
             const connection = await database_1.pool.getConnection();
-            const [rows] = await connection.execute('SELECT * FROM catalog_clothing WHERE product_id = ?', [productId]);
+            const [rows] = await connection.execute(`SELECT 
+          p.*,
+          GROUP_CONCAT(
+            JSON_OBJECT(
+              'image_id', i.image_id,
+              'url', i.image_url,
+              'publicId', i.cloudinary_public_id,
+              'displayOrder', i.display_order
+            )
+            ORDER BY i.display_order
+          ) as images
+        FROM catalog_clothing p
+        LEFT JOIN product_images i ON p.product_id = i.product_id
+        WHERE p.product_id = ?
+        GROUP BY p.product_id`, [productId]);
             connection.release();
             const products = rows.map((r) => ({
                 ...r,
                 base_price: r.base_price !== undefined && r.base_price !== null ? Number(r.base_price) : r.base_price,
                 stock_quantity: r.stock_quantity !== undefined && r.stock_quantity !== null ? Number(r.stock_quantity) : r.stock_quantity,
                 production_days: r.production_days !== undefined && r.production_days !== null ? Number(r.production_days) : r.production_days,
-                images: r.images ? (typeof r.images === 'string' ? r.images : JSON.stringify(r.images)) : null,
+                images: r.images ? JSON.parse(`[${r.images}]`) : [],
                 colors: r.colors ? (typeof r.colors === 'string' ? r.colors : JSON.stringify(r.colors)) : null,
                 sizes: r.sizes ? (typeof r.sizes === 'string' ? r.sizes : JSON.stringify(r.sizes)) : null,
                 tags: r.tags ? (typeof r.tags === 'string' ? r.tags : JSON.stringify(r.tags)) : null,
@@ -394,23 +454,39 @@ class DatabaseService {
         }
     }
     static async updateProduct(productId, updateData) {
+        const connection = await database_1.pool.getConnection();
         try {
-            const connection = await database_1.pool.getConnection();
-            const fields = Object.keys(updateData);
-            const values = Object.values(updateData);
-            if (fields.length === 0) {
-                return { success: false, message: 'No fields to update' };
+            await connection.beginTransaction();
+            const { images, ...productFields } = updateData;
+            if (Object.keys(productFields).length > 0) {
+                const fields = Object.keys(productFields);
+                const values = Object.values(productFields);
+                const setClause = fields.map(field => `${field} = ?`).join(', ');
+                const query = `UPDATE catalog_clothing SET ${setClause} WHERE product_id = ?`;
+                const [result] = await connection.execute(query, [...values, productId]);
+                if (result.affectedRows === 0) {
+                    await connection.rollback();
+                    connection.release();
+                    return { success: false, message: 'Product not found' };
+                }
             }
-            const setClause = fields.map(field => `${field} = ?`).join(', ');
-            const query = `UPDATE catalog_clothing SET ${setClause} WHERE product_id = ?`;
-            const [result] = await connection.execute(query, [...values, productId]);
+            if (images !== undefined) {
+                await connection.execute('DELETE FROM product_images WHERE product_id = ?', [productId]);
+                if (Array.isArray(images) && images.length > 0) {
+                    for (let i = 0; i < images.length; i++) {
+                        const image = images[i];
+                        await connection.execute(`INSERT INTO product_images (product_id, image_url, cloudinary_public_id, display_order)
+               VALUES (?, ?, ?, ?)`, [productId, image.url, image.publicId || null, i + 1]);
+                    }
+                }
+            }
+            await connection.commit();
             connection.release();
-            if (result.affectedRows === 0) {
-                return { success: false, message: 'Product not found' };
-            }
             return { success: true, message: 'Product updated successfully' };
         }
         catch (error) {
+            await connection.rollback();
+            connection.release();
             console.error('Database error in updateProduct:', error);
             if (error.code === 'ER_DUP_ENTRY') {
                 return { success: false, message: 'A product with this name already exists', error: error.message };

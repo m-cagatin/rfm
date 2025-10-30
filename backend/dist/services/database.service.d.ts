@@ -33,6 +33,7 @@ export interface ApiResponse<T = any> {
     error?: string;
 }
 export declare class DatabaseService {
+    static generateProductCode(): Promise<string>;
     static parseRoles(raw: any): string[];
     static saveCanvas(canvasData: any, name: string): Promise<ApiResponse<CanvasData>>;
     static getCanvasList(): Promise<ApiResponse<CanvasData[]>>;
@@ -51,15 +52,16 @@ export declare class DatabaseService {
         category: string;
         base_price: number;
         description?: string;
-        image_url: string;
-        cloudinary_public_id?: string;
+        images?: Array<{
+            url: string;
+            publicId?: string;
+        }>;
         status?: string;
         stock_quantity?: number;
         sku?: string;
         sizes?: string;
         tags?: string;
         colors?: string;
-        images?: string;
         material?: string;
         gender?: string;
         allows_customization?: boolean;

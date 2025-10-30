@@ -21,11 +21,11 @@ router.get('/', async (req, res) => {
 });
 router.post('/', auth_middleware_1.authenticateToken, auth_middleware_1.requireAdmin, async (req, res) => {
     try {
-        const { product_name, category, base_price, description, image_url, cloudinary_public_id, status, stock_quantity, sku, sizes, tags, colors, images, material, gender, allows_customization, production_days, stock_by_size_color } = req.body;
-        if (!product_name || !category || !base_price || !image_url) {
+        const { product_name, category, base_price, description, status, stock_quantity, sku, sizes, tags, colors, images, material, gender, allows_customization, production_days, stock_by_size_color } = req.body;
+        if (!product_name || !category || !base_price) {
             return res.status(400).json({
                 success: false,
-                message: 'Product name, category, base price, and image URL are required'
+                message: 'Product name, category, and base price are required'
             });
         }
         const result = await database_service_1.DatabaseService.createProduct({
@@ -33,15 +33,13 @@ router.post('/', auth_middleware_1.authenticateToken, auth_middleware_1.requireA
             category,
             base_price: parseFloat(base_price),
             description,
-            image_url,
-            cloudinary_public_id,
+            images,
             status,
             stock_quantity: stock_quantity ? parseInt(stock_quantity) : 0,
             sku,
             sizes: sizes || null,
             tags: tags || null,
             colors: colors || null,
-            images: images || null,
             material,
             gender,
             allows_customization: allows_customization ?? true,
@@ -71,10 +69,6 @@ router.put('/:id', auth_middleware_1.authenticateToken, auth_middleware_1.requir
             updateData.base_price = parseFloat(req.body.base_price);
         if (req.body.description !== undefined)
             updateData.description = req.body.description;
-        if (req.body.image_url)
-            updateData.image_url = req.body.image_url;
-        if (req.body.cloudinary_public_id)
-            updateData.cloudinary_public_id = req.body.cloudinary_public_id;
         if (req.body.status)
             updateData.status = req.body.status;
         if (req.body.stock_quantity !== undefined)
@@ -87,7 +81,7 @@ router.put('/:id', auth_middleware_1.authenticateToken, auth_middleware_1.requir
             updateData.tags = req.body.tags;
         if (req.body.colors)
             updateData.colors = req.body.colors;
-        if (req.body.images)
+        if (req.body.images !== undefined)
             updateData.images = req.body.images;
         if (req.body.material !== undefined)
             updateData.material = req.body.material;

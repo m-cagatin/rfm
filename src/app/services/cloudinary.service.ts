@@ -55,7 +55,7 @@ export class CloudinaryService {
   async uploadImageWithProductName(
     file: File, 
     productName: string, 
-    folderType: 'catalog' | 'customizable' = 'catalog'
+    folderType: 'catalog' | 'customizable' | 'customizable/variants' = 'catalog'
   ): Promise<UploadResponse> {
     const formData = new FormData();
     formData.append('file', file);
@@ -213,5 +213,126 @@ export class CloudinaryService {
    */
   async uploadCustomizableImages(files: File[], productName: string): Promise<UploadResponse[]> {
     return this.uploadMultipleImages(files, productName, 'customizable');
+  }
+
+  /**
+   * Extract public_id from Cloudinary URL
+   * Example: https://res.cloudinary.com/your-cloud/image/upload/v1234567890/rfm_images/catalog/product-name-123.jpg
+   * Returns: rfm_images/catalog/product-name-123
+   */
+  extractPublicIdFromUrl(url: string): string | null {
+    try {
+      // Match pattern: /upload/v{version}/{public_id}.{extension}
+      // OR: /upload/{public_id}.{extension}
+      const regex = /\/upload\/(?:v\d+\/)?(.+)\.\w+$/;
+      const match = url.match(regex);
+      
+      if (match && match[1]) {
+        return match[1]; // Returns the public_id with folder path
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error extracting public_id from URL:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Delete image from Cloudinary
+   * Note: This requires a server-side implementation because deletion requires authentication
+   * For now, this method will return a promise that we can use when backend is ready
+   * @param publicId - The public_id of the image to delete (with folder path)
+   */
+  async deleteImage(publicId: string): Promise<{ success: boolean; message: string }> {
+    try {
+      console.log('🗑️ Deleting image from Cloudinary:', publicId);
+      
+      // Get token from localStorage (same key as AuthService)
+      const token = localStorage.getItem('authToken');
+      
+      if (!token) {
+        console.error('❌ No auth token found. Please log in.');
+        return {
+          success: false,
+          message: 'Authentication required. Please log in.'
+        };
+      }
+      
+      // Call backend API to delete the image
+      const response = await fetch(`${environment.api.baseUrl}/cloudinary/delete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ publicId })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log('✓ Image deleted successfully:', publicId);
+      } else {
+        console.warn('⚠️ Failed to delete image:', result.message);
+      }
+      
+      return {
+        success: result.success,
+        message: result.message
+      };
+    } catch (error) {
+      console.error('Error deleting image from Cloudinary:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  /**
+   * Delete multiple images from Cloudinary
+   */
+  async deleteMultipleImages(publicIds: string[]): Promise<{ success: boolean; deletedCount: number }> {
+    try {
+      console.log('🗑️ Deleting multiple images from Cloudinary:', publicIds);
+      
+      // Get token from localStorage (same key as AuthService)
+      const token = localStorage.getItem('authToken');
+      
+      if (!token) {
+        console.error('❌ No auth token found. Please log in.');
+        return { success: false, deletedCount: 0 };
+      }
+      
+      // Call backend API to delete multiple images
+      const response = await fetch(`${environment.api.baseUrl}/cloudinary/delete-multiple`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ publicIds })
+      });
+      
+      const result = await response.json();
+      
+      console.log('📦 Backend response:', result);
+      
+      if (result.success) {
+        console.log(`✅ Successfully deleted ${result.deletedCount}/${publicIds.length} images`);
+      } else {
+        console.error(`❌ Deletion failed: ${result.message}`);
+        console.error('Failed results:', result.results);
+      }
+      
+      return {
+        success: result.success,
+        deletedCount: result.deletedCount || 0
+      };
+    } catch (error) {
+      console.error('Error deleting multiple images:', error);
+      return { success: false, deletedCount: 0 };
+    }
   }
 }

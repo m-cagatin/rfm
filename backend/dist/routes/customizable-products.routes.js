@@ -8,7 +8,7 @@ const database_1 = require("../config/database");
 const router = express_1.default.Router();
 router.post('/', async (req, res) => {
     try {
-        const { name, category, brand, gender, fit_type, description, front_image_url, back_image_url, additional_image_urls, fabric_composition, fabric_weight, texture, available_sizes, size_chart_url, fit_description, available_colors, variants, print_method, print_areas, design_requirements, base_cost, retail_price, is_active, turnaround_time, minimum_order_qty } = req.body;
+        const { name, category, brand, gender, fit_type, description, front_image_url, back_image_url, additional_image_urls, fabric_composition, fabric_weight, texture, available_sizes, size_chart_url, fit_description, size_pricing, available_colors, variants, print_method, print_areas, design_requirements, retail_price, is_active, turnaround_time, minimum_order_qty } = req.body;
         if (!name || !category || !front_image_url || !back_image_url) {
             return res.status(400).json({
                 success: false,
@@ -17,10 +17,10 @@ router.post('/', async (req, res) => {
         }
         const query = `
       INSERT INTO customizable_products (
-        name, category, brand, gender, fit_type, description,
+        name, category, gender, fit_type, description,
         front_image_url, back_image_url, additional_image_urls,
         fabric_composition, fabric_weight, texture,
-        available_sizes, size_chart_url, fit_description,
+        available_sizes, size_chart_url, fit_description, size_pricing,
         available_colors,
         print_method, print_areas, design_requirements,
         base_cost, retail_price, is_active,
@@ -28,13 +28,14 @@ router.post('/', async (req, res) => {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
         const values = [
-            name, category, brand || null, gender || 'Unisex', fit_type || 'Classic', description || null,
+            name, category, gender || 'Unisex', fit_type || 'Classic', description || null,
             front_image_url, back_image_url, JSON.stringify(additional_image_urls || []),
             fabric_composition || null, fabric_weight || null, texture || null,
             JSON.stringify(available_sizes || []), size_chart_url || null, fit_description || null,
+            JSON.stringify(size_pricing || {}),
             JSON.stringify(available_colors || []),
             print_method || 'DTG', JSON.stringify(print_areas || []), design_requirements || null,
-            base_cost || 0, retail_price || 0, is_active !== undefined ? is_active : true,
+            0, retail_price || 0, is_active !== undefined ? is_active : true,
             turnaround_time || '3-5 days', minimum_order_qty || 1
         ];
         const [result] = await database_1.pool.execute(query, values);
@@ -124,10 +125,10 @@ router.put('/:id', async (req, res) => {
         const updateData = req.body;
         const query = `
       UPDATE customizable_products SET
-        name = ?, category = ?, brand = ?, gender = ?, fit_type = ?, description = ?,
+        name = ?, category = ?, gender = ?, fit_type = ?, description = ?,
         front_image_url = ?, back_image_url = ?, additional_image_urls = ?,
         fabric_composition = ?, fabric_weight = ?, texture = ?,
-        available_sizes = ?, size_chart_url = ?, fit_description = ?,
+        available_sizes = ?, size_chart_url = ?, fit_description = ?, size_pricing = ?,
         available_colors = ?,
         print_method = ?, print_areas = ?, design_requirements = ?,
         base_cost = ?, retail_price = ?, is_active = ?,
@@ -135,13 +136,13 @@ router.put('/:id', async (req, res) => {
       WHERE id = ?
     `;
         const values = [
-            updateData.name, updateData.category, updateData.brand, updateData.gender,
+            updateData.name, updateData.category, updateData.gender,
             updateData.fit_type, updateData.description,
             updateData.front_image_url, updateData.back_image_url,
             JSON.stringify(updateData.additional_image_urls || []),
             updateData.fabric_composition, updateData.fabric_weight, updateData.texture,
             JSON.stringify(updateData.available_sizes || []), updateData.size_chart_url,
-            updateData.fit_description,
+            updateData.fit_description, JSON.stringify(updateData.size_pricing || {}),
             JSON.stringify(updateData.available_colors || []),
             updateData.print_method, JSON.stringify(updateData.print_areas || []),
             updateData.design_requirements,

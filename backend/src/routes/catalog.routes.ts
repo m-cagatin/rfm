@@ -29,16 +29,16 @@ router.get('/', async (req: Request, res: Response) => {
 router.post('/', authenticateToken, requireAdmin, async (req: Request, res: Response) => {
   try {
     const { 
-      product_name, category, base_price, description, image_url, cloudinary_public_id, 
+      product_name, category, base_price, description, 
       status, stock_quantity, sku, sizes, tags,
       // NEW FIELDS
       colors, images, material, gender, allows_customization, production_days, stock_by_size_color
     } = req.body;
     
-    if (!product_name || !category || !base_price || !image_url) {
+    if (!product_name || !category || !base_price) {
       return res.status(400).json({
         success: false,
-        message: 'Product name, category, base price, and image URL are required'
+        message: 'Product name, category, and base price are required'
       });
     }
     
@@ -47,8 +47,7 @@ router.post('/', authenticateToken, requireAdmin, async (req: Request, res: Resp
       category,
       base_price: parseFloat(base_price),
       description,
-      image_url,
-      cloudinary_public_id,
+      images, // Array of {url, publicId}
       status,
       stock_quantity: stock_quantity ? parseInt(stock_quantity) : 0,
       sku,
@@ -56,7 +55,6 @@ router.post('/', authenticateToken, requireAdmin, async (req: Request, res: Resp
       sizes: sizes || null,
       tags: tags || null,
       colors: colors || null,
-      images: images || null,
       material,
       gender,
       allows_customization: allows_customization ?? true,
@@ -86,8 +84,6 @@ router.put('/:id', authenticateToken, requireAdmin, async (req: Request, res: Re
     if (req.body.category) updateData.category = req.body.category;
     if (req.body.base_price) updateData.base_price = parseFloat(req.body.base_price);
     if (req.body.description !== undefined) updateData.description = req.body.description;
-    if (req.body.image_url) updateData.image_url = req.body.image_url;
-    if (req.body.cloudinary_public_id) updateData.cloudinary_public_id = req.body.cloudinary_public_id;
     if (req.body.status) updateData.status = req.body.status;
     if (req.body.stock_quantity !== undefined) updateData.stock_quantity = parseInt(req.body.stock_quantity);
     if (req.body.sku !== undefined) updateData.sku = req.body.sku;
@@ -95,7 +91,7 @@ router.put('/:id', authenticateToken, requireAdmin, async (req: Request, res: Re
     if (req.body.sizes) updateData.sizes = req.body.sizes;
     if (req.body.tags) updateData.tags = req.body.tags;
     if (req.body.colors) updateData.colors = req.body.colors;
-    if (req.body.images) updateData.images = req.body.images;
+    if (req.body.images !== undefined) updateData.images = req.body.images; // Array of {url, publicId}
     if (req.body.material !== undefined) updateData.material = req.body.material;
     if (req.body.gender) updateData.gender = req.body.gender;
     if (req.body.allows_customization !== undefined) updateData.allows_customization = req.body.allows_customization;
