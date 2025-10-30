@@ -134,10 +134,22 @@
     <!-- 5. Sizes & Fit -->
     <section class="card-section">
       <h3>5. Sizes & Fit</h3>
+      
+      <!-- Adult/Teen Sizes -->
       <div>
-        <label>Available Sizes</label>
+        <label>Adult/Teen Sizes</label>
         <div class="chips">
-          <label *ngFor="let s of sizes" class="chip">
+          <label *ngFor="let s of adultSizes" class="chip">
+            <input type="checkbox" (change)="toggleSize(s, $any($event.target).checked)"> {{s}}
+          </label>
+        </div>
+      </div>
+
+      <!-- Kids Sizes -->
+      <div style="margin-top: 16px;">
+        <label>Kids Sizes (K6 - K10)</label>
+        <div class="chips">
+          <label *ngFor="let s of kidsSizes" class="chip">
             <input type="checkbox" (change)="toggleSize(s, $any($event.target).checked)"> {{s}}
           </label>
         </div>

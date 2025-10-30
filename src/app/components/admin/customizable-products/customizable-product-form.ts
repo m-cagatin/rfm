@@ -78,7 +78,13 @@ export class CustomizableProductFormComponent {
   isUploading = signal(false);
   isSaving = signal(false);
 
-  sizes = ['XS','S','M','L','XL','2XL','3XL'];
+  // Adult/Teen sizes
+  adultSizes = ['XS','S','M','L','XL','2XL','3XL'];
+  // Kids sizes
+  kidsSizes = ['K6','K7','K8','K9','K10'];
+  // All sizes combined
+  sizes = [...this.adultSizes, ...this.kidsSizes];
+  
   categories = ['T-Shirt','Hoodie','Sweatshirt','Jacket','Polo Shirt','Long Sleeve','Tank Top','Other'];
   colorsCatalog = ['Black','White','Navy','Gray','Red','Green','Blue','Beige'];
   printMethods: Array<CustomizableProductForm['printMethod']> = ['DTG','Screen Print','Embroidery'];
