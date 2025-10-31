@@ -7,18 +7,22 @@
 
   <h2>{{ isEditMode ? '✏️ Edit Product' : '➕ Add Customizable Product' }}</h2>
   <p *ngIf="isEditMode" class="text-muted">Update the fields you want to change. Existing data is pre-filled.</p>
-  <form>
+  <p *ngIf="!isEditMode" class="text-muted">Fill in the product details below. Fields marked with <span class="text-danger">*</span> are required.</p>
+  
+  <form (ngSubmit)="save()" #productForm="ngForm" novalidate>
     <!-- 1. Basic Info -->
     <section class="card-section">
       <h3>1. Basic Info <span class="required-indicator">* Required</span></h3>
+      
       <div class="row">
         <div class="col">
           <label>Product Category / Name <span class="text-danger">*</span></label>
-          <select class="form-select" [(ngModel)]="form.category" name="category" required (change)="onCategoryChange()">
+          <select class="form-select" [(ngModel)]="form.category" name="category" required (change)="onCategoryChange()" [ngClass]="{'is-invalid': errors?.category}">
             <option value="">Select product type</option>
             <option *ngFor="let c of categories" [value]="c">{{c}}</option>
           </select>
-          <small class="form-text text-muted">This will be the product name (e.g., "T-Shirt - V-Neck")</small>
+          <div *ngIf="errors?.category" class="invalid-feedback" style="display:block">{{ errors.category }}</div>
+          <small class="form-text text-muted">Choose the type of garment. This will be displayed as the product name.</small>
         </div>
         <div class="col">
           <label>Product Type <span class="text-danger">*</span></label>
@@ -28,7 +32,7 @@
             <option>Women</option>
             <option>Kids</option>
           </select>
-          <small class="form-text text-muted">This determines which sizes are available</small>
+          <small class="form-text text-muted">Target audience. This determines available size ranges (Kids sizes are different from Adult).</small>
         </div>
         <div class="col">
           <label>Fit Type</label>
@@ -42,19 +46,20 @@
             <option>Athletic Fit</option>
             <option>Muscle Fit</option>
           </select>
+          <small class="form-text text-muted">How the garment fits. Helps customers choose the right size.</small>
         </div>
       </div>
 
       <!-- Sizes & Fit (Moved here from section 5) -->
       <div style="margin-top: 20px; padding: 16px; background: #f8f9fa; border-radius: 8px;">
-        <label style="font-weight: 600; margin-bottom: 12px; display: block;">Available Sizes</label>
+        <label style="font-weight: 600; margin-bottom: 12px; display: block;">Available Sizes <span class="text-danger">*</span></label>
         
         <!-- Dynamic Sizes based on Category and Product Type -->
         <div *ngIf="availableSizes.length > 0">
           <small class="form-text text-muted" style="display: block; margin-bottom: 8px;">
-            <span *ngIf="form.category.includes('Pants') || form.category.includes('Shorts')">Waist Sizes (inches)</span>
+            <span *ngIf="form.category.includes('Pants') || form.category.includes('Shorts')">Waist Sizes (inches) - Select all sizes you can produce</span>
             <span *ngIf="!(form.category.includes('Pants') || form.category.includes('Shorts'))">
-              {{ form.gender === 'Kids' ? 'Kids Sizes' : 'Adult/Teen Sizes' }}
+              {{ form.gender === 'Kids' ? 'Kids Sizes - Select all available' : 'Standard Sizes - Select all available' }}
             </span>
           </small>
           <div class="chips">
@@ -73,7 +78,7 @@
         <div *ngIf="form.availableSizes.length > 0" style="margin-top: 16px; padding: 16px; background: white; border-radius: 8px; border: 1px solid #dee2e6;">
           <label style="font-size: 14px; font-weight: 600; color: #0066cc; margin-bottom: 8px;">💰 Size Pricing (Optional Add-ons)</label>
           <small class="form-text" style="display: block; margin-bottom: 12px; color: #6c757d;">
-            Set additional charges for larger sizes. <strong>Leave blank or 0 for standard sizes.</strong>
+            Add extra charges for larger sizes (e.g., XL, 2XL typically cost more to produce). <strong>Leave blank or enter 0 for standard sizes with no extra charge.</strong>
           </small>
           
           <div class="size-pricing-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px;">
@@ -98,7 +103,7 @@
           
           <div style="margin-top: 12px; padding: 10px; background: #fff3cd; border-radius: 6px; border: 1px solid #ffc107;">
             <small style="color: #856404; font-weight: 500;">
-              💡 <strong>Example:</strong> If retail price is ₱500 and XL has +₱50, customer pays ₱550 for XL.
+              💡 <strong>Example:</strong> If retail price is ₱500 and XL has +₱50, customer pays ₱550 for XL size.
             </small>
           </div>
         </div>
@@ -107,20 +112,22 @@
         <div class="row" style="margin-top: 16px;">
           <div class="col">
             <label>Size Chart (image)</label>
-            <input type="file" class="form-control form-control-sm" (change)="onFileSelected($event,'sizeChart')" accept="image/*">
+            <input type="file" class="form-control form-control-sm" (change)="onFileSelected($event,'sizeChart')" accept="image/jpeg,image/jpg,image/png,image/svg+xml">
+            <small class="form-text text-muted">Upload a size chart image to help customers choose the right size (optional but highly recommended)</small>
             <img *ngIf="sizeChartPreview" [src]="sizeChartPreview" class="preview" alt="size chart" style="max-height: 150px; margin-top: 8px;">
           </div>
           <div class="col">
             <label>Fit Description</label>
-            <input class="form-control form-control-sm" [(ngModel)]="form.fitDescription" name="fitDescription" placeholder="Runs true to size">
+            <input class="form-control form-control-sm" [(ngModel)]="form.fitDescription" name="fitDescription" placeholder="e.g., Runs true to size, Slightly oversized">
+            <small class="form-text text-muted">Brief note on how the product fits (e.g., "Runs true to size", "Order one size up for relaxed fit")</small>
           </div>
         </div>
       </div>
 
       <div style="margin-top: 20px;">
         <label>Description</label>
-        <textarea class="form-control" rows="3" [(ngModel)]="form.description" name="description" placeholder="Product details and selling points"></textarea>
-        <small class="form-text text-muted">Describe the product's features, quality, and what makes it special</small>
+        <textarea class="form-control" rows="3" [(ngModel)]="form.description" name="description" placeholder="Describe the product's features, quality, and what makes it special..."></textarea>
+        <small class="form-text text-muted">Tell customers about the product's features, materials, quality, and why they should buy it. Be descriptive and engaging!</small>
       </div>
       <div class="row" style="margin-top: 24px;">
         <div class="col">
@@ -140,21 +147,44 @@
     <!-- 2. Images -->
     <section class="card-section">
       <h3>2. Images <span class="required-indicator">* Required</span></h3>
+      
+      <!-- File Size Info Banner -->
+      <div style="margin-bottom: 20px; padding: 12px 16px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+        <div style="display: flex; align-items: start; gap: 10px;">
+          <span style="font-size: 20px;">📸</span>
+          <div>
+            <strong style="color: #856404;">Image Guidelines:</strong>
+            <ul style="margin: 8px 0 0 0; padding-left: 20px; color: #856404; font-size: 13px;">
+              <li><strong>Accepted formats:</strong> JPG, PNG, SVG</li>
+              <li><strong>Recommended size:</strong> Under 5MB per image for faster uploads</li>
+              <li><strong>Maximum size:</strong> 10MB per image (hard limit)</li>
+              <li><strong>Quality tip:</strong> Images are auto-optimized by Cloudinary - upload high quality originals</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
       <div class="row">
         <div class="col">
           <label>Front View Image <span class="text-danger">*</span></label>
-          <input type="file" class="form-control" (change)="onFileSelected($event,'front')" accept="image/*" required>
+          <input type="file" class="form-control" (change)="onFileSelected($event,'front')" accept="image/jpeg,image/jpg,image/png,image/svg+xml" required [ngClass]="{'is-invalid': errors?.images_front}">
+          <div *ngIf="errors?.images_front" class="invalid-feedback" style="display:block">{{ errors.images_front }}</div>
+          <small class="form-text text-muted">Main product photo customers see first (required)</small>
           <img *ngIf="frontPreview" [src]="frontPreview" class="preview" alt="front preview">
         </div>
         <div class="col">
           <label>Back View Image <span class="text-danger">*</span></label>
-          <input type="file" class="form-control" (change)="onFileSelected($event,'back')" accept="image/*" required>
+          <input type="file" class="form-control" (change)="onFileSelected($event,'back')" accept="image/jpeg,image/jpg,image/png,image/svg+xml" required [ngClass]="{'is-invalid': errors?.images_back}">
+          <div *ngIf="errors?.images_back" class="invalid-feedback" style="display:block">{{ errors.images_back }}</div>
+          <small class="form-text text-muted">Back view of the product (required for 360° view)</small>
           <img *ngIf="backPreview" [src]="backPreview" class="preview" alt="back preview">
+  <div *ngIf="errors?.images" class="invalid-feedback" style="display:block">{{ errors.images }}</div>
         </div>
       </div>
       <div>
-        <label>Additional Images (optional) - Upload multiple images to showcase details, textures, or color variants</label>
-        <input type="file" class="form-control" (change)="onFileSelected($event,'additional')" accept="image/*" multiple>
+        <label>Additional Images (optional)</label>
+        <input type="file" class="form-control" (change)="onFileSelected($event,'additional')" accept="image/jpeg,image/jpg,image/png,image/svg+xml" multiple>
+        <small class="form-text text-muted">Upload multiple images to showcase details, textures, close-ups, or color variants (optional, recommended 2-4 images)</small>
         <div class="preview-list" *ngIf="additionalPreviews.length > 0">
           <div *ngFor="let p of additionalPreviews; let i = index" class="preview-item">
             <img [src]="p" class="preview" alt="additional preview">

@@ -74,5 +74,8 @@ export declare class DatabaseService {
     static archiveProduct(productId: string): Promise<ApiResponse<any>>;
     static restoreProduct(productId: string): Promise<ApiResponse<any>>;
     static deleteProductPermanently(productId: string): Promise<ApiResponse<any>>;
+    static getCustomizableProducts(): Promise<ApiResponse<any[]>>;
+    static getCustomizableProduct(productId: string): Promise<ApiResponse<any>>;
+    static deleteCustomizableProduct(productId: string): Promise<ApiResponse<any>>;
 }
 //# sourceMappingURL=database.service.d.ts.map

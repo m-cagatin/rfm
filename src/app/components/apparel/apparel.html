@@ -31,7 +31,7 @@
         <div class="card h-100 shadow-sm hover-lift">
           <!-- Clickable Image -->
           <div class="product-image-container" (click)="viewProductDetails(product)">
-            <img [src]="product.image_url" 
+            <img [src]="getProductImages(product)[0] || 'assets/placeholder.png'" 
                  [alt]="product.product_name" 
                  class="card-img-top product-image cursor-pointer"
                  style="height: 350px; object-fit: cover;">

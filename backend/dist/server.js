@@ -29,9 +29,14 @@ app.use((0, cors_1.default)({
     origin: [
         'http://localhost:4200',
         'http://localhost:3000',
+        'http://127.0.0.1:4200',
+        'http://127.0.0.1:3000',
         'https://rfm-frontend-qnnw.onrender.com'
     ],
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Pragma', 'Expires'],
+    exposedHeaders: ['Content-Type']
 }));
 app.use(body_parser_1.default.json({ limit: '50mb' }));
 app.use(body_parser_1.default.urlencoded({ extended: true, limit: '50mb' }));

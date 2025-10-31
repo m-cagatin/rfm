@@ -7,103 +7,266 @@ const express_1 = __importDefault(require("express"));
 const database_1 = require("../config/database");
 const router = express_1.default.Router();
 router.post('/', async (req, res) => {
+    let connection;
     try {
-        const { name, category, brand, gender, fit_type, description, front_image_url, back_image_url, additional_image_urls, fabric_composition, fabric_weight, texture, available_sizes, size_chart_url, fit_description, size_pricing, available_colors, variants, print_method, print_areas, design_requirements, retail_price, is_active, turnaround_time, minimum_order_qty } = req.body;
-        if (!name || !category || !front_image_url || !back_image_url) {
+        connection = await database_1.pool.getConnection();
+        const { name, category, gender, fit_type, description, images, fabric_composition, fabric_weight, texture, available_sizes, size_chart_url, fit_description, size_pricing, available_colors, variants, print_method, print_areas, design_requirements, base_cost, retail_price, is_active, turnaround_time, minimum_order_qty } = req.body;
+        console.log('📥 POST /customizable-products:', { name, category, images: images?.length });
+        const errors = {};
+        if (!name)
+            errors.name = 'Product name is required';
+        if (!category)
+            errors.category = 'Product category is required';
+        if (!images || !Array.isArray(images) || images.length < 2) {
+            errors.images = 'At least 2 images required (front and back)';
+        }
+        else {
+            const hasFront = images.some((img) => img.imageType === 'front');
+            const hasBack = images.some((img) => img.imageType === 'back');
+            if (!hasFront)
+                errors.images_front = 'Front image is required';
+            if (!hasBack)
+                errors.images_back = 'Back image is required';
+        }
+        if (Object.keys(errors).length > 0) {
+            if (connection)
+                connection.release();
             return res.status(400).json({
                 success: false,
-                message: 'Missing required fields: name, category, front_image_url, back_image_url'
+                errors
             });
         }
-        const query = `
+        await connection.beginTransaction();
+        const [maxCode] = await connection.execute("SELECT MAX(CAST(SUBSTRING(product_code, 3) AS UNSIGNED)) as max_num FROM customizable_products WHERE product_code LIKE 'CP%'");
+        const nextNum = (maxCode[0]?.max_num || 0) + 1;
+        const product_code = `CP${String(nextNum).padStart(6, '0')}`;
+        const productQuery = `
       INSERT INTO customizable_products (
-        name, category, gender, fit_type, description,
-        front_image_url, back_image_url, additional_image_urls,
+        product_code, name, category, gender, fit_type, description,
         fabric_composition, fabric_weight, texture,
         available_sizes, size_chart_url, fit_description, size_pricing,
         available_colors,
         print_method, print_areas, design_requirements,
         base_cost, retail_price, is_active,
         turnaround_time, minimum_order_qty
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
-        const values = [
-            name, category, gender || 'Unisex', fit_type || 'Classic', description || null,
-            front_image_url, back_image_url, JSON.stringify(additional_image_urls || []),
+        const productValues = [
+            product_code, name, category,
+            gender || 'Unisex', fit_type || 'Classic', description || null,
             fabric_composition || null, fabric_weight || null, texture || null,
-            JSON.stringify(available_sizes || []), size_chart_url || null, fit_description || null,
-            JSON.stringify(size_pricing || {}),
+            JSON.stringify(available_sizes || []), size_chart_url || null,
+            fit_description || null, JSON.stringify(size_pricing || {}),
             JSON.stringify(available_colors || []),
-            print_method || 'DTG', JSON.stringify(print_areas || []), design_requirements || null,
-            0, retail_price || 0, is_active !== undefined ? is_active : true,
-            turnaround_time || '3-5 days', minimum_order_qty || 1
+            print_method || 'DTG', JSON.stringify(print_areas || []),
+            design_requirements || null,
+            base_cost || 0, retail_price || 0,
+            is_active !== undefined ? (is_active ? 1 : 0) : 1,
+            turnaround_time || null, minimum_order_qty || 1
         ];
-        const [result] = await database_1.pool.execute(query, values);
+        const [result] = await connection.execute(productQuery, productValues);
+        const productId = result.insertId;
+        console.log('✅ Product created:', productId);
+        const imageQuery = `
+      INSERT INTO customizable_product_images 
+      (product_id, image_url, cloudinary_public_id, image_type, display_order)
+      VALUES (?, ?, ?, ?, ?)
+    `;
+        for (const img of images) {
+            await connection.execute(imageQuery, [
+                productId, img.url, img.publicId || null,
+                img.imageType, img.displayOrder || 1
+            ]);
+        }
+        console.log(`✅ Inserted ${images.length} images`);
         if (variants && variants.length > 0) {
             const variantQuery = `
         INSERT INTO texture_variants (product_id, name, image_url)
         VALUES (?, ?, ?)
       `;
             for (const variant of variants) {
-                await database_1.pool.execute(variantQuery, [result.insertId, variant.name, variant.image_url || null]);
+                await connection.execute(variantQuery, [
+                    productId, variant.name, variant.image_url || null
+                ]);
             }
+            console.log(`✅ Inserted ${variants.length} variants`);
         }
+        await connection.commit();
+        connection.release();
         res.status(201).json({
             success: true,
-            message: 'Customizable product created successfully',
-            data: { id: result.insertId }
+            message: 'Product created successfully',
+            data: { id: productId, product_code }
         });
     }
     catch (error) {
-        console.error('Error creating customizable product:', error);
+        if (connection) {
+            try {
+                await connection.rollback();
+            }
+            catch (e) { }
+            connection.release();
+        }
+        console.error('❌ Error creating product:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to create customizable product',
+            message: 'Failed to create product',
             error: error.message
         });
     }
 });
 router.get('/', async (req, res) => {
+    let connection;
     try {
+        connection = await database_1.pool.getConnection();
         const query = `
-      SELECT * FROM customizable_products
-      ORDER BY created_at DESC
+      SELECT 
+        p.*,
+        GROUP_CONCAT(
+          JSON_OBJECT(
+            'image_id', i.image_id,
+            'url', i.image_url,
+            'publicId', i.cloudinary_public_id,
+            'image_type', i.image_type,
+            'displayOrder', i.display_order
+          )
+          ORDER BY i.display_order, i.image_id
+        ) as images
+      FROM customizable_products p
+      LEFT JOIN customizable_product_images i ON p.id = i.product_id
+      GROUP BY p.id
+      ORDER BY p.created_at DESC
     `;
-        const [rows] = await database_1.pool.execute(query);
+        const [rows] = await connection.execute(query);
+        connection.release();
+        const products = rows.map((row) => {
+            let images = [];
+            if (row.images) {
+                try {
+                    images = JSON.parse(`[${row.images}]`);
+                }
+                catch (error) {
+                    console.error('Error parsing images for product:', row.id);
+                    images = [];
+                }
+            }
+            return {
+                id: row.id,
+                product_code: row.product_code,
+                name: row.name,
+                category: row.category,
+                gender: row.gender,
+                fit_type: row.fit_type,
+                description: row.description,
+                is_active: Boolean(row.is_active),
+                fabric_composition: row.fabric_composition,
+                fabric_weight: row.fabric_weight,
+                texture: row.texture,
+                available_sizes: row.available_sizes,
+                size_chart_url: row.size_chart_url,
+                fit_description: row.fit_description,
+                size_pricing: row.size_pricing,
+                available_colors: row.available_colors,
+                print_method: row.print_method,
+                print_areas: row.print_areas,
+                design_requirements: row.design_requirements,
+                base_cost: parseFloat(row.base_cost || 0),
+                retail_price: parseFloat(row.retail_price || 0),
+                turnaround_time: row.turnaround_time,
+                minimum_order_qty: row.minimum_order_qty,
+                created_at: row.created_at,
+                updated_at: row.updated_at,
+                images: images
+            };
+        });
         res.json({
             success: true,
-            data: rows
+            data: products
         });
     }
     catch (error) {
-        console.error('Error fetching customizable products:', error);
+        if (connection)
+            connection.release();
+        console.error('❌ Error fetching products:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to fetch customizable products',
+            message: 'Failed to fetch products',
             error: error.message
         });
     }
 });
 router.get('/:id', async (req, res) => {
+    let connection;
     try {
         const { id } = req.params;
-        const productQuery = `
-      SELECT * FROM customizable_products WHERE id = ?
+        connection = await database_1.pool.getConnection();
+        const query = `
+      SELECT 
+        p.*,
+        GROUP_CONCAT(
+          JSON_OBJECT(
+            'image_id', i.image_id,
+            'url', i.image_url,
+            'publicId', i.cloudinary_public_id,
+            'image_type', i.image_type,
+            'displayOrder', i.display_order
+          )
+          ORDER BY i.display_order, i.image_id
+        ) as images
+      FROM customizable_products p
+      LEFT JOIN customizable_product_images i ON p.id = i.product_id
+      WHERE p.id = ?
+      GROUP BY p.id
     `;
-        const [productRows] = await database_1.pool.execute(productQuery, [id]);
-        if (productRows.length === 0) {
+        const [rows] = await connection.execute(query, [id]);
+        if (rows.length === 0) {
+            connection.release();
             return res.status(404).json({
                 success: false,
                 message: 'Product not found'
             });
         }
-        const variantsQuery = `
-      SELECT * FROM texture_variants WHERE product_id = ?
-    `;
-        const [variants] = await database_1.pool.execute(variantsQuery, [id]);
+        const row = rows[0];
+        let images = [];
+        if (row.images) {
+            try {
+                images = JSON.parse(`[${row.images}]`);
+            }
+            catch (error) {
+                console.error('Error parsing images');
+                images = [];
+            }
+        }
+        const [variants] = await connection.execute('SELECT * FROM texture_variants WHERE product_id = ?', [id]);
+        connection.release();
         const product = {
-            ...productRows[0],
-            variants
+            id: row.id,
+            product_code: row.product_code,
+            name: row.name,
+            category: row.category,
+            gender: row.gender,
+            fit_type: row.fit_type,
+            description: row.description,
+            is_active: Boolean(row.is_active),
+            fabric_composition: row.fabric_composition,
+            fabric_weight: row.fabric_weight,
+            texture: row.texture,
+            available_sizes: row.available_sizes,
+            size_chart_url: row.size_chart_url,
+            fit_description: row.fit_description,
+            size_pricing: row.size_pricing,
+            available_colors: row.available_colors,
+            print_method: row.print_method,
+            print_areas: row.print_areas,
+            design_requirements: row.design_requirements,
+            base_cost: parseFloat(row.base_cost || 0),
+            retail_price: parseFloat(row.retail_price || 0),
+            turnaround_time: row.turnaround_time,
+            minimum_order_qty: row.minimum_order_qty,
+            created_at: row.created_at,
+            updated_at: row.updated_at,
+            images: images,
+            variants: variants
         };
         res.json({
             success: true,
@@ -111,75 +274,125 @@ router.get('/:id', async (req, res) => {
         });
     }
     catch (error) {
-        console.error('Error fetching customizable product:', error);
+        if (connection)
+            connection.release();
+        console.error('❌ Error fetching product:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to fetch customizable product',
+            message: 'Failed to fetch product',
             error: error.message
         });
     }
 });
 router.put('/:id', async (req, res) => {
+    let connection;
     try {
         const { id } = req.params;
-        const updateData = req.body;
-        const query = `
+        connection = await database_1.pool.getConnection();
+        const { name, category, gender, fit_type, description, images, fabric_composition, fabric_weight, texture, available_sizes, size_chart_url, fit_description, size_pricing, available_colors, variants, print_method, print_areas, design_requirements, base_cost, retail_price, is_active, turnaround_time, minimum_order_qty } = req.body;
+        console.log('📝 PUT /customizable-products/:id', id);
+        await connection.beginTransaction();
+        const updateQuery = `
       UPDATE customizable_products SET
         name = ?, category = ?, gender = ?, fit_type = ?, description = ?,
-        front_image_url = ?, back_image_url = ?, additional_image_urls = ?,
         fabric_composition = ?, fabric_weight = ?, texture = ?,
         available_sizes = ?, size_chart_url = ?, fit_description = ?, size_pricing = ?,
-        available_colors = ?,
-        print_method = ?, print_areas = ?, design_requirements = ?,
+        available_colors = ?, print_method = ?, print_areas = ?, design_requirements = ?,
         base_cost = ?, retail_price = ?, is_active = ?,
         turnaround_time = ?, minimum_order_qty = ?
       WHERE id = ?
     `;
-        const values = [
-            updateData.name, updateData.category, updateData.gender,
-            updateData.fit_type, updateData.description,
-            updateData.front_image_url, updateData.back_image_url,
-            JSON.stringify(updateData.additional_image_urls || []),
-            updateData.fabric_composition, updateData.fabric_weight, updateData.texture,
-            JSON.stringify(updateData.available_sizes || []), updateData.size_chart_url,
-            updateData.fit_description, JSON.stringify(updateData.size_pricing || {}),
-            JSON.stringify(updateData.available_colors || []),
-            updateData.print_method, JSON.stringify(updateData.print_areas || []),
-            updateData.design_requirements,
-            updateData.base_cost, updateData.retail_price, updateData.is_active,
-            updateData.turnaround_time, updateData.minimum_order_qty,
-            id
-        ];
-        await database_1.pool.execute(query, values);
+        await connection.execute(updateQuery, [
+            name, category, gender, fit_type, description,
+            fabric_composition, fabric_weight, texture,
+            JSON.stringify(available_sizes || []), size_chart_url,
+            fit_description, JSON.stringify(size_pricing || {}),
+            JSON.stringify(available_colors || []), print_method,
+            JSON.stringify(print_areas || []), design_requirements,
+            base_cost, retail_price,
+            is_active !== undefined ? (is_active ? 1 : 0) : 1,
+            turnaround_time, minimum_order_qty, id
+        ]);
+        if (images && Array.isArray(images)) {
+            await connection.execute('DELETE FROM customizable_product_images WHERE product_id = ?', [id]);
+            if (images.length > 0) {
+                const imageQuery = `
+          INSERT INTO customizable_product_images 
+          (product_id, image_url, cloudinary_public_id, image_type, display_order)
+          VALUES (?, ?, ?, ?, ?)
+        `;
+                for (const img of images) {
+                    await connection.execute(imageQuery, [
+                        id, img.url, img.publicId || null,
+                        img.imageType, img.displayOrder || 1
+                    ]);
+                }
+            }
+        }
+        if (variants && Array.isArray(variants)) {
+            await connection.execute('DELETE FROM texture_variants WHERE product_id = ?', [id]);
+            if (variants.length > 0) {
+                const variantQuery = `
+          INSERT INTO texture_variants (product_id, name, image_url)
+          VALUES (?, ?, ?)
+        `;
+                for (const variant of variants) {
+                    await connection.execute(variantQuery, [
+                        id, variant.name, variant.image_url || null
+                    ]);
+                }
+            }
+        }
+        await connection.commit();
+        connection.release();
+        console.log('✅ Product updated:', id);
         res.json({
             success: true,
             message: 'Product updated successfully'
         });
     }
     catch (error) {
-        console.error('Error updating customizable product:', error);
+        if (connection) {
+            try {
+                await connection.rollback();
+            }
+            catch (e) { }
+            connection.release();
+        }
+        console.error('❌ Error updating product:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to update customizable product',
+            message: 'Failed to update product',
             error: error.message
         });
     }
 });
 router.delete('/:id', async (req, res) => {
+    let connection;
     try {
         const { id } = req.params;
-        const query = `DELETE FROM customizable_products WHERE id = ?`;
-        await database_1.pool.execute(query, [id]);
+        connection = await database_1.pool.getConnection();
+        const [result] = await connection.execute('DELETE FROM customizable_products WHERE id = ?', [id]);
+        connection.release();
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Product not found'
+            });
+        }
+        console.log('✅ Product deleted:', id);
         res.json({
             success: true,
             message: 'Product deleted successfully'
         });
     }
     catch (error) {
-        console.error('Error deleting customizable product:', error);
+        if (connection)
+            connection.release();
+        console.error('❌ Error deleting product:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to delete customizable product',
+            message: 'Failed to delete product',
             error: error.message
         });
     }

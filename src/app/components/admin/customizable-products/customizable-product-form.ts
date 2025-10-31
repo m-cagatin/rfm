@@ -28,15 +28,18 @@ interface CustomizableProductForm {
   gender: 'Unisex' | 'Men' | 'Women' | 'Kids';
   fitType: 'Classic' | 'Slim Fit' | 'Regular Fit' | 'Relaxed Fit' | 'Oversized' | 'Tapered' | 'Athletic Fit' | 'Muscle Fit';
   description: string;
-  // 2. Images
+  // 2. Images - NEW SCHEMA with publicId tracking
   frontImageFile?: File | null;
   backImageFile?: File | null;
   logoImageFile?: File | null;
   additionalImageFiles: File[];
   frontImageUrl?: string;
+  frontImagePublicId?: string;
   backImageUrl?: string;
+  backImagePublicId?: string;
   logoImageUrl?: string;
-  additionalImageUrls: string[];
+  logoImagePublicId?: string;
+  additionalImages: Array<{url: string; publicId?: string; displayOrder: number}>;
   // 3. Material & Fabric
   fabricComposition: string;
   fabricWeight: string;
@@ -70,6 +73,95 @@ interface CustomizableProductForm {
   styleUrls: ['./customizable-product-form.css']
 })
 export class CustomizableProductFormComponent implements OnInit, OnChanges {
+  // Add missing methods for template and TS error fixes
+
+  clearMessage() {
+    this.message.set('');
+    this.messageType.set('');
+  }
+
+  onCancel() {
+    if (this.isSaving() || this.isUploading()) {
+      return; // Don't allow cancel during save/upload
+    }
+    // Ask for confirmation if form has data
+    const hasData = this.form.name || this.form.category || this.form.frontImageFile || 
+                    this.form.backImageFile || this.form.availableSizes.length > 0;
+    if (hasData) {
+      if (!confirm('Are you sure you want to cancel? Any unsaved changes will be lost.')) {
+        return;
+      }
+    }
+    this.formCancelled.emit();
+  }
+
+  resetForm() {
+    // Reset your form fields to initial state
+    this.form = {
+      name: '',
+      category: '',
+      gender: 'Unisex',
+      fitType: 'Classic',
+      description: '',
+      frontImageFile: null,
+      backImageFile: null,
+      logoImageFile: null,
+      additionalImageFiles: [],
+      frontImageUrl: '',
+      frontImagePublicId: '',
+      backImageUrl: '',
+      backImagePublicId: '',
+      logoImageUrl: '',
+      logoImagePublicId: '',
+      additionalImages: [],
+      fabricComposition: '',
+      fabricWeight: '',
+      texture: '',
+      availableSizes: [],
+      sizeChartFile: null,
+      sizeChartUrl: '',
+      fitDescription: '',
+      availableColors: [],
+      printMethod: 'DTG',
+      printAreas: [],
+      designRequirements: '300 DPI PNG with transparent background',
+      baseCost: 0,
+      retailPrice: 0,
+      stock: [],
+      isActive: true,
+      turnaroundTime: '3-5 days',
+      minimumOrderQty: 1
+    };
+    this.frontPreview = null;
+    this.backPreview = null;
+    this.logoPreview = null;
+    this.additionalPreviews = [];
+    this.sizeChartPreview = null;
+    this.variants = [];
+    this.sizePricing = {};
+    this.colorSearchQuery = '';
+    this.variantName = '';
+    this.variantFileName = '';
+    this.variantImageFile = null;
+    this.variantImagePreview = null;
+  }
+
+  setMessage(msg: string, type: 'success'|'error'|'info'|'') {
+    // Clear any existing timeout
+    if ((this as any).messageTimeout) {
+      clearTimeout((this as any).messageTimeout);
+    }
+    this.message.set(msg);
+    this.messageType.set(type);
+    // Only auto-clear success and info messages after 5 seconds
+    if (type === 'success' || type === 'info') {
+      (this as any).messageTimeout = setTimeout(() => { 
+        this.message.set(''); 
+        this.messageType.set('success'); 
+      }, 5000);
+    }
+  }
+  errors: any = {};
   @Input() productToEdit: any = null;
   @Output() formCancelled = new EventEmitter<void>();
   @Output() productSaved = new EventEmitter<void>();
@@ -126,7 +218,7 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
     backImageFile: null,
     logoImageFile: null,
     additionalImageFiles: [],
-    additionalImageUrls: [],
+    additionalImages: [],
     fabricComposition: '',
     fabricWeight: '',
     texture: '',
@@ -203,17 +295,26 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
     this.form.fitType = product.fit_type || '';
     this.form.description = product.description || '';
     
-    // Images - store existing URLs
-    this.form.frontImageUrl = product.front_image_url || '';
-    this.form.backImageUrl = product.back_image_url || '';
+    // Images - NEW SCHEMA: parse images array and populate form fields
+    if (product.images && Array.isArray(product.images)) {
+      const frontImg = product.images.find((img: any) => img.image_type === 'front');
+      const backImg = product.images.find((img: any) => img.image_type === 'back');
+      const additionalImgs = product.images.filter((img: any) => img.image_type === 'additional');
+      
+      this.form.frontImageUrl = frontImg?.url || '';
+      this.form.frontImagePublicId = frontImg?.publicId || '';
+      this.form.backImageUrl = backImg?.url || '';
+      this.form.backImagePublicId = backImg?.publicId || '';
+      
+      this.form.additionalImages = additionalImgs.map((img: any, index: number) => ({
+        url: img.url,
+        publicId: img.publicId || '',
+        displayOrder: img.displayOrder || index + 1
+      }));
+    }
     this.form.frontImageFile = null; // No file selected yet
     this.form.backImageFile = null;
-    
-    // Additional images
-    if (product.additional_image_urls && Array.isArray(product.additional_image_urls)) {
-      this.form.additionalImageUrls = [...product.additional_image_urls];
-      this.form.additionalImageFiles = [];
-    }
+    this.form.additionalImageFiles = [];
     
     // Fabric
     this.form.fabricComposition = product.fabric_composition || '';
@@ -274,6 +375,36 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
     if (!input.files || input.files.length === 0) return;
 
     const files = Array.from(input.files);
+    
+    // File size validation constants
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+    const WARN_FILE_SIZE = 5 * 1024 * 1024;  // 5MB warning threshold
+    const ACCEPTED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/svg+xml'];
+
+    // Validate each file
+    for (const file of files) {
+      // Check file type
+      if (!ACCEPTED_TYPES.includes(file.type)) {
+        this.setMessage(`❌ "${file.name}" is not a valid image format. Please upload JPG, PNG, or SVG only.`, 'error');
+        input.value = ''; // Clear the input
+        return;
+      }
+
+      // Check file size - HARD LIMIT
+      if (file.size > MAX_FILE_SIZE) {
+        const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+        this.setMessage(`❌ "${file.name}" is too large (${sizeMB}MB). Maximum file size is 10MB. Please compress or resize the image.`, 'error');
+        input.value = ''; // Clear the input
+        return;
+      }
+
+      // Warning for large files (5-10MB)
+      if (file.size > WARN_FILE_SIZE) {
+        const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+        this.setMessage(`⚠️ "${file.name}" is ${sizeMB}MB. Consider using a smaller file for faster uploads (recommended under 5MB).`, 'info');
+      }
+    }
+
     const file = files[0];
 
     const toDataUrl = (f: File) => new Promise<string>((resolve) => {
@@ -560,20 +691,28 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
   }
 
   save() {
-    // Validate form
-    const validation = this.validateForm();
+    console.log('🔵 Save button clicked');
+    console.log('🔵 Form data:', {
+      category: this.form.category,
+      gender: this.form.gender,
+      frontImageFile: this.form.frontImageFile ? 'FILE SELECTED' : 'NO FILE',
+      backImageFile: this.form.backImageFile ? 'FILE SELECTED' : 'NO FILE',
+      frontImageUrl: this.form.frontImageUrl || 'NO URL',
+      backImageUrl: this.form.backImageUrl || 'NO URL'
+    });
     
+    // Validate form (frontend)
+    const validation = this.validateForm();
+    this.errors = {};
+    console.log('🔵 Validation result:', validation);
     if (!validation.valid) {
-      // Show all errors
       const errorMessage = '⚠️ Please fix the following errors:\n\n' + 
         validation.errors.map((err, idx) => `${idx + 1}. ${err}`).join('\n');
       this.setMessage(errorMessage, 'error');
-      
-      // Scroll to top to see error message
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
-
+    // Try to save, catch backend errors
     this.uploadAndSave();
   }
 
@@ -590,6 +729,7 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
           'customizable'
         );
         this.form.frontImageUrl = frontResult.secure_url;
+        this.form.frontImagePublicId = frontResult.public_id;
       }
       // If editing and no new file, keep existing URL (already set in form)
 
@@ -601,6 +741,7 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
           'customizable'
         );
         this.form.backImageUrl = backResult.secure_url;
+        this.form.backImagePublicId = backResult.public_id;
       }
       // If editing and no new file, keep existing URL (already set in form)
 
@@ -614,13 +755,18 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
         this.form.sizeChartUrl = sizeChartResult.secure_url;
       }
 
-      // Upload additional images if any
+      // Upload additional images if any - NEW: track publicId
       if (this.form.additionalImageFiles.length > 0) {
         const additionalResults = await this.cloudinaryService.uploadCustomizableImages(
           this.form.additionalImageFiles,
           this.form.category
         );
-        this.form.additionalImageUrls = additionalResults.map(r => r.secure_url);
+        const newAdditionalImages = additionalResults.map((r, index) => ({
+          url: r.secure_url,
+          publicId: r.public_id,
+          displayOrder: this.form.additionalImages.length + index + 1
+        }));
+        this.form.additionalImages = [...this.form.additionalImages, ...newAdditionalImages];
       }
 
       // Upload variant images
@@ -641,6 +787,59 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
       this.isSaving.set(true);
       this.setMessage('💾 Saving product to database...', 'info');
 
+      // Build images array for NEW SCHEMA
+      const images = [];
+      
+      // Front image (required)
+      if (this.form.frontImageUrl) {
+        images.push({
+          url: this.form.frontImageUrl,
+          publicId: this.form.frontImagePublicId || '',
+          imageType: 'front',
+          displayOrder: 1
+        });
+      }
+      
+      // Back image (required)
+      if (this.form.backImageUrl) {
+        images.push({
+          url: this.form.backImageUrl,
+          publicId: this.form.backImagePublicId || '',
+          imageType: 'back',
+          displayOrder: 1
+        });
+      }
+      
+      // Additional images
+      this.form.additionalImages.forEach((img, index) => {
+        images.push({
+          url: img.url,
+          publicId: img.publicId || '',
+          imageType: 'additional',
+          displayOrder: img.displayOrder || index + 1
+        });
+      });
+
+      // Final validation: ensure we have at least front and back images
+      if (images.length < 2) {
+        this.isSaving.set(false);
+        this.setMessage('❌ Error: Both front and back images are required. Please upload both images before saving.', 'error');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
+      const hasFront = images.some(img => img.imageType === 'front');
+      const hasBack = images.some(img => img.imageType === 'back');
+      
+      if (!hasFront || !hasBack) {
+        this.isSaving.set(false);
+        this.setMessage('❌ Error: Both front and back view images are required. Please check your uploads.', 'error');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+
+      console.log('📤 Sending images array to backend:', images); // Debug log
+
       // Prepare data for API
       const productData = {
         name: this.form.category, // Use category as product name (e.g., "T-Shirt", "Hoodie")
@@ -648,9 +847,7 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
         gender: this.form.gender,
         fit_type: this.form.fitType,
         description: this.form.description,
-        front_image_url: this.form.frontImageUrl,
-        back_image_url: this.form.backImageUrl,
-        additional_image_urls: this.form.additionalImageUrls,
+        images: images, // NEW: images array with explicit types
         fabric_composition: this.form.fabricComposition,
         fabric_weight: this.form.fabricWeight,
         texture: this.form.texture,
@@ -672,67 +869,27 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
       // Save to API
       if (this.isEditMode && this.productToEdit) {
         // Update existing product
-        this.apiService.updateCustomizableProduct(String(this.productToEdit.id), productData).subscribe({
-          next: (response) => {
+        this.apiService.updateCustomizableProduct(String(this.productToEdit.id), productData).subscribe(
+          (response) => {
             this.isSaving.set(false);
             this.setMessage('✅ Product updated successfully!', 'success');
-            
-            // Emit event to parent and show success for 3 seconds, then reset
             this.productSaved.emit();
-            setTimeout(() => {
-              this.resetForm();
-              this.clearMessage();
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }, 3000);
           },
-          error: (error) => {
+          (error) => {
             this.isSaving.set(false);
-            console.error('Update error:', error);
-            
-            let errorMsg = 'Failed to update product';
-            if (error.error?.message) {
-              errorMsg = error.error.message;
-            } else if (error.message) {
-              errorMsg = error.message;
-            }
-            
-            this.setMessage(errorMsg, 'error');
-          }
-        });
-      } else {
-        // Create new product
-        this.apiService.createCustomizableProduct(productData).subscribe({
-          next: (response) => {
-            this.isSaving.set(false);
-            this.setMessage('✅ Product created successfully!', 'success');
-            
-            // Emit event to parent and show success for 3 seconds, then reset
-            this.productSaved.emit();
-            setTimeout(() => {
-              this.resetForm();
-              this.clearMessage();
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }, 3000);
-          },
-          error: (error) => {
-            this.isSaving.set(false);
-            console.error('Save error:', error);
-            
-            let errorMsg = 'Failed to save product';
-            if (error.error?.message) {
-              errorMsg = error.error.message;
-            } else if (error.message) {
-              errorMsg = error.message;
+            if (error?.error?.errors) {
+              this.errors = error.error.errors;
+              this.setMessage('⚠️ Please fix the highlighted errors below.', 'error');
             } else if (error.status === 0) {
-              errorMsg = 'Cannot connect to server. Please check if the backend is running.';
+              this.setMessage('❌ Cannot connect to server. Please check if the backend is running.', 'error');
             } else if (error.status === 500) {
-              errorMsg = 'Server error. Please check backend logs.';
+              this.setMessage('❌ Server error. Please check backend logs.', 'error');
+            } else {
+              this.setMessage('❌ An unknown error occurred.', 'error');
             }
-            
-            this.setMessage(`❌ ${errorMsg}`, 'error');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }
-        });
+        );
       }
 
     } catch (error: any) {
@@ -750,95 +907,4 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
     }
   }
 
-  resetForm() {
-    this.form = {
-      name: '',
-      category: '',
-      gender: 'Unisex',
-      fitType: 'Classic',
-      description: '',
-      frontImageFile: null,
-      backImageFile: null,
-      logoImageFile: null,
-      additionalImageFiles: [],
-      additionalImageUrls: [],
-      fabricComposition: '',
-      fabricWeight: '',
-      texture: '',
-      availableSizes: [],
-      sizeChartFile: null,
-      fitDescription: '',
-      availableColors: [],
-      printMethod: 'DTG',
-      printAreas: [],
-      designRequirements: '300 DPI PNG with transparent background',
-      baseCost: 0,
-      retailPrice: 0,
-      stock: [],
-      isActive: true,
-      turnaroundTime: '3-5 days',
-      minimumOrderQty: 1
-    };
-
-    // Reset previews
-    this.frontPreview = null;
-    this.backPreview = null;
-    this.logoPreview = null;
-    this.additionalPreviews = [];
-    this.sizeChartPreview = null;
-    this.variants = [];
-    this.sizePricing = {}; // Reset size pricing
-    this.colorSearchQuery = '';
-    this.variantName = '';
-    this.variantFileName = '';
-    this.variantImageFile = null;
-    this.variantImagePreview = null;
-  }
-
-  private messageTimeout: any = null;
-
-  private setMessage(msg: string, type: 'success'|'error'|'info'){
-    // Clear any existing timeout
-    if (this.messageTimeout) {
-      clearTimeout(this.messageTimeout);
-    }
-    
-    this.message.set(msg);
-    this.messageType.set(type);
-    
-    // Only auto-clear success and info messages after 5 seconds
-    // Error messages stay until manually dismissed or form is submitted successfully
-    if (type === 'success' || type === 'info') {
-      this.messageTimeout = setTimeout(() => { 
-        this.message.set(''); 
-        this.messageType.set('success'); 
-      }, 5000);
-    }
-  }
-
-  clearMessage() {
-    if (this.messageTimeout) {
-      clearTimeout(this.messageTimeout);
-    }
-    this.message.set('');
-    this.messageType.set('success');
-  }
-
-  onCancel() {
-    if (this.isSaving() || this.isUploading()) {
-      return; // Don't allow cancel during save/upload
-    }
-    
-    // Ask for confirmation if form has data
-    const hasData = this.form.name || this.form.category || this.form.frontImageFile || 
-                    this.form.backImageFile || this.form.availableSizes.length > 0;
-    
-    if (hasData) {
-      if (!confirm('Are you sure you want to cancel? Any unsaved changes will be lost.')) {
-        return;
-      }
-    }
-    
-    this.formCancelled.emit();
-  }
 }

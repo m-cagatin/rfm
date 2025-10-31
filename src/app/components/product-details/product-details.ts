@@ -87,15 +87,14 @@ export class ProductDetailsComponent implements OnInit {
 
   getProductImages(): string[] {
     const product = this.product();
-    if (!product) return [];
+    if (!product || !product.images) return [];
     
-    const images = this.parseJsonField(product.images);
-    if (images.length > 0) {
-      return images;
+    try {
+      const imagesArray = Array.isArray(product.images) ? product.images : [];
+      return imagesArray.map((img: any) => img.url || img);
+    } catch {
+      return [];
     }
-    
-    // Fallback to main image
-    return product.image_url ? [product.image_url] : [];
   }
 
   selectImage(index: number): void {

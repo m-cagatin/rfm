@@ -61,6 +61,16 @@ export class ApparelComponent implements OnInit {
     }
   }
 
+  getProductImages(product: ProductData): string[] {
+    if (!product.images) return [];
+    try {
+      const imagesArray = Array.isArray(product.images) ? product.images : [];
+      return imagesArray.map((img: any) => img.url || img);
+    } catch {
+      return [];
+    }
+  }
+
   addToCart(product: ProductData): void {
     // Check if user is logged in
     if (!this.authService.isAuthenticated()) {

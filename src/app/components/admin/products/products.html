@@ -75,7 +75,7 @@
         <!-- Table Rows -->
         <div class="table-row" *ngFor="let product of activeProducts()">
           <div class="col-img">
-            <img [src]="product.image_url" [alt]="product.product_name" />
+            <img [src]="getProductImages(product)[0] || 'assets/placeholder.png'" [alt]="product.product_name" />
           </div>
           <div class="col-id">{{ product.product_id }}</div>
           <div class="col-name" [title]="product.product_name">
@@ -87,8 +87,8 @@
           <div class="col-category">{{ product.category }}</div>
           <div class="col-price">₱{{ product.base_price.toFixed(2) }}</div>
           <div class="col-stock">{{ product.stock_quantity || 0 }}</div>
-          <div class="col-cloudinary" [title]="product.cloudinary_public_id || 'N/A'">
-            {{ product.cloudinary_public_id || '-' }}
+          <div class="col-cloudinary" [title]="product.product_code || 'N/A'">
+            {{ product.product_code || '-' }}
           </div>
           <div class="col-actions">
             <button class="btn btn-sm btn-outline-info" (click)="viewProductDetails(product)" title="View Details">
@@ -129,7 +129,7 @@
         <!-- Table Rows (Archived) -->
         <div class="table-row archived" *ngFor="let product of archivedProducts()">
           <div class="col-img">
-            <img [src]="product.image_url" [alt]="product.product_name" />
+            <img [src]="getProductImages(product)[0] || 'assets/placeholder.png'" [alt]="product.product_name" />
             <span class="archived-badge">ARCHIVED</span>
           </div>
           <div class="col-id">{{ product.product_id }}</div>
@@ -142,8 +142,8 @@
           <div class="col-category">{{ product.category }}</div>
           <div class="col-price">₱{{ product.base_price.toFixed(2) }}</div>
           <div class="col-stock">{{ product.stock_quantity || 0 }}</div>
-          <div class="col-cloudinary" [title]="product.cloudinary_public_id || 'N/A'">
-            {{ product.cloudinary_public_id || '-' }}
+          <div class="col-cloudinary" [title]="product.product_code || 'N/A'">
+            {{ product.product_code || '-' }}
           </div>
           <div class="col-actions">
             <button class="btn btn-sm btn-outline-info" (click)="viewProductDetails(product)" title="View Details">
@@ -450,14 +450,14 @@
               
               <!-- Primary Image (larger) -->
               <div class="primary-image-container mb-3">
-                <img [src]="selectedProduct()?.image_url" 
+                <img [src]="getProductImages(selectedProduct()!)[0] || 'assets/placeholder.png'" 
                      [alt]="selectedProduct()?.product_name" 
                      class="primary-image" />
                 <div class="badge bg-success position-absolute top-0 start-0 m-2">Primary</div>
               </div>
               
               <!-- Additional Images (if any) -->
-              <div *ngIf="getProductImages(selectedProduct()!).length > 0" class="additional-images-grid">
+              <div *ngIf="getProductImages(selectedProduct()!).length > 1" class="additional-images-grid">
                 <div *ngFor="let imageUrl of getProductImages(selectedProduct()!); let i = index" 
                      class="additional-image-wrapper">
                   <img [src]="imageUrl" 
@@ -523,13 +523,13 @@
               </div>
               
               <div class="info-group full-width">
-                <label>Cloudinary Public ID</label>
-                <p class="info-value cloudinary-id">{{ selectedProduct()?.cloudinary_public_id || 'N/A' }}</p>
+                <label>Product Code</label>
+                <p class="info-value cloudinary-id">{{ selectedProduct()?.product_code || 'N/A' }}</p>
               </div>
               
               <div class="info-group">
                 <label>Image URL</label>
-                <a [href]="selectedProduct()?.image_url" target="_blank" class="info-value link">
+                <a [href]="getProductImages(selectedProduct()!)[0]" target="_blank" class="info-value link">
                   <i class="bi bi-box-arrow-up-right me-1"></i>View Full Image
                 </a>
               </div>

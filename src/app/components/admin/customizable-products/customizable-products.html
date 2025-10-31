@@ -98,7 +98,7 @@
 
         <!-- Product Image -->
         <div class="product-image-container">
-          <img [src]="product.front_image_url" [alt]="product.name" class="product-image">
+          <img [src]="getFrontImage(product)" [alt]="product.name" class="product-image">
           <div class="status-badge" [class.active]="product.is_active" [class.inactive]="!product.is_active">
             {{ product.is_active ? '✓ Published' : '📦 Archived' }}
           </div>
@@ -179,18 +179,22 @@
         <section class="detail-section">
           <h4>Product Images</h4>
           <div class="images-grid">
+            <!-- Front Image -->
             <div class="image-item">
-              <img [src]="selectedProduct()!.front_image_url" alt="Front View">
+              <img [src]="getFrontImage(selectedProduct()!)" alt="Front View">
               <p>Front View</p>
             </div>
-            <div class="image-item" *ngIf="selectedProduct()!.back_image_url">
-              <img [src]="selectedProduct()!.back_image_url" alt="Back View">
+            <!-- Back Image -->
+            <div class="image-item" *ngIf="getBackImage(selectedProduct()!)">
+              <img [src]="getBackImage(selectedProduct()!)" alt="Back View">
               <p>Back View</p>
             </div>
             <!-- Additional Images -->
-            <div class="image-item" *ngFor="let imgUrl of selectedProduct()!.additional_image_urls; let i = index">
-              <img [src]="imgUrl" [alt]="'Additional Image ' + (i + 1)">
-              <p>Additional Image {{ i + 1 }}</p>
+            <div class="image-item" *ngFor="let img of getProductImages(selectedProduct()!); let i = index">
+              <ng-container *ngIf="img.image_type === 'additional'">
+                <img [src]="img.url" [alt]="'Additional Image ' + (i + 1)">
+                <p>Additional Image {{ i + 1 }}</p>
+              </ng-container>
             </div>
           </div>
         </section>

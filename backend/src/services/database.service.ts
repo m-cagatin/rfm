@@ -687,4 +687,126 @@ export class DatabaseService {
       return { success: false, message: 'Database error occurred', error: (error as Error).message };
     }
   }
+
+  // ===== CUSTOMIZABLE PRODUCTS METHODS =====
+
+  // Get all customizable products with images
+  static async getCustomizableProducts(): Promise<ApiResponse<any[]>> {
+    let connection;
+    try {
+      connection = await pool.getConnection();
+      
+      const query = `
+        SELECT 
+          p.*,
+          GROUP_CONCAT(
+            JSON_OBJECT(
+              'image_id', i.image_id,
+              'url', i.image_url,
+              'publicId', i.cloudinary_public_id,
+              'imageType', i.image_type,
+              'displayOrder', i.display_order
+            )
+            ORDER BY i.display_order
+          ) as images
+        FROM customizable_products p
+        LEFT JOIN customizable_product_images i ON p.id = i.product_id
+        GROUP BY p.id
+        ORDER BY p.created_at DESC
+      `;
+      
+      const [rows] = await connection.execute(query);
+      connection.release();
+      
+      const normalized = (rows as any[]).map((r) => {
+        // Parse images safely
+        let parsedImages = [];
+        if (r.images) {
+          try {
+            parsedImages = JSON.parse(`[${r.images}]`);
+          } catch (parseError) {
+            console.error('Error parsing images for product:', r.id, parseError);
+            parsedImages = [];
+          }
+        }
+        
+        return {
+          ...r,
+          images: parsedImages,
+        };
+      });
+      
+      return { success: true, data: normalized };
+    } catch (error) {
+      console.error('❌ Database error in getCustomizableProducts:', error);
+      if (connection) connection.release();
+      return { 
+        success: false, 
+        message: 'Failed to fetch customizable products', 
+        error: (error as Error).message 
+      };
+    }
+  }
+
+  // Get single customizable product
+  static async getCustomizableProduct(productId: string): Promise<ApiResponse<any>> {
+    try {
+      const connection = await pool.getConnection();
+      
+      const [rows] = await connection.execute(
+        `SELECT 
+          p.*,
+          GROUP_CONCAT(
+            JSON_OBJECT(
+              'image_id', i.image_id,
+              'url', i.image_url,
+              'publicId', i.cloudinary_public_id,
+              'imageType', i.image_type,
+              'displayOrder', i.display_order
+            )
+            ORDER BY i.display_order
+          ) as images
+        FROM customizable_products p
+        LEFT JOIN customizable_product_images i ON p.id = i.product_id
+        WHERE p.id = ?
+        GROUP BY p.id`,
+        [productId]
+      );
+      connection.release();
+      
+      const products = (rows as any[]).map((r) => ({
+        ...r,
+        images: r.images ? JSON.parse(`[${r.images}]`) : [],
+      }));
+      
+      if (products.length === 0) {
+        return { success: false, message: 'Product not found' };
+      }
+      return { success: true, data: products[0] };
+    } catch (error) {
+      console.error('Database error in getCustomizableProduct:', error);
+      return { success: false, message: 'Database error occurred', error: (error as Error).message };
+    }
+  }
+
+  // Delete customizable product (CASCADE will handle images, variants, stock)
+  static async deleteCustomizableProduct(productId: string): Promise<ApiResponse<any>> {
+    try {
+      const connection = await pool.getConnection();
+      const [result] = await connection.execute<ResultSetHeader>(
+        'DELETE FROM customizable_products WHERE id = ?',
+        [productId]
+      );
+      connection.release();
+      
+      if (result.affectedRows === 0) {
+        return { success: false, message: 'Product not found' };
+      }
+      
+      return { success: true, message: 'Product deleted successfully' };
+    } catch (error) {
+      console.error('Database error in deleteCustomizableProduct:', error);
+      return { success: false, message: 'Database error occurred', error: (error as Error).message };
+    }
+  }
 }

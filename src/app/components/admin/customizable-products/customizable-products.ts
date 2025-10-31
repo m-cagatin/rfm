@@ -7,14 +7,19 @@ import { ApiService } from '../../../services/api';
 
 interface CustomizableProduct {
   id: number;
+  product_code?: string;
   name: string;
   category: string;
   gender?: string;
   fit_type?: string;
   description?: string;
-  front_image_url: string;
-  back_image_url?: string;
-  additional_image_urls?: string[];
+  images?: Array<{
+    image_id?: number;
+    url: string;
+    publicId?: string;
+    image_type?: 'front' | 'back' | 'additional';
+    displayOrder?: number;
+  }> | null;
   fabric_composition?: string;
   fabric_weight?: string;
   texture?: string;
@@ -64,6 +69,41 @@ export class AdminCustomizableProductsComponent implements OnInit {
   
   ngOnInit() {
     this.loadProducts();
+  }
+
+  // Helper method to get product images
+  getProductImages(product: CustomizableProduct): Array<{url: string; publicId?: string; image_type?: string; displayOrder?: number}> {
+    if (!product.images) return [];
+    
+    // If images is already an array, return it
+    if (Array.isArray(product.images)) {
+      return product.images;
+    }
+    
+    // If images is a string (shouldn't happen with new schema), try parsing
+    if (typeof product.images === 'string') {
+      try {
+        return JSON.parse(product.images);
+      } catch {
+        return [];
+      }
+    }
+    
+    return [];
+  }
+
+  // Get front image
+  getFrontImage(product: CustomizableProduct): string {
+    const images = this.getProductImages(product);
+    const frontImg = images.find(img => img.image_type === 'front');
+    return frontImg?.url || '/assets/placeholder.png';
+  }
+
+  // Get back image
+  getBackImage(product: CustomizableProduct): string {
+    const images = this.getProductImages(product);
+    const backImg = images.find(img => img.image_type === 'back');
+    return backImg?.url || '';
   }
   
   loadProducts() {
