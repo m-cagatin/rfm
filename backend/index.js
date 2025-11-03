@@ -27,6 +27,16 @@ app.use(cors({
 // Middleware to parse JSON request bodies
 app.use(express.json());
 
+// Disable caching for all API routes (admin needs live data)
+app.use('/api', (req, res, next) => {
+    res.set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+    });
+    next();
+});
+
 // --- Routes ---
 
 // 1. Health/DB Test Check

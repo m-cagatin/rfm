@@ -10,7 +10,7 @@ router.post('/', async (req, res) => {
     let connection;
     try {
         connection = await database_1.pool.getConnection();
-        const { name, category, gender, fit_type, description, images, fabric_composition, fabric_weight, texture, available_sizes, size_chart_url, fit_description, size_pricing, available_colors, variants, print_method, print_areas, design_requirements, base_cost, retail_price, is_active, turnaround_time, minimum_order_qty } = req.body;
+        const { name, category, gender, fit_type, description, images, fabric_composition, fabric_weight, texture, available_sizes, fit_description, size_pricing, available_colors, variants, print_method, print_areas, design_requirements, base_cost, retail_price, is_active, turnaround_time, minimum_order_qty } = req.body;
         console.log('📥 POST /customizable-products:', { name, category, images: images?.length });
         const errors = {};
         if (!name)
@@ -44,18 +44,18 @@ router.post('/', async (req, res) => {
       INSERT INTO customizable_products (
         product_code, name, category, gender, fit_type, description,
         fabric_composition, fabric_weight, texture,
-        available_sizes, size_chart_url, fit_description, size_pricing,
+        available_sizes, fit_description, size_pricing,
         available_colors,
         print_method, print_areas, design_requirements,
         base_cost, retail_price, is_active,
         turnaround_time, minimum_order_qty
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
         const productValues = [
             product_code, name, category,
             gender || 'Unisex', fit_type || 'Classic', description || null,
             fabric_composition || null, fabric_weight || null, texture || null,
-            JSON.stringify(available_sizes || []), size_chart_url || null,
+            JSON.stringify(available_sizes || []),
             fit_description || null, JSON.stringify(size_pricing || {}),
             JSON.stringify(available_colors || []),
             print_method || 'DTG', JSON.stringify(print_areas || []),
@@ -163,7 +163,6 @@ router.get('/', async (req, res) => {
                 fabric_weight: row.fabric_weight,
                 texture: row.texture,
                 available_sizes: row.available_sizes,
-                size_chart_url: row.size_chart_url,
                 fit_description: row.fit_description,
                 size_pricing: row.size_pricing,
                 available_colors: row.available_colors,
@@ -252,7 +251,6 @@ router.get('/:id', async (req, res) => {
             fabric_weight: row.fabric_weight,
             texture: row.texture,
             available_sizes: row.available_sizes,
-            size_chart_url: row.size_chart_url,
             fit_description: row.fit_description,
             size_pricing: row.size_pricing,
             available_colors: row.available_colors,
@@ -289,14 +287,38 @@ router.put('/:id', async (req, res) => {
     try {
         const { id } = req.params;
         connection = await database_1.pool.getConnection();
-        const { name, category, gender, fit_type, description, images, fabric_composition, fabric_weight, texture, available_sizes, size_chart_url, fit_description, size_pricing, available_colors, variants, print_method, print_areas, design_requirements, base_cost, retail_price, is_active, turnaround_time, minimum_order_qty } = req.body;
+        const { name, category, gender, fit_type, description, images, fabric_composition, fabric_weight, texture, available_sizes, fit_description, size_pricing, available_colors, variants, print_method, print_areas, design_requirements, base_cost, retail_price, is_active, turnaround_time, minimum_order_qty } = req.body;
         console.log('📝 PUT /customizable-products/:id', id);
+        const errors = {};
+        if (!name)
+            errors.name = 'Product name is required';
+        if (!category)
+            errors.category = 'Product category is required';
+        if (!images || !Array.isArray(images) || images.length < 2) {
+            errors.images = 'At least 2 images required (front and back)';
+        }
+        else {
+            const hasFront = images.some((img) => img.imageType === 'front');
+            const hasBack = images.some((img) => img.imageType === 'back');
+            if (!hasFront)
+                errors.images_front = 'Front image is required';
+            if (!hasBack)
+                errors.images_back = 'Back image is required';
+        }
+        if (Object.keys(errors).length > 0) {
+            if (connection)
+                connection.release();
+            return res.status(400).json({
+                success: false,
+                errors
+            });
+        }
         await connection.beginTransaction();
         const updateQuery = `
       UPDATE customizable_products SET
         name = ?, category = ?, gender = ?, fit_type = ?, description = ?,
         fabric_composition = ?, fabric_weight = ?, texture = ?,
-        available_sizes = ?, size_chart_url = ?, fit_description = ?, size_pricing = ?,
+        available_sizes = ?, fit_description = ?, size_pricing = ?,
         available_colors = ?, print_method = ?, print_areas = ?, design_requirements = ?,
         base_cost = ?, retail_price = ?, is_active = ?,
         turnaround_time = ?, minimum_order_qty = ?
@@ -305,7 +327,7 @@ router.put('/:id', async (req, res) => {
         await connection.execute(updateQuery, [
             name, category, gender, fit_type, description,
             fabric_composition, fabric_weight, texture,
-            JSON.stringify(available_sizes || []), size_chart_url,
+            JSON.stringify(available_sizes || []),
             fit_description, JSON.stringify(size_pricing || {}),
             JSON.stringify(available_colors || []), print_method,
             JSON.stringify(print_areas || []), design_requirements,

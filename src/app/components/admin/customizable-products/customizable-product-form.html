@@ -1,13 +1,23 @@
 <div class="cp-form-container">
   <!-- Alert Messages -->
-  <div *ngIf="message()" class="alert" [class.alert-success]="messageType()==='success'" [class.alert-danger]="messageType()==='error'" [class.alert-info]="messageType()==='info'" style="white-space: pre-line; position: relative;">
+  <div *ngIf="message()" 
+       class="alert" 
+       [class.alert-success]="messageType()==='success'" 
+       [class.alert-danger]="messageType()==='error'" 
+       [class.alert-info]="messageType()==='info'"
+       [class.alert-prominent]="messageType()==='success'"
+       style="white-space: pre-line; position: relative; margin-bottom: 20px;">
+    <span style="font-size: 20px; margin-right: 8px;">
+      <span *ngIf="messageType()==='success'">✅</span>
+      <span *ngIf="messageType()==='error'">❌</span>
+      <span *ngIf="messageType()==='info'">ℹ️</span>
+    </span>
     {{message()}}
-    <button type="button" class="alert-close" (click)="clearMessage()" *ngIf="messageType() === 'error'" title="Dismiss">&times;</button>
+    <button type="button" 
+            class="alert-close" 
+            (click)="clearMessage()" 
+            title="Dismiss">&times;</button>
   </div>
-
-  <h2>{{ isEditMode ? '✏️ Edit Product' : '➕ Add Customizable Product' }}</h2>
-  <p *ngIf="isEditMode" class="text-muted">Update the fields you want to change. Existing data is pre-filled.</p>
-  <p *ngIf="!isEditMode" class="text-muted">Fill in the product details below. Fields marked with <span class="text-danger">*</span> are required.</p>
   
   <form (ngSubmit)="save()" #productForm="ngForm" novalidate>
     <!-- 1. Basic Info -->
@@ -52,28 +62,48 @@
 
       <!-- Sizes & Fit (Moved here from section 5) -->
       <div style="margin-top: 20px; padding: 16px; background: #f8f9fa; border-radius: 8px;">
-        <label style="font-weight: 600; margin-bottom: 12px; display: block;">Available Sizes <span class="text-danger">*</span></label>
-        
-        <!-- Dynamic Sizes based on Category and Product Type -->
-        <div *ngIf="availableSizes.length > 0">
-          <small class="form-text text-muted" style="display: block; margin-bottom: 8px;">
-            <span *ngIf="form.category.includes('Pants') || form.category.includes('Shorts')">Waist Sizes (inches) - Select all sizes you can produce</span>
-            <span *ngIf="!(form.category.includes('Pants') || form.category.includes('Shorts'))">
-              {{ form.gender === 'Kids' ? 'Kids Sizes - Select all available' : 'Standard Sizes - Select all available' }}
-            </span>
-          </small>
-          <div class="chips">
-            <label *ngFor="let s of availableSizes" class="chip">
-              <input type="checkbox" (change)="toggleSize(s, $any($event.target).checked)"> {{s}}
-            </label>
+        <!-- Available Sizes & Fit Description in two columns -->
+
+
+        <div class="row">
+          <div class="col">
+            <label style="font-weight: 600; margin-bottom: 12px; display: block;">Available Sizes <span class="text-danger">*</span></label>
+            
+            <!-- Dynamic Sizes based on Category and Product Type -->
+            <div *ngIf="availableSizes.length > 0">
+              <small class="form-text text-muted" style="display: block; margin-bottom: 8px;">
+                <span *ngIf="form.category.includes('Pants') || form.category.includes('Shorts')">Waist Sizes (inches) - Select all sizes you can produce</span>
+                <span *ngIf="!(form.category.includes('Pants') || form.category.includes('Shorts'))">
+                  {{ form.gender === 'Kids' ? 'Kids Sizes - Select all available' : 'Standard Sizes - Select all available' }}
+                </span>
+              </small>
+              <div class="chips" [ngClass]="{'is-invalid': errors?.availableSizes}">
+                <label *ngFor="let s of availableSizes" class="chip">
+                  <input type="checkbox" (change)="toggleSize(s, $any($event.target).checked)"> {{s}}
+                </label>
+              </div>
+              <div *ngIf="errors?.availableSizes" class="invalid-feedback" style="display:block">{{ errors.availableSizes }}</div>
+            </div>
+            
+            <!-- Prompt to select category and product type first -->
+            <div *ngIf="availableSizes.length === 0" style="padding: 20px; text-align: center; color: #6c757d;">
+              <p>👆 Please select <strong>Product Category</strong> and <strong>Product Type</strong> first to see available sizes.</p>
+            </div>
+          </div>
+
+          <div class="col">
+            <label>Fit Description</label>
+            <input class="form-control form-control-sm" [(ngModel)]="form.fitDescription" name="fitDescription" placeholder="e.g., Runs true to size, Slightly oversized">
+            <small class="form-text text-muted">Brief note on how the product fits (e.g., "Runs true to size", "Order one size up for relaxed fit")</small>
           </div>
         </div>
-        
-        <!-- Prompt to select category and product type first -->
-        <div *ngIf="availableSizes.length === 0" style="padding: 20px; text-align: center; color: #6c757d;">
-          <p>👆 Please select <strong>Product Category</strong> and <strong>Product Type</strong> first to see available sizes.</p>
-        </div>
 
+
+
+
+
+
+        
         <!-- Size Pricing -->
         <div *ngIf="form.availableSizes.length > 0" style="margin-top: 16px; padding: 16px; background: white; border-radius: 8px; border: 1px solid #dee2e6;">
           <label style="font-size: 14px; font-weight: 600; color: #0066cc; margin-bottom: 8px;">💰 Size Pricing (Optional Add-ons)</label>
@@ -96,7 +126,8 @@
                   [(ngModel)]="sizePricing[size]" 
                   [name]="'sizePrice_' + size"
                   placeholder="0"
-                  style="font-weight: 500;">
+                  style="font-weight: 500;"
+                  (focus)="$any($event.target).select()">
               </div>
             </div>
           </div>
@@ -105,21 +136,6 @@
             <small style="color: #856404; font-weight: 500;">
               💡 <strong>Example:</strong> If retail price is ₱500 and XL has +₱50, customer pays ₱550 for XL size.
             </small>
-          </div>
-        </div>
-
-        <!-- Fit Description & Size Chart -->
-        <div class="row" style="margin-top: 16px;">
-          <div class="col">
-            <label>Size Chart (image)</label>
-            <input type="file" class="form-control form-control-sm" (change)="onFileSelected($event,'sizeChart')" accept="image/jpeg,image/jpg,image/png,image/svg+xml">
-            <small class="form-text text-muted">Upload a size chart image to help customers choose the right size (optional but highly recommended)</small>
-            <img *ngIf="sizeChartPreview" [src]="sizeChartPreview" class="preview" alt="size chart" style="max-height: 150px; margin-top: 8px;">
-          </div>
-          <div class="col">
-            <label>Fit Description</label>
-            <input class="form-control form-control-sm" [(ngModel)]="form.fitDescription" name="fitDescription" placeholder="e.g., Runs true to size, Slightly oversized">
-            <small class="form-text text-muted">Brief note on how the product fits (e.g., "Runs true to size", "Order one size up for relaxed fit")</small>
           </div>
         </div>
       </div>
@@ -167,28 +183,136 @@
       <div class="row">
         <div class="col">
           <label>Front View Image <span class="text-danger">*</span></label>
-          <input type="file" class="form-control" (change)="onFileSelected($event,'front')" accept="image/jpeg,image/jpg,image/png,image/svg+xml" required [ngClass]="{'is-invalid': errors?.images_front}">
-          <div *ngIf="errors?.images_front" class="invalid-feedback" style="display:block">{{ errors.images_front }}</div>
-          <small class="form-text text-muted">Main product photo customers see first (required)</small>
-          <img *ngIf="frontPreview" [src]="frontPreview" class="preview" alt="front preview">
+          
+          <!-- State 1: No image - Show file input -->
+          <div *ngIf="!form.frontImageUrl && !form.frontImageFile">
+            <input type="file" 
+                   class="form-control" 
+                   (change)="onFileSelected($event,'front')" 
+                   accept="image/jpeg,image/jpg,image/png,image/svg+xml" 
+                   required 
+                   [ngClass]="{'is-invalid': errors?.images_front}"
+                   #frontImageInput>
+            <div *ngIf="errors?.images_front" class="invalid-feedback" style="display:block">{{ errors.images_front }}</div>
+            <small class="form-text text-muted">Main product photo customers see first (required)</small>
+          </div>
+
+          <!-- State 2: Existing image - Show preview with Change button -->
+          <div *ngIf="form.frontImageUrl && !form.frontImageFile" 
+               style="border: 2px solid #28a745; border-radius: 8px; padding: 15px; background: #f8f9fa;">
+            <p style="margin: 0 0 10px 0; font-weight: 600; color: #28a745;">
+              ✅ Current Front Image:
+            </p>
+            <img [src]="form.frontImageUrl" 
+                 style="max-width: 200px; max-height: 200px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: block; margin-bottom: 10px;">
+            <button type="button" class="btn btn-secondary btn-sm" (click)="frontImageInput.click()">
+              🔄 Change Image
+            </button>
+            <input #frontImageInput type="file" style="display: none;" 
+                   (change)="onFileSelected($event,'front')" 
+                   accept="image/jpeg,image/jpg,image/png,image/svg+xml">
+            <div *ngIf="errors?.images_front" class="invalid-feedback" style="display:block; margin-top: 8px;">{{ errors.images_front }}</div>
+          </div>
+
+          <!-- State 3: New file selected - Show preview with Cancel -->
+          <div *ngIf="form.frontImageFile" 
+               style="border: 2px solid #007bff; border-radius: 8px; padding: 15px; background: #e7f3ff;">
+            <p style="margin: 0 0 10px 0; font-weight: 600; color: #007bff;">
+              📤 New Front Image (will upload on save):
+            </p>
+            <img [src]="frontPreview" 
+                 style="max-width: 200px; max-height: 200px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: block; margin-bottom: 10px;">
+            <button type="button" class="btn btn-warning btn-sm" (click)="cancelFrontImage()">
+              ✖️ Cancel New Upload
+            </button>
+            <div *ngIf="errors?.images_front" class="invalid-feedback" style="display:block; margin-top: 8px;">{{ errors.images_front }}</div>
+          </div>
         </div>
+        
         <div class="col">
           <label>Back View Image <span class="text-danger">*</span></label>
-          <input type="file" class="form-control" (change)="onFileSelected($event,'back')" accept="image/jpeg,image/jpg,image/png,image/svg+xml" required [ngClass]="{'is-invalid': errors?.images_back}">
-          <div *ngIf="errors?.images_back" class="invalid-feedback" style="display:block">{{ errors.images_back }}</div>
-          <small class="form-text text-muted">Back view of the product (required for 360° view)</small>
-          <img *ngIf="backPreview" [src]="backPreview" class="preview" alt="back preview">
-  <div *ngIf="errors?.images" class="invalid-feedback" style="display:block">{{ errors.images }}</div>
+          
+          <!-- State 1: No image - Show file input -->
+          <div *ngIf="!form.backImageUrl && !form.backImageFile">
+            <input type="file" 
+                   class="form-control" 
+                   (change)="onFileSelected($event,'back')" 
+                   accept="image/jpeg,image/jpg,image/png,image/svg+xml" 
+                   required 
+                   [ngClass]="{'is-invalid': errors?.images_back}"
+                   #backImageInput>
+            <div *ngIf="errors?.images_back" class="invalid-feedback" style="display:block">{{ errors.images_back }}</div>
+            <small class="form-text text-muted">Back view of the product (required for 360° view)</small>
+          </div>
+
+          <!-- State 2: Existing image - Show preview with Change button -->
+          <div *ngIf="form.backImageUrl && !form.backImageFile" 
+               style="border: 2px solid #28a745; border-radius: 8px; padding: 15px; background: #f8f9fa;">
+            <p style="margin: 0 0 10px 0; font-weight: 600; color: #28a745;">
+              ✅ Current Back Image:
+            </p>
+            <img [src]="form.backImageUrl" 
+                 style="max-width: 200px; max-height: 200px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: block; margin-bottom: 10px;">
+            <button type="button" class="btn btn-secondary btn-sm" (click)="backImageInput.click()">
+              🔄 Change Image
+            </button>
+            <input #backImageInput type="file" style="display: none;" 
+                   (change)="onFileSelected($event,'back')" 
+                   accept="image/jpeg,image/jpg,image/png,image/svg+xml">
+            <div *ngIf="errors?.images_back" class="invalid-feedback" style="display:block; margin-top: 8px;">{{ errors.images_back }}</div>
+          </div>
+
+          <!-- State 3: New file selected - Show preview with Cancel -->
+          <div *ngIf="form.backImageFile" 
+               style="border: 2px solid #007bff; border-radius: 8px; padding: 15px; background: #e7f3ff;">
+            <p style="margin: 0 0 10px 0; font-weight: 600; color: #007bff;">
+              📤 New Back Image (will upload on save):
+            </p>
+            <img [src]="backPreview" 
+                 style="max-width: 200px; max-height: 200px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: block; margin-bottom: 10px;">
+            <button type="button" class="btn btn-warning btn-sm" (click)="cancelBackImage()">
+              ✖️ Cancel New Upload
+            </button>
+            <div *ngIf="errors?.images_back" class="invalid-feedback" style="display:block; margin-top: 8px;">{{ errors.images_back }}</div>
+          </div>
+          <div *ngIf="errors?.images" class="invalid-feedback" style="display:block">{{ errors.images }}</div>
         </div>
       </div>
       <div>
         <label>Additional Images (optional)</label>
+        
+        <!-- Existing images grid -->
+        <div *ngIf="form.additionalImages && form.additionalImages.length > 0" 
+             style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; margin-bottom: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 2px solid #28a745;">
+          <div *ngFor="let img of form.additionalImages; let i = index" 
+               style="position: relative; border: 2px solid #28a745; border-radius: 8px; overflow: hidden;">
+            <img [src]="img.url" 
+                 style="width: 100%; height: 120px; object-fit: cover; display: block;">
+            <button type="button" 
+                    (click)="removeAdditionalImage(i)"
+                    style="position: absolute; top: 5px; right: 5px; background: rgba(220, 53, 69, 0.9); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; padding: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"
+                    onmouseover="this.style.background='rgba(187, 45, 59, 1)'; this.style.transform='scale(1.1)';" 
+                    onmouseout="this.style.background='rgba(220, 53, 69, 0.9)'; this.style.transform='scale(1)';"
+                    title="Remove image">🗑️</button>
+          </div>
+        </div>
+        
+        <!-- Add more images -->
         <input type="file" class="form-control" (change)="onFileSelected($event,'additional')" accept="image/jpeg,image/jpg,image/png,image/svg+xml" multiple>
         <small class="form-text text-muted">Upload multiple images to showcase details, textures, close-ups, or color variants (optional, recommended 2-4 images)</small>
-        <div class="preview-list" *ngIf="additionalPreviews.length > 0">
-          <div *ngFor="let p of additionalPreviews; let i = index" class="preview-item">
-            <img [src]="p" class="preview" alt="additional preview">
-            <button type="button" class="remove-preview" (click)="removeAdditionalImage(i)">&times;</button>
+        
+        <!-- Preview of newly selected files (not yet saved) -->
+        <div class="preview-list" *ngIf="additionalPreviews.length > 0" style="margin-top: 12px;">
+          <p style="font-size: 13px; color: #007bff; font-weight: 600; margin-bottom: 8px;">📤 New images to upload (not saved yet):</p>
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px;">
+            <div *ngFor="let p of additionalPreviews; let i = index" style="position: relative; border: 2px solid #007bff; border-radius: 8px; overflow: hidden;">
+              <img [src]="p" style="width: 100%; height: 120px; object-fit: cover; display: block;" alt="additional preview">
+              <button type="button" (click)="removeNewAdditionalImage(i)" 
+                      style="position: absolute; top: 5px; right: 5px; background: rgba(220, 53, 69, 0.9); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; font-weight: bold; padding: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"
+                      onmouseover="this.style.background='rgba(187, 45, 59, 1)'; this.style.transform='scale(1.1)';" 
+                      onmouseout="this.style.background='rgba(220, 53, 69, 0.9)'; this.style.transform='scale(1)';"
+                      title="Remove image">×</button>
+            </div>
           </div>
         </div>
       </div>
@@ -221,14 +345,41 @@
       <h3>4. Pricing <span class="required-indicator">* Required</span></h3>
       <div class="row">
         <div class="col-md-6">
+          <label>Base Cost (Your Cost) 💵</label>
+          <div class="input-group">
+            <span class="input-group-text">₱</span>
+            <input type="number" min="0" step="10" class="form-control" [(ngModel)]="form.baseCost" name="baseCost" placeholder="250" (focus)="$any($event.target).select()">
+          </div>
+          <small class="form-text text-muted">How much it costs YOU to produce this item (blank product + printing + labor)</small>
+        </div>
+        <div class="col-md-6">
           <label>Retail Price 💰 <span class="text-danger">*</span></label>
           <div class="input-group">
             <span class="input-group-text">₱</span>
-            <input type="number" min="0" step="10" class="form-control" [(ngModel)]="form.retailPrice" name="retailPrice" placeholder="500" style="font-size: 18px; font-weight: 600;" required>
+            <input type="number" min="0" step="50" class="form-control" [(ngModel)]="form.retailPrice" name="retailPrice" placeholder="500" style="font-size: 18px; font-weight: 600;" required (focus)="$any($event.target).select()" [ngClass]="{'is-invalid': errors?.retailPrice}">
           </div>
+          <div *ngIf="errors?.retailPrice" class="invalid-feedback" style="display:block">{{ errors.retailPrice }}</div>
           <small class="form-text text-muted">Final product price customers pay (before size premiums and shipping)</small>
         </div>
       </div>
+      
+      <!-- Profit Margin Display -->
+      <div class="row mt-3" *ngIf="form.baseCost > 0 && form.retailPrice > 0">
+        <div class="col-md-12">
+          <div class="alert" [ngClass]="{
+            'alert-success': getProfit() > 0,
+            'alert-warning': getProfit() <= 0
+          }" style="margin-bottom: 0;">
+            <strong>💰 Profit Analysis:</strong>
+            <ul style="margin-bottom: 0; margin-top: 8px; padding-left: 20px;">
+              <li>Base Cost: ₱{{ form.baseCost.toFixed(2) }}</li>
+              <li>Retail Price: ₱{{ form.retailPrice.toFixed(2) }}</li>
+              <li><strong>Profit: ₱{{ getProfit().toFixed(2) }} ({{ getProfitMargin() }}% margin)</strong></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      
       <div style="margin-top: 16px; padding: 12px; background: #e7f3ff; border-radius: 6px; border-left: 4px solid #0066cc;">
         <small style="color: #004080; font-weight: 500;">
           💡 <strong>Note:</strong> Final checkout price = Retail Price + Size Premium (if any) + Shipping Fee
@@ -240,73 +391,135 @@
     <section class="card-section colors-variants-section">
       <h3>5. Colors & Variants</h3>
       
-      <div class="colors-variants-layout">
+      <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 32px; margin-top: 20px;">
         <!-- Left Side: Search Colors -->
-        <div class="colors-panel">
-          <label>Search colors</label>
-          <div class="search-add-row">
+        <div>
+          <label style="font-weight: 600; margin-bottom: 12px; display: block; font-size: 15px;">Search colors</label>
+          <div style="display: flex; gap: 8px; margin-bottom: 20px;">
             <input 
               type="text" 
               class="form-control" 
               [(ngModel)]="colorSearchQuery" 
               name="colorSearch"
-              placeholder="e.g. Hexadecimal or CMYK or Name">
-            <button type="button" class="btn btn-primary add-color-btn" (click)="addColorFromSearch()">
+              placeholder="e.g. Hexadecimal or CMYK or Name"
+              (keydown.enter)="addColorFromSearch()"
+              style="flex: 1; padding: 10px 14px; border: 1px solid #d0d0d0; border-radius: 6px; font-size: 14px;">
+            <button type="button" class="btn btn-primary" (click)="addColorFromSearch()" 
+                    style="white-space: nowrap; background: #0000ff; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 500; color: white; cursor: pointer;">
               + Add color
             </button>
           </div>
           
           <!-- Selected Colors List -->
-          <ul class="selected-colors-grid">
-            <li *ngFor="let color of form.availableColors; let i = index" class="color-card-item">
-              <div class="color-preview-large" [style.background-color]="color.hex"></div>
-              <span class="color-card-label">{{ color.name }}</span>
-              <button type="button" class="btn-remove-card" (click)="removeColor(i)" title="Remove">×</button>
+          <ul style="list-style: none; padding: 0; margin: 0; min-height: 100px;" [ngClass]="{'border-danger': errors?.availableColors}">
+            <li *ngFor="let color of getActiveColors(); let i = index" 
+                style="display: flex; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid #e8e8e8;">
+              <span style="width: 10px; height: 10px; background: #bbb; border-radius: 50%; flex-shrink: 0;"></span>
+              <div [style.background-color]="color.hex" 
+                   style="width: 64px; height: 64px; border-radius: 8px; border: 3px solid #e0e0e0; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></div>
+              <span style="flex: 1; font-size: 15px; color: #333; font-weight: 400;">{{ color.name }} | {{ color.hex }}</span>
+              <button type="button" (click)="removeColor(form.availableColors.indexOf(color))" 
+                      style="background: none; border: none; color: #999; font-size: 28px; cursor: pointer; padding: 0; width: 28px; height: 28px; line-height: 1; transition: color 0.2s;"
+                      onmouseover="this.style.color='#333'" onmouseout="this.style.color='#999'"
+                      title="Remove">×</button>
             </li>
           </ul>
+          <div *ngIf="errors?.availableColors" class="invalid-feedback" style="display:block; margin-top: 8px;">{{ errors.availableColors }}</div>
         </div>
 
         <!-- Divider -->
-        <div class="vertical-divider"></div>
+        <div style="width: 1px; background: linear-gradient(to bottom, #e0e0e0 0%, #e0e0e0 100%); align-self: stretch;"></div>
 
         <!-- Right Side: Upload Variants -->
-        <div class="variants-panel">
-          <label>Upload other Variations (Optional)</label>
-          <div class="variant-input-row">
+        <div>
+          <label style="font-weight: 600; margin-bottom: 12px; display: block; font-size: 15px;">Upload sample variant image (Optional)</label>
+          
+          <!-- Single Row: File Upload + Variant Name + Add Button -->
+          <div style="display: flex; gap: 8px; margin-bottom: 20px; align-items: center;">
             <input 
               type="file" 
               accept="image/*"
               (change)="onVariantImageSelect($event)"
               #variantFileInput
               style="display: none;">
-            <button type="button" class="btn btn-outline-secondary choose-file-btn" (click)="variantFileInput.click()">
+            <button type="button" class="btn btn-outline-secondary" (click)="variantFileInput.click()" 
+                    style="padding: 10px 20px; border: 1px solid #d0d0d0; background: white; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s; white-space: nowrap;"
+                    onmouseover="this.style.background='#f8f8f8'" onmouseout="this.style.background='white'">
               Choose files
             </button>
-            <span class="file-status">{{ variantFileName || 'No file chosen' }}</span>
+            <span style="color: #888; font-size: 14px; min-width: 110px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ variantFileName || 'No file chosen' }}</span>
             <input 
               type="text" 
-              class="form-control variant-name-input" 
+              class="form-control" 
               [(ngModel)]="variantName" 
               name="variantName"
-              placeholder="(e.g., Heather Grey, Acid Wash)">
-            <button type="button" class="btn btn-primary add-variant-btn" (click)="addVariant()">
+              placeholder="Variant name/texture/type/color (optional)"
+              (keydown.enter)="addVariant()"
+              style="flex: 1; padding: 10px 14px; border: 1px solid #d0d0d0; border-radius: 6px; font-size: 14px;">
+            <button type="button" class="btn btn-primary" (click)="addVariant()" 
+                    style="white-space: nowrap; background: #0000ff; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 500; color: white; cursor: pointer;">
               + Add variant
             </button>
           </div>
 
-          <!-- Variants List -->
-          <ul class="variants-list">
-            <li *ngFor="let variant of variants; let i = index" class="variant-item">
-              <div class="variant-preview" *ngIf="variant.imageUrl">
-                <img [src]="variant.imageUrl" [alt]="variant.name">
+          <!-- Existing Variants (from database) -->
+          <div *ngIf="getExistingVariants().length > 0" style="margin-bottom: 20px;">
+            <p style="font-weight: 600; margin-bottom: 12px; color: #28a745; font-size: 14px;">
+              ✅ Existing Variants (saved in database):
+            </p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 2px solid #28a745;">
+              <div *ngFor="let variant of getExistingVariants(); let i = index" 
+                   style="border: 2px solid #28a745; border-radius: 8px; padding: 12px; background: white; display: flex; flex-direction: column; gap: 8px;">
+                <!-- Variant Image -->
+                <div style="width: 100%; height: 100px; border-radius: 6px; overflow: hidden; background: #f8f8f8; display: flex; align-items: center; justify-content: center;">
+                  <img [src]="variant.imageUrl" [alt]="variant.name" style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
+                <!-- Variant Name -->
+                <p style="font-weight: 600; margin: 0; font-size: 13px; color: #333; text-align: center;">
+                  {{ variant.name }}
+                </p>
+                <!-- Remove Button -->
+                <button type="button" (click)="removeVariant(getVariantIndex(variant))" 
+                        class="btn btn-danger btn-sm" 
+                        style="width: 100%; font-size: 12px; padding: 6px;">
+                  🗑️ Remove
+                </button>
               </div>
-              <div class="variant-preview no-image" *ngIf="!variant.imageUrl">
-                <span>📷</span>
+            </div>
+          </div>
+
+          <!-- New Variants (not saved yet) -->
+          <div *ngIf="getNewVariants().length > 0" style="margin-bottom: 20px;">
+            <p style="font-weight: 600; margin-bottom: 12px; color: #007bff; font-size: 14px;">
+              📤 New Variants (will save when you submit):
+            </p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; padding: 15px; background: #e7f3ff; border-radius: 8px; border: 2px solid #007bff;">
+              <div *ngFor="let variant of getNewVariants(); let i = index" 
+                   style="border: 2px solid #007bff; border-radius: 8px; padding: 12px; background: white; display: flex; flex-direction: column; gap: 8px;">
+                <!-- Variant Image -->
+                <div style="width: 100%; height: 100px; border-radius: 6px; overflow: hidden; background: #f8f8f8; display: flex; align-items: center; justify-content: center;">
+                  <img *ngIf="variant.imageUrl" [src]="variant.imageUrl" [alt]="variant.name" style="width: 100%; height: 100%; object-fit: cover;">
+                  <span *ngIf="!variant.imageUrl" style="font-size: 32px;">📷</span>
+                </div>
+                <!-- Variant Name -->
+                <p style="font-weight: 600; margin: 0; font-size: 13px; color: #333; text-align: center;">
+                  {{ variant.name }}
+                </p>
+                <!-- Remove Button -->
+                <button type="button" (click)="removeVariant(getVariantIndex(variant))" 
+                        class="btn btn-warning btn-sm" 
+                        style="width: 100%; font-size: 12px; padding: 6px;">
+                  ✖️ Remove
+                </button>
               </div>
-              <span class="variant-label">{{ variant.name }}</span>
-              <button type="button" class="btn-remove" (click)="removeVariant(i)" title="Remove">×</button>
-            </li>
-          </ul>
+            </div>
+          </div>
+
+          <!-- Empty State -->
+          <div *ngIf="variants.length === 0" 
+               style="padding: 40px; text-align: center; color: #6c757d; background: #f8f9fa; border-radius: 8px; border: 2px dashed #dee2e6;">
+            <p style="margin: 0; font-size: 14px;">No variants added yet. Add variants to show different textures, materials, or color options.</p>
+          </div>
         </div>
       </div>
     </section>
@@ -324,11 +537,12 @@
         </div>
         <div class="col">
           <label>Print Areas</label>
-          <div class="chips">
+          <div class="chips" [ngClass]="{'is-invalid': errors?.printAreas}">
             <label *ngFor="let a of printAreaOptions" class="chip">
               <input type="checkbox" [checked]="form.printAreas.includes(a)" (change)="togglePrintArea(a, $any($event.target).checked)"> {{a}}
             </label>
           </div>
+          <div *ngIf="errors?.printAreas" class="invalid-feedback" style="display:block">{{ errors.printAreas }}</div>
           <small class="form-text text-muted">Where customers can add their designs</small>
         </div>
       </div>
@@ -350,7 +564,7 @@
         </div>
         <div class="col">
           <label>Minimum Order Quantity</label>
-          <input type="number" min="1" class="form-control" [(ngModel)]="form.minimumOrderQty" name="minimumOrderQty" placeholder="1">
+          <input type="number" min="1" class="form-control" [(ngModel)]="form.minimumOrderQty" name="minimumOrderQty" placeholder="1" (focus)="$any($event.target).select()">
           <small class="form-text text-muted">Minimum pieces per order (use 1 for no minimum)</small>
         </div>
       </div>

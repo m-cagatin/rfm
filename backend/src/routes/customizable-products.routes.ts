@@ -15,7 +15,7 @@ router.post('/', async (req: Request, res: Response) => {
       name, category, gender, fit_type, description,
       images, // Array of {url, publicId, imageType, displayOrder}
       fabric_composition, fabric_weight, texture,
-      available_sizes, size_chart_url, fit_description, size_pricing,
+      available_sizes, fit_description, size_pricing,
       available_colors, variants,
       print_method, print_areas, design_requirements,
       base_cost, retail_price, is_active,
@@ -60,19 +60,19 @@ router.post('/', async (req: Request, res: Response) => {
       INSERT INTO customizable_products (
         product_code, name, category, gender, fit_type, description,
         fabric_composition, fabric_weight, texture,
-        available_sizes, size_chart_url, fit_description, size_pricing,
+        available_sizes, fit_description, size_pricing,
         available_colors,
         print_method, print_areas, design_requirements,
         base_cost, retail_price, is_active,
         turnaround_time, minimum_order_qty
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const productValues = [
       product_code, name, category,
       gender || 'Unisex', fit_type || 'Classic', description || null,
       fabric_composition || null, fabric_weight || null, texture || null,
-      JSON.stringify(available_sizes || []), size_chart_url || null,
+      JSON.stringify(available_sizes || []),
       fit_description || null, JSON.stringify(size_pricing || {}),
       JSON.stringify(available_colors || []),
       print_method || 'DTG', JSON.stringify(print_areas || []),
@@ -196,7 +196,6 @@ router.get('/', async (req: Request, res: Response) => {
         fabric_weight: row.fabric_weight,
         texture: row.texture,
         available_sizes: row.available_sizes,
-        size_chart_url: row.size_chart_url,
         fit_description: row.fit_description,
         size_pricing: row.size_pricing,
         available_colors: row.available_colors,
@@ -301,7 +300,6 @@ router.get('/:id', async (req: Request, res: Response) => {
       fabric_weight: row.fabric_weight,
       texture: row.texture,
       available_sizes: row.available_sizes,
-      size_chart_url: row.size_chart_url,
       fit_description: row.fit_description,
       size_pricing: row.size_pricing,
       available_colors: row.available_colors,
@@ -345,7 +343,7 @@ router.put('/:id', async (req: Request, res: Response) => {
     const {
       name, category, gender, fit_type, description,
       images, fabric_composition, fabric_weight, texture,
-      available_sizes, size_chart_url, fit_description, size_pricing,
+      available_sizes, fit_description, size_pricing,
       available_colors, variants, print_method, print_areas,
       design_requirements, base_cost, retail_price, is_active,
       turnaround_time, minimum_order_qty
@@ -382,7 +380,7 @@ router.put('/:id', async (req: Request, res: Response) => {
       UPDATE customizable_products SET
         name = ?, category = ?, gender = ?, fit_type = ?, description = ?,
         fabric_composition = ?, fabric_weight = ?, texture = ?,
-        available_sizes = ?, size_chart_url = ?, fit_description = ?, size_pricing = ?,
+        available_sizes = ?, fit_description = ?, size_pricing = ?,
         available_colors = ?, print_method = ?, print_areas = ?, design_requirements = ?,
         base_cost = ?, retail_price = ?, is_active = ?,
         turnaround_time = ?, minimum_order_qty = ?
@@ -392,7 +390,7 @@ router.put('/:id', async (req: Request, res: Response) => {
     await connection.execute(updateQuery, [
       name, category, gender, fit_type, description,
       fabric_composition, fabric_weight, texture,
-      JSON.stringify(available_sizes || []), size_chart_url,
+      JSON.stringify(available_sizes || []),
       fit_description, JSON.stringify(size_pricing || {}),
       JSON.stringify(available_colors || []), print_method,
       JSON.stringify(print_areas || []), design_requirements,

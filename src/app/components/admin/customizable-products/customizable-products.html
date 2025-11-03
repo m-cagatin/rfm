@@ -2,8 +2,12 @@
   <!-- Header -->
   <div class="header">
     <div>
-      <h2>Customizable Products</h2>
-      <p class="subtitle">Manage products with custom designs, sizes, and color options</p>
+      <!-- Back to List button for form view -->
+      <button *ngIf="showForm()" class="btn btn-outline-secondary mb-5" (click)="handleFormCancel()">
+        ← Back to List
+      </button>
+      <h2>{{ showForm() ? '➕ Add Customizable Product' : 'Customizable Products' }}</h2>
+      <p class="subtitle">{{ showForm() ? 'Fill in the product details below. Fields marked with * are required.' : 'Manage products with custom designs, sizes, and color options' }}</p>
     </div>
     <button class="btn btn-primary" (click)="addNewProduct()" *ngIf="!showForm()">
       <span>➕ Add New Product</span>
@@ -370,11 +374,6 @@
 
   <!-- Add/Edit Form -->
   <div *ngIf="showForm()">
-    <div class="form-header">
-      <button class="btn btn-outline-secondary" (click)="handleFormCancel()">
-        ← Back to List
-      </button>
-    </div>
     <app-customizable-product-form 
       [productToEdit]="editingProduct()"
       (formCancelled)="handleFormCancel()" 

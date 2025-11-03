@@ -112,11 +112,11 @@ export class ApiService {
   }
 
   getCanvasList(): Observable<ApiResponse<CanvasData[]>> {
-    return this.http.get<ApiResponse<CanvasData[]>>(`${this.baseUrl}/canvas/list`);
+    return this.http.get<ApiResponse<CanvasData[]>>(`${this.baseUrl}/canvas/list`, { headers: this.noCacheHeaders });
   }
 
   getCanvas(id: string): Observable<ApiResponse<CanvasData>> {
-    return this.http.get<ApiResponse<CanvasData>>(`${this.baseUrl}/canvas/${id}`);
+    return this.http.get<ApiResponse<CanvasData>>(`${this.baseUrl}/canvas/${id}`, { headers: this.noCacheHeaders });
   }
 
   // User/Employee operations
@@ -128,11 +128,11 @@ export class ApiService {
       if (status) queryParams.push(`status=${encodeURIComponent(status)}`);
       params = '?' + queryParams.join('&');
     }
-    return this.http.get<ApiResponse<UserData[]>>(`${this.baseUrl}/users${params}`);
+    return this.http.get<ApiResponse<UserData[]>>(`${this.baseUrl}/users${params}`, { headers: this.noCacheHeaders });
   }
 
   getUser(id: string): Observable<ApiResponse<UserData>> {
-    return this.http.get<ApiResponse<UserData>>(`${this.baseUrl}/users/${id}`);
+    return this.http.get<ApiResponse<UserData>>(`${this.baseUrl}/users/${id}`, { headers: this.noCacheHeaders });
   }
 
   createUser(userData: Omit<UserData, 'id' | 'created_at' | 'updated_at'>): Observable<ApiResponse<UserData>> {
@@ -203,11 +203,11 @@ export class ApiService {
   }
 
   getCustomizableProducts(): Observable<ApiResponse> {
-    return this.http.get<ApiResponse>(`${this.baseUrl}/customizable-products`);
+    return this.http.get<ApiResponse>(`${this.baseUrl}/customizable-products`, { headers: this.noCacheHeaders });
   }
 
   getCustomizableProductById(id: string): Observable<ApiResponse> {
-    return this.http.get<ApiResponse>(`${this.baseUrl}/customizable-products/${id}`);
+    return this.http.get<ApiResponse>(`${this.baseUrl}/customizable-products/${id}`, { headers: this.noCacheHeaders });
   }
 
   updateCustomizableProduct(id: string, productData: any): Observable<ApiResponse> {

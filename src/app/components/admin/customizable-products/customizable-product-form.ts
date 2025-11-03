@@ -46,8 +46,6 @@ interface CustomizableProductForm {
   texture: string;
   // 4. Sizes & Fit
   availableSizes: string[];
-  sizeChartFile?: File | null;
-  sizeChartUrl?: string;
   fitDescription: string;
   // 5. Colors & Variants
   availableColors: ColorVariant[];
@@ -84,14 +82,29 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
     if (this.isSaving() || this.isUploading()) {
       return; // Don't allow cancel during save/upload
     }
-    // Ask for confirmation if form has data
-    const hasData = this.form.name || this.form.category || this.form.frontImageFile || 
-                    this.form.backImageFile || this.form.availableSizes.length > 0;
-    if (hasData) {
+    
+    // Check if there are actual unsaved changes
+    const hasChanges = this.hasUnsavedChanges || 
+                      this.form.frontImageFile !== null || 
+                      this.form.backImageFile !== null || 
+                      this.form.additionalImageFiles.length > 0 ||
+                      this.imagesToDeleteOnSave.length > 0 ||
+                      this.colorsToDeleteOnSave.length > 0 ||
+                      this.variantsToDeleteOnSave.length > 0 ||
+                      this.variants.some(v => v.imageFile); // New variant images
+    
+    if (hasChanges) {
       if (!confirm('Are you sure you want to cancel? Any unsaved changes will be lost.')) {
         return;
       }
     }
+    
+    // Clear tracking arrays
+    this.imagesToDeleteOnSave = [];
+    this.colorsToDeleteOnSave = [];
+    this.variantsToDeleteOnSave = [];
+    this.hasUnsavedChanges = false;
+    
     this.formCancelled.emit();
   }
 
@@ -118,8 +131,6 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
       fabricWeight: '',
       texture: '',
       availableSizes: [],
-      sizeChartFile: null,
-      sizeChartUrl: '',
       fitDescription: '',
       availableColors: [],
       printMethod: 'DTG',
@@ -136,7 +147,6 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
     this.backPreview = null;
     this.logoPreview = null;
     this.additionalPreviews = [];
-    this.sizeChartPreview = null;
     this.variants = [];
     this.sizePricing = {};
     this.colorSearchQuery = '';
@@ -144,6 +154,10 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
     this.variantFileName = '';
     this.variantImageFile = null;
     this.variantImagePreview = null;
+    this.imagesToDeleteOnSave = [];  // ✅ Clear deletion tracking
+    this.colorsToDeleteOnSave = [];
+    this.variantsToDeleteOnSave = [];
+    this.hasUnsavedChanges = false;
   }
 
   setMessage(msg: string, type: 'success'|'error'|'info'|'') {
@@ -153,11 +167,13 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
     }
     this.message.set(msg);
     this.messageType.set(type);
-    // Only auto-clear success and info messages after 5 seconds
+    
+    // Auto-dismiss success and info messages after 5 seconds
     if (type === 'success' || type === 'info') {
-      (this as any).messageTimeout = setTimeout(() => { 
-        this.message.set(''); 
-        this.messageType.set('success'); 
+      (this as any).messageTimeout = setTimeout(() => {
+        if (this.message() === msg) { // Only clear if message hasn't changed
+          this.clearMessage();
+        }
       }, 5000);
     }
   }
@@ -223,7 +239,6 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
     fabricWeight: '',
     texture: '',
     availableSizes: [],
-    sizeChartFile: null,
     fitDescription: '',
     availableColors: [],
     printMethod: 'DTG',
@@ -242,7 +257,6 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
   backPreview: string | null = null;
   logoPreview: string | null = null;
   additionalPreviews: string[] = [];
-  sizeChartPreview: string | null = null;
 
   // Color and Variant Management
   colorSearchQuery: string = '';
@@ -254,6 +268,16 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
 
   // Size Pricing (e.g., { 'XL': 50, '2XL': 100, '3XL': 150 })
   sizePricing: { [size: string]: number } = {};
+
+  // Track images marked for deletion (additional images only)
+  private imagesToDeleteOnSave: string[] = [];
+  
+  // Track colors/variants marked for deletion
+  private colorsToDeleteOnSave: ColorVariant[] = [];
+  private variantsToDeleteOnSave: TextureVariant[] = [];
+  
+  // Track if form has unsaved changes
+  private hasUnsavedChanges = false;
 
   ngOnInit() {
     console.log('🔍 ngOnInit - productToEdit:', this.productToEdit);
@@ -324,12 +348,14 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
     // Sizes
     this.form.availableSizes = Array.isArray(product.available_sizes) ? [...product.available_sizes] : [];
     this.form.fitDescription = product.fit_description || '';
-    this.form.sizeChartUrl = product.size_chart_url || '';
     this.sizePricing = product.size_pricing ? { ...product.size_pricing } : {};
     
     // Colors - deep clone
     this.form.availableColors = Array.isArray(product.available_colors) 
-      ? product.available_colors.map((c: any) => ({ ...c })) 
+      ? product.available_colors.map((c: any) => ({ 
+          name: c.name,
+          hex: c.hex
+        })) 
       : [];
     
     // Variants - deep clone with proper structure
@@ -370,7 +396,7 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
     this.messageType.set('info');
   }
 
-  onFileSelected(event: Event, field: 'front'|'back'|'logo'|'sizeChart'|'additional') {
+  onFileSelected(event: Event, field: 'front'|'back'|'logo'|'additional') {
     const input = event.target as HTMLInputElement;
     if (!input.files || input.files.length === 0) return;
 
@@ -416,7 +442,6 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
     if (field === 'front') { this.form.frontImageFile = file; toDataUrl(file).then(u=> this.frontPreview = u); }
     if (field === 'back') { this.form.backImageFile = file; toDataUrl(file).then(u=> this.backPreview = u); }
     if (field === 'logo') { this.form.logoImageFile = file; toDataUrl(file).then(u=> this.logoPreview = u); }
-    if (field === 'sizeChart') { this.form.sizeChartFile = file; toDataUrl(file).then(u=> this.sizeChartPreview = u); }
     if (field === 'additional') {
       this.form.additionalImageFiles = files;
       this.additionalPreviews = [];
@@ -424,11 +449,60 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
     }
   }
 
+  // Cancel new front image upload (revert to existing)
+  cancelFrontImage() {
+    this.form.frontImageFile = null;
+    this.frontPreview = '';
+    // If there was an old image, it will show again
+  }
+
+  // Cancel new back image upload (revert to existing)
+  cancelBackImage() {
+    this.form.backImageFile = null;
+    this.backPreview = '';
+    // If there was an old image, it will show again
+  }
+
+  // Remove existing additional image (marks for deletion on save)
   removeAdditionalImage(index: number) {
+    const image = this.form.additionalImages[index];
+    
+    if (!confirm(`🗑️ Remove this additional image?\n\nThis cannot be undone once you save the form.`)) {
+      return;
+    }
+    
+    // Mark for deletion
+    if (image.publicId) {
+      this.imagesToDeleteOnSave.push(image.publicId);
+    }
+    
+    // Remove from array
+    this.form.additionalImages.splice(index, 1);
+    
+    this.setMessage('ℹ️ Additional image will be removed when you save the form.', 'info');
+  }
+
+  // Remove newly selected additional image (preview only, not saved yet)
+  removeNewAdditionalImage(index: number) {
     this.additionalPreviews.splice(index, 1);
     const filesArray = Array.from(this.form.additionalImageFiles);
     filesArray.splice(index, 1);
     this.form.additionalImageFiles = filesArray;
+  }
+
+  // Legacy methods - kept for compatibility (not used in new design)
+  removeFrontImage(fileInput: HTMLInputElement) {
+    this.frontPreview = null;
+    this.form.frontImageFile = null;
+    this.form.frontImageUrl = '';
+    fileInput.value = '';
+  }
+
+  removeBackImage(fileInput: HTMLInputElement) {
+    this.backPreview = null;
+    this.form.backImageFile = null;
+    this.form.backImageUrl = '';
+    fileInput.value = '';
   }
 
   toggleSize(size: string, checked: boolean) {
@@ -510,15 +584,33 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
     }
 
     this.form.availableColors.push({ name: colorName, hex: hexCode });
+    this.hasUnsavedChanges = true;
     this.colorSearchQuery = '';
     this.setMessage(`Color "${colorName}" added successfully`, 'success');
   }
 
   removeColor(index: number): void {
-    const removed = this.form.availableColors.splice(index, 1);
-    if (removed.length > 0) {
-      this.setMessage(`Color "${removed[0].name}" removed`, 'info');
+    const color = this.form.availableColors[index];
+    
+    if (!confirm(`🗑️ Remove color "${color.name}"?\n\nThis will be removed when you save the form.`)) {
+      return;
     }
+    
+    // If it has imageUrl, it exists in database - track for deletion
+    // For colors, we check if they exist by checking if we're in edit mode
+    if (this.isEditMode) {
+      this.colorsToDeleteOnSave.push({...color});
+    }
+    
+    // Remove from display immediately
+    this.form.availableColors.splice(index, 1);
+    this.hasUnsavedChanges = true;
+    this.setMessage(`ℹ️ Color "${color.name}" will be removed when you save.`, 'info');
+  }
+
+  // Helper method - no longer needed since we splice directly
+  getActiveColors(): ColorVariant[] {
+    return this.form.availableColors; // Return all, since removed ones are spliced
   }
 
   getColorNameFromHex(hex: string): string {
@@ -591,6 +683,7 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
     };
 
     this.variants.push(variant);
+    this.hasUnsavedChanges = true;
     
     // Reset form
     this.variantName = '';
@@ -602,10 +695,34 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
   }
 
   removeVariant(index: number): void {
-    const removed = this.variants.splice(index, 1);
-    if (removed.length > 0) {
-      this.setMessage(`Variant "${removed[0].name}" removed`, 'info');
+    const variant = this.variants[index];
+    
+    if (!confirm(`🗑️ Remove variant "${variant.name}"?\n\nThis will be removed when you save the form.`)) {
+      return;
     }
+    
+    // If it has imageUrl (exists in database), track for deletion
+    if (variant.imageUrl) {
+      this.variantsToDeleteOnSave.push({...variant});
+    }
+    
+    // Remove from display immediately
+    this.variants.splice(index, 1);
+    this.hasUnsavedChanges = true;
+    this.setMessage(`ℹ️ Variant "${variant.name}" will be removed when you save.`, 'info');
+  }
+
+  // Helper methods for variant display
+  getExistingVariants(): TextureVariant[] {
+    return this.variants.filter(v => v.imageUrl && !v.imageFile);
+  }
+
+  getNewVariants(): TextureVariant[] {
+    return this.variants.filter(v => v.imageFile);
+  }
+
+  getVariantIndex(variant: TextureVariant): number {
+    return this.variants.indexOf(variant);
   }
 
   regenerateStockGrid() {
@@ -635,53 +752,79 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
     }
   }
 
+  // Profit calculation helpers
+  getProfit(): number {
+    return this.form.retailPrice - this.form.baseCost;
+  }
+
+  getProfitMargin(): string {
+    if (this.form.baseCost === 0) return '0.0';
+    const margin = (this.getProfit() / this.form.baseCost * 100);
+    return margin.toFixed(1);
+  }
+
+  isProfitable(): boolean {
+    return this.getProfit() > 0;
+  }
+
   validateForm(): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
+    this.errors = {}; // Reset inline errors
 
     // 1. Basic Info
     if (!this.form.category) {
       errors.push('Product Category is required');
+      this.errors['category'] = 'Product Category is required';
     }
     if (!this.form.gender) {
       errors.push('Product Type is required');
+      this.errors['gender'] = 'Product Type is required';
     }
 
     // 2. Images - only required if creating new product (not editing)
     if (!this.isEditMode) {
       if (!this.form.frontImageFile) {
         errors.push('Front View Image is required');
+        this.errors['images_front'] = 'Front View Image is required';
       }
       if (!this.form.backImageFile) {
         errors.push('Back View Image is required');
+        this.errors['images_back'] = 'Back View Image is required';
       }
     } else {
       // In edit mode, images are optional (keep existing if not uploading new ones)
       if (!this.form.frontImageFile && !this.form.frontImageUrl) {
         errors.push('Front View Image is required');
+        this.errors['images_front'] = 'Front View Image is required';
       }
       if (!this.form.backImageFile && !this.form.backImageUrl) {
         errors.push('Back View Image is required');
+        this.errors['images_back'] = 'Back View Image is required';
       }
     }
 
     // 3. Sizes
     if (this.form.availableSizes.length === 0) {
       errors.push('Please select at least one size');
+      this.errors['availableSizes'] = 'Please select at least one size';
     }
 
     // 4. Pricing
     if (!this.form.retailPrice || this.form.retailPrice <= 0) {
       errors.push('Retail Price must be greater than 0');
+      this.errors['retailPrice'] = 'Retail Price must be greater than 0';
     }
 
     // 5. Colors
     if (this.form.availableColors.length === 0) {
       errors.push('Please add at least one color');
+      this.errors['availableColors'] = 'Please add at least one color';
     }
 
     // 6. Print Areas
     if (this.form.printAreas.length === 0) {
       errors.push('Please select at least one print area');
+      this.errors['printAreas'] = 'Please select at least one print area';
     }
 
     return {
@@ -703,7 +846,6 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
     
     // Validate form (frontend)
     const validation = this.validateForm();
-    this.errors = {};
     console.log('🔵 Validation result:', validation);
     if (!validation.valid) {
       const errorMessage = '⚠️ Please fix the following errors:\n\n' + 
@@ -717,12 +859,22 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
   }
 
   async uploadAndSave() {
+    // Track uploaded images for rollback if database save fails
+    const uploadedImages: string[] = [];
+    // Track old images to delete after successful update (merge manual deletions)
+    const oldImagesToDelete: string[] = [...this.imagesToDeleteOnSave];
+    
     try {
       this.isUploading.set(true);
       this.setMessage('📤 Uploading images to Cloudinary...', 'info');
 
       // Upload front image only if a new file was selected
       if (this.form.frontImageFile) {
+        // Store old image ID for deletion after successful update
+        if (this.isEditMode && this.form.frontImagePublicId) {
+          oldImagesToDelete.push(this.form.frontImagePublicId);
+        }
+        
         const frontResult = await this.cloudinaryService.uploadImageWithProductName(
           this.form.frontImageFile,
           `${this.form.category}-front`,
@@ -730,11 +882,17 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
         );
         this.form.frontImageUrl = frontResult.secure_url;
         this.form.frontImagePublicId = frontResult.public_id;
+        uploadedImages.push(frontResult.public_id); // Track for rollback
       }
       // If editing and no new file, keep existing URL (already set in form)
 
       // Upload back image only if a new file was selected
       if (this.form.backImageFile) {
+        // Store old image ID for deletion after successful update
+        if (this.isEditMode && this.form.backImagePublicId) {
+          oldImagesToDelete.push(this.form.backImagePublicId);
+        }
+        
         const backResult = await this.cloudinaryService.uploadImageWithProductName(
           this.form.backImageFile,
           `${this.form.category}-back`,
@@ -742,18 +900,9 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
         );
         this.form.backImageUrl = backResult.secure_url;
         this.form.backImagePublicId = backResult.public_id;
+        uploadedImages.push(backResult.public_id); // Track for rollback
       }
       // If editing and no new file, keep existing URL (already set in form)
-
-      // Upload size chart if provided
-      if (this.form.sizeChartFile) {
-        const sizeChartResult = await this.cloudinaryService.uploadImageWithProductName(
-          this.form.sizeChartFile,
-          `${this.form.category}-sizechart`,
-          'customizable'
-        );
-        this.form.sizeChartUrl = sizeChartResult.secure_url;
-      }
 
       // Upload additional images if any - NEW: track publicId
       if (this.form.additionalImageFiles.length > 0) {
@@ -766,6 +915,8 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
           publicId: r.public_id,
           displayOrder: this.form.additionalImages.length + index + 1
         }));
+        // Track for rollback
+        additionalResults.forEach(r => uploadedImages.push(r.public_id));
         this.form.additionalImages = [...this.form.additionalImages, ...newAdditionalImages];
       }
 
@@ -778,6 +929,7 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
             'customizable/variants'
           );
           variant.imageUrl = result.secure_url;
+          uploadedImages.push(result.public_id); // Track for rollback
           delete variant.imageFile; // Remove file object before sending to API
         }
       });
@@ -840,6 +992,11 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
 
       console.log('📤 Sending images array to backend:', images); // Debug log
 
+      // All colors/variants in arrays are active (removed ones are spliced)
+      // Just send what's in the arrays
+      const activeColors = this.form.availableColors;
+      const activeVariants = this.variants;
+
       // Prepare data for API
       const productData = {
         name: this.form.category, // Use category as product name (e.g., "T-Shirt", "Hoodie")
@@ -852,14 +1009,14 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
         fabric_weight: this.form.fabricWeight,
         texture: this.form.texture,
         available_sizes: this.form.availableSizes,
-        size_chart_url: this.form.sizeChartUrl,
         fit_description: this.form.fitDescription,
         size_pricing: this.sizePricing, // Size-based pricing
-        available_colors: this.form.availableColors,
-        variants: this.variants.map(v => ({ name: v.name, image_url: v.imageUrl })),
+        available_colors: activeColors.map(c => ({ name: c.name, hex: c.hex })), // Remove markedForDeletion flag
+        variants: activeVariants.map(v => ({ name: v.name, image_url: v.imageUrl })),
         print_method: this.form.printMethod,
         print_areas: this.form.printAreas,
         design_requirements: this.form.designRequirements,
+        base_cost: this.form.baseCost,
         retail_price: this.form.retailPrice,
         is_active: this.form.isActive,
         turnaround_time: this.form.turnaroundTime,
@@ -870,13 +1027,100 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
       if (this.isEditMode && this.productToEdit) {
         // Update existing product
         this.apiService.updateCustomizableProduct(String(this.productToEdit.id), productData).subscribe(
+          async (response) => {
+            this.isSaving.set(false);
+            this.setMessage('✅ Product updated successfully!\n\nYour changes have been saved.', 'success');
+            window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll to show message
+            
+            // ✅ SUCCESS! Delete old images from Cloudinary
+            if (oldImagesToDelete.length > 0) {
+              console.log('🗑️ Deleting old images:', oldImagesToDelete);
+              for (const publicId of oldImagesToDelete) {
+                try {
+                  await this.cloudinaryService.deleteImage(publicId);
+                  console.log('✅ Deleted old image:', publicId);
+                } catch (deleteError) {
+                  console.warn('⚠️ Failed to delete old image:', publicId, deleteError);
+                  // Don't fail the whole operation if cleanup fails
+                }
+              }
+              // Clear the tracking array after successful deletion
+              this.imagesToDeleteOnSave = [];
+            }
+
+            // ✅ SUCCESS! Clear tracking arrays (colors/variants already spliced from display)
+            this.colorsToDeleteOnSave = [];
+            this.variantsToDeleteOnSave = [];
+            this.hasUnsavedChanges = false;
+            
+            // Wait 3 seconds to allow user to see success message
+            setTimeout(() => {
+              this.productSaved.emit();
+            }, 3000);
+          },
+          async (error) => {
+            this.isSaving.set(false);
+            
+            // ❌ ROLLBACK: Delete newly uploaded images
+            if (uploadedImages.length > 0) {
+              console.log('🔄 Rolling back uploaded images:', uploadedImages);
+              for (const publicId of uploadedImages) {
+                try {
+                  await this.cloudinaryService.deleteImage(publicId);
+                  console.log('✅ Rolled back image:', publicId);
+                } catch (deleteError) {
+                  console.warn('⚠️ Failed to rollback image:', publicId, deleteError);
+                }
+              }
+            }
+            
+            if (error?.error?.errors) {
+              this.errors = error.error.errors;
+              this.setMessage('⚠️ Please fix the highlighted errors below.', 'error');
+            } else if (error.status === 0) {
+              this.setMessage('❌ Cannot connect to server. Please check if the backend is running.', 'error');
+            } else if (error.status === 500) {
+              this.setMessage('❌ Server error. Please check backend logs.', 'error');
+            } else {
+              this.setMessage('❌ An unknown error occurred.', 'error');
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        );
+      } else {
+        // Create new product
+        this.apiService.createCustomizableProduct(productData).subscribe(
           (response) => {
             this.isSaving.set(false);
-            this.setMessage('✅ Product updated successfully!', 'success');
-            this.productSaved.emit();
+            this.setMessage('✅ Product created successfully!\n\nYour new product has been added.', 'success');
+            window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll to show message
+            // Clear tracking on success
+            uploadedImages.length = 0;
+            this.imagesToDeleteOnSave = [];
+            this.colorsToDeleteOnSave = [];
+            this.variantsToDeleteOnSave = [];
+            this.hasUnsavedChanges = false;
+            
+            // Wait 3 seconds to allow user to see success message
+            setTimeout(() => {
+              this.productSaved.emit();
+            }, 3000);
           },
-          (error) => {
+          async (error) => {
             this.isSaving.set(false);
+            
+            // ❌ ROLLBACK: Delete newly uploaded images
+            if (uploadedImages.length > 0) {
+              console.log('🔄 Rolling back uploaded images:', uploadedImages);
+              for (const publicId of uploadedImages) {
+                try {
+                  await this.cloudinaryService.deleteImage(publicId);
+                  console.log('✅ Rolled back image:', publicId);
+                } catch (deleteError) {
+                  console.warn('⚠️ Failed to rollback image:', publicId, deleteError);
+                }
+              }
+            };
             if (error?.error?.errors) {
               this.errors = error.error.errors;
               this.setMessage('⚠️ Please fix the highlighted errors below.', 'error');
@@ -896,6 +1140,19 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
       this.isUploading.set(false);
       this.isSaving.set(false);
       console.error('Upload error:', error);
+      
+      // ❌ ROLLBACK: Delete newly uploaded images if upload process fails
+      if (uploadedImages.length > 0) {
+        console.log('🔄 Rolling back uploaded images due to upload failure:', uploadedImages);
+        for (const publicId of uploadedImages) {
+          try {
+            await this.cloudinaryService.deleteImage(publicId);
+            console.log('✅ Rolled back image:', publicId);
+          } catch (deleteError) {
+            console.warn('⚠️ Failed to rollback image:', publicId, deleteError);
+          }
+        }
+      }
       
       let errorMsg = 'Image upload failed';
       if (error.message) {

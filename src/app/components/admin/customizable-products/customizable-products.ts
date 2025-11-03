@@ -4,6 +4,7 @@ import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CustomizableProductFormComponent } from './customizable-product-form';
 import { ApiService } from '../../../services/api';
+import { CloudinaryService } from '../../../services/cloudinary.service';
 
 interface CustomizableProduct {
   id: number;
@@ -65,7 +66,11 @@ export class AdminCustomizableProductsComponent implements OnInit {
   // Filter
   filterStatus = signal<'all' | 'active' | 'inactive'>('all');
   
-  constructor(private apiService: ApiService, private router: Router) {}
+  constructor(
+    private apiService: ApiService, 
+    private router: Router,
+    private cloudinaryService: CloudinaryService
+  ) {}
   
   ngOnInit() {
     this.loadProducts();
@@ -223,7 +228,7 @@ export class AdminCustomizableProductsComponent implements OnInit {
   }
   
   // Permanent Delete (only for archived products)
-  deleteProduct(product: CustomizableProduct) {
+  async deleteProduct(product: CustomizableProduct) {
     if (product.is_active) {
       alert('Please archive the product first before deleting permanently.');
       return;
@@ -233,16 +238,39 @@ export class AdminCustomizableProductsComponent implements OnInit {
       return;
     }
     
-    this.apiService.deleteCustomizableProduct(String(product.id)).subscribe({
-      next: () => {
-        this.products.set(this.products().filter(p => p.id !== product.id));
-        alert('Product deleted permanently!');
-      },
-      error: (error) => {
-        console.error('Error deleting product:', error);
-        alert('Failed to delete product');
+    try {
+      // Step 1: Delete images from Cloudinary first
+      const images = this.getProductImages(product);
+      if (images.length > 0) {
+        console.log('🗑️ Deleting images from Cloudinary:', images);
+        for (const img of images) {
+          if (img.publicId) {
+            try {
+              await this.cloudinaryService.deleteImage(img.publicId);
+              console.log('✅ Deleted image:', img.publicId);
+            } catch (error) {
+              console.warn('⚠️ Failed to delete image:', img.publicId, error);
+              // Continue with other images even if one fails
+            }
+          }
+        }
       }
-    });
+      
+      // Step 2: Delete from database (CASCADE will handle related tables)
+      this.apiService.deleteCustomizableProduct(String(product.id)).subscribe({
+        next: () => {
+          this.products.set(this.products().filter(p => p.id !== product.id));
+          alert('✅ Product and all associated images deleted successfully!');
+        },
+        error: (error) => {
+          console.error('Error deleting product from database:', error);
+          alert('❌ Failed to delete product from database. Images may have been deleted from Cloudinary.');
+        }
+      });
+    } catch (error) {
+      console.error('Error during delete operation:', error);
+      alert('❌ Failed to delete product');
+    }
   }
   
   // Bulk Delete (only archived products)
@@ -303,11 +331,22 @@ export class AdminCustomizableProductsComponent implements OnInit {
   
   editProduct(product: CustomizableProduct) {
     console.log('🔧 Edit Product clicked:', product);
-    this.editingProduct.set(product);
-    console.log('✅ editingProduct set to:', this.editingProduct());
-    this.showDetails.set(false);
-    this.showForm.set(true);
-    console.log('📝 Form should now be visible in edit mode');
+    
+    // Fetch full product details including variants before editing
+    this.apiService.getCustomizableProductById(product.id.toString()).subscribe({
+      next: (response: any) => {
+        console.log('📥 Full product data fetched for editing:', response.data);
+        this.editingProduct.set(response.data);
+        console.log('✅ editingProduct set to:', this.editingProduct());
+        this.showDetails.set(false);
+        this.showForm.set(true);
+        console.log('📝 Form should now be visible in edit mode');
+      },
+      error: (error: any) => {
+        console.error('Error loading product for editing:', error);
+        alert('Failed to load product details for editing');
+      }
+    });
   }
   
   toggleActive(product: CustomizableProduct) {
