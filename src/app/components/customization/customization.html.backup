@@ -265,186 +265,184 @@
         <button class="panel-close" (click)="closeToolsPanel()">✕</button>
       </div>
       <div class="panel-content">
-        
-        <!-- Product Type Selection -->
-        <div class="tools-section">
-          <h3>Product Type</h3>
-          <select class="variant-select" [(ngModel)]="selectedProductType" (change)="onProductTypeChange()">
-            <option value="tshirt">T-Shirt</option>
-            <option value="jogging-pants">Jogging Pants</option>
-            <option value="polo-shirt">Polo Shirt</option>
-            <option value="sando">Sando (Jersey)</option>
-            <option value="shorts">Shorts</option>
-            <option value="warmers">Warmers</option>
-            <option value="varsity-jacket">Varsity Jacket</option>
-          </select>
-        </div>
-
-        <!-- Neckline Selection (for T-Shirt and Sando) -->
-        <div class="tools-section" *ngIf="showNecklineOptions()">
-          <h3>Neckline</h3>
-          <select class="variant-select" [(ngModel)]="selectedNeckline">
-            <option *ngFor="let neckline of getNecklineOptions()" [value]="neckline">
-              {{ neckline }}
-            </option>
-          </select>
-        </div>
-
-        <!-- Sando Special Options -->
-        <div class="tools-section" *ngIf="selectedProductType() === 'sando'">
-          <h3>Style</h3>
-          <div class="checkbox-group">
-            <label class="checkbox-label">
-              <input type="checkbox" [(ngModel)]="isNBACut">
-              NBA Cut
-            </label>
+          
+          <!-- Product Type Selection -->
+          <div class="tools-section">
+            <h3>Product Type</h3>
+            <select class="variant-select" [(ngModel)]="selectedProductType" (change)="onProductTypeChange()">
+              <option value="tshirt">T-Shirt</option>
+              <option value="jogging-pants">Jogging Pants</option>
+              <option value="polo-shirt">Polo Shirt</option>
+              <option value="sando">Sando (Jersey)</option>
+              <option value="shorts">Shorts</option>
+              <option value="warmers">Warmers</option>
+              <option value="varsity-jacket">Varsity Jacket</option>
+            </select>
           </div>
-        </div>
 
-        <!-- Size Selection -->
-        <div class="tools-section">
-          <h3>Size Category</h3>
-          <div class="size-category-tabs">
-            <button 
-              class="size-tab" 
-              [class.active]="selectedSizeCategory() === 'regular'"
-              (click)="selectSizeCategory('regular')">
-              Regular
-            </button>
-            <button 
-              class="size-tab" 
-              [class.active]="selectedSizeCategory() === 'kids'"
-              (click)="selectSizeCategory('kids')">
-              Kids
-            </button>
-            <button 
-              class="size-tab" 
-              [class.active]="selectedSizeCategory() === 'custom'"
-              (click)="selectSizeCategory('custom')">
-              Custom
-            </button>
+          <!-- Neckline Selection (for T-Shirt and Sando) -->
+          <div class="tools-section" *ngIf="showNecklineOptions()">
+            <h3>Neckline</h3>
+            <select class="variant-select" [(ngModel)]="selectedNeckline">
+              <option *ngFor="let neckline of getNecklineOptions()" [value]="neckline">
+                {{ neckline }}
+              </option>
+            </select>
           </div>
-        </div>
 
-        <!-- Regular Sizes -->
-        <div class="tools-section" *ngIf="selectedSizeCategory() === 'regular'">
-          <h3>Size</h3>
-          <div class="size-grid">
-            <button 
-              *ngFor="let size of regularSizes" 
-              class="size-btn"
-              [class.selected]="selectedSize() === size.value"
-              (click)="selectSize(size.value, size.priceAdd)">
-              {{ size.label }}
-              <span class="size-price" *ngIf="size.priceAdd > 0">+₱{{ size.priceAdd }}</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Kids Sizes -->
-        <div class="tools-section" *ngIf="selectedSizeCategory() === 'kids'">
-          <h3>Kids Size</h3>
-          <div class="size-grid">
-            <button 
-              *ngFor="let size of kidsSizes" 
-              class="size-btn"
-              [class.selected]="selectedSize() === size"
-              (click)="selectSize(size, 0)">
-              {{ size }}
-            </button>
-          </div>
-        </div>
-
-        <!-- Custom Size -->
-        <div class="tools-section" *ngIf="selectedSizeCategory() === 'custom'">
-          <h3>Custom Size</h3>
-          <p class="custom-size-note">Enter custom measurements for plus size or super small</p>
-          <div class="custom-size-inputs">
-            <div class="input-group">
-              <label>Chest (inches)</label>
-              <input type="number" class="size-input" [(ngModel)]="customChest" placeholder="e.g., 42">
-            </div>
-            <div class="input-group">
-              <label>Length (inches)</label>
-              <input type="number" class="size-input" [(ngModel)]="customLength" placeholder="e.g., 28">
-            </div>
-            <div class="input-group" *ngIf="selectedProductType() !== 'tshirt' && selectedProductType() !== 'polo-shirt'">
-              <label>Waist (inches)</label>
-              <input type="number" class="size-input" [(ngModel)]="customWaist" placeholder="e.g., 32">
+          <!-- Sando Special Options -->
+          <div class="tools-section" *ngIf="selectedProductType() === 'sando'">
+            <h3>Style</h3>
+            <div class="checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="isNBACut">
+                NBA Cut
+              </label>
             </div>
           </div>
-        </div>
 
-        <!-- Color Selection -->
-        <div class="tools-section">
-          <h3>Color</h3>
-          <div class="color-grid">
-            <button 
-              *ngFor="let color of colors" 
-              class="color-btn"
-              [class.selected]="selectedColor() === color.value"
-              [style.background-color]="color.value"
-              (click)="selectColor(color.value)"
-              [title]="color.name">
-            </button>
+          <!-- Size Selection -->
+          <div class="tools-section">
+            <h3>Size Category</h3>
+            <div class="size-category-tabs">
+              <button 
+                class="size-tab" 
+                [class.active]="selectedSizeCategory() === 'regular'"
+                (click)="selectSizeCategory('regular')">
+                Regular
+              </button>
+              <button 
+                class="size-tab" 
+                [class.active]="selectedSizeCategory() === 'kids'"
+                (click)="selectSizeCategory('kids')">
+                Kids
+              </button>
+              <button 
+                class="size-tab" 
+                [class.active]="selectedSizeCategory() === 'custom'"
+                (click)="selectSizeCategory('custom')">
+                Custom
+              </button>
+            </div>
+          </div>
+
+          <!-- Regular Sizes -->
+          <div class="tools-section" *ngIf="selectedSizeCategory() === 'regular'">
+            <h3>Size</h3>
+            <div class="size-grid">
+              <button 
+                *ngFor="let size of regularSizes" 
+                class="size-btn"
+                [class.selected]="selectedSize() === size.value"
+                (click)="selectSize(size.value, size.priceAdd)">
+                {{ size.label }}
+                <span class="size-price" *ngIf="size.priceAdd > 0">+₱{{ size.priceAdd }}</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Kids Sizes -->
+          <div class="tools-section" *ngIf="selectedSizeCategory() === 'kids'">
+            <h3>Kids Size</h3>
+            <div class="size-grid">
+              <button 
+                *ngFor="let size of kidsSizes" 
+                class="size-btn"
+                [class.selected]="selectedSize() === size"
+                (click)="selectSize(size, 0)">
+                {{ size }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Custom Size -->
+          <div class="tools-section" *ngIf="selectedSizeCategory() === 'custom'">
+            <h3>Custom Size</h3>
+            <p class="custom-size-note">Enter custom measurements for plus size or super small</p>
+            <div class="custom-size-inputs">
+              <div class="input-group">
+                <label>Chest (inches)</label>
+                <input type="number" class="size-input" [(ngModel)]="customChest" placeholder="e.g., 42">
+              </div>
+              <div class="input-group">
+                <label>Length (inches)</label>
+                <input type="number" class="size-input" [(ngModel)]="customLength" placeholder="e.g., 28">
+              </div>
+              <div class="input-group" *ngIf="selectedProductType() !== 'tshirt' && selectedProductType() !== 'polo-shirt'">
+                <label>Waist (inches)</label>
+                <input type="number" class="size-input" [(ngModel)]="customWaist" placeholder="e.g., 32">
+              </div>
+            </div>
+          </div>
+
+          <!-- Color Selection -->
+          <div class="tools-section">
+            <h3>Color</h3>
+            <div class="color-grid">
+              <button 
+                *ngFor="let color of colors" 
+                class="color-btn"
+                [class.selected]="selectedColor() === color.value"
+                [style.background-color]="color.value"
+                (click)="selectColor(color.value)"
+                [title]="color.name">
+              </button>
+            </div>
+          </div>
+
+          <!-- Price Display -->
+          <div class="tools-section price-section">
+            <div class="price-row">
+              <span class="price-label">Base Price:</span>
+              <span class="price-value">₱{{ basePrice() }}</span>
+            </div>
+            <div class="price-row" *ngIf="sizePriceAdd() > 0">
+              <span class="price-label">Size Add-on:</span>
+              <span class="price-value">₱{{ sizePriceAdd() }}</span>
+            </div>
+            <div class="price-row total-price">
+              <span class="price-label">Total Price:</span>
+              <span class="price-value">₱{{ getTotalPrice() }}</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Product Info Panel -->
+      <div class="product-info-panel" [style.display]="isPanelVisible() ? 'block' : 'none'">
+        <div class="panel-header">
+          <span class="panel-title">Important product information</span>
+          <button class="panel-close" (click)="closePanel()">✕</button>
+        </div>
+        <div class="panel-content">
+          <div class="product-preview">
+            <img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=500&fit=crop" alt="T-shirt">
+          </div>
+          <div class="product-name">Unisex Softstyle T-Shirt</div>
+          <div class="product-meta">
+            Gildan - 64000<br>
+            Fulfilled by Printify Choice<br>
+            3 of 427 out of stock<br>
+            <span class="product-link">See details</span>
           </div>
         </div>
-
-        <!-- Price Display -->
-        <div class="tools-section price-section">
-          <div class="price-row">
-            <span class="price-label">Base Price:</span>
-            <span class="price-value">₱{{ basePrice() }}</span>
-          </div>
-          <div class="price-row" *ngIf="sizePriceAdd() > 0">
-            <span class="price-label">Size Add-on:</span>
-            <span class="price-value">₱{{ sizePriceAdd() }}</span>
-          </div>
-          <div class="price-row total-price">
-            <span class="price-label">Total Price:</span>
-            <span class="price-value">₱{{ getTotalPrice() }}</span>
-          </div>
+        <div class="expandable-section">
+          <span>Production cost: USD 9.88–15.02</span>
+          <span>⌄</span>
         </div>
-
-      </div>
-    </div>
-
-    <!-- Product Info Panel (outside canvas-area to avoid zoom) -->
-    <div class="product-info-panel" [style.display]="isPanelVisible() ? 'block' : 'none'">
-      <div class="panel-header">
-        <span class="panel-title">Important product information</span>
-        <button class="panel-close" (click)="closePanel()">✕</button>
-      </div>
-      <div class="panel-content">
-        <div class="product-preview">
-          <img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=500&fit=crop" alt="T-shirt">
+        <div class="expandable-section">
+          <span>Print area size: 3852 × 4398 px</span>
+          <span>⌄</span>
         </div>
-        <div class="product-name">Unisex Softstyle T-Shirt</div>
-        <div class="product-meta">
-          Gildan - 64000<br>
-          Fulfilled by Printify Choice<br>
-          3 of 427 out of stock<br>
-          <span class="product-link">See details</span>
+        <div class="checkbox-container">
+          <input type="checkbox" id="hideInfo">
+          <label for="hideInfo">Hide this info in the future.</label>
         </div>
       </div>
-      <div class="expandable-section">
-        <span>Production cost: USD 9.88–15.02</span>
-        <span>⌄</span>
-      </div>
-      <div class="expandable-section">
-        <span>Print area size: 3852 × 4398 px</span>
-        <span>⌄</span>
-      </div>
-      <div class="checkbox-container">
-        <input type="checkbox" id="hideInfo">
-        <label for="hideInfo">Hide this info in the future.</label>
-      </div>
-    </div>
 
-    <!-- Canvas Area (only contains the actual canvas) -->
-    <div class="canvas-area" (click)="onCanvasAreaClick($event)" (wheel)="onCanvasWheel($event)">
       <!-- T-shirt Canvas -->
-      <div class="tshirt-canvas" [style.transform]="'scale(' + canvasScale() + ')'">>
+      <div class="tshirt-canvas">
         <div class="print-area-box" 
              [style.width.px]="canvasWidth()"
              [style.height.px]="canvasHeight()">
@@ -462,46 +460,46 @@
                title="Resize"></div>
         </div>
       </div>
-    </div>
 
-    <!-- Bottom Controls (outside canvas-area to avoid zoom) -->
-    <div class="bottom-controls">
-      <button 
-        class="view-btn" 
-        [class.inactive]="activeView() !== 0"
-        [class.has-content]="viewHasContent(0)"
-        (click)="selectView(0)">
-        Front side
-        <span class="content-dot" *ngIf="viewHasContent(0) && activeView() !== 0"></span>
-      </button>
-      <button 
-        class="view-btn" 
-        [class.inactive]="activeView() !== 1"
-        [class.has-content]="viewHasContent(1)"
-        (click)="selectView(1)">
-        Back side
-        <span class="content-dot" *ngIf="viewHasContent(1) && activeView() !== 1"></span>
-      </button>
-      <button 
-        class="view-btn" 
-        [class.inactive]="activeView() !== 2"
-        [class.has-content]="viewHasContent(2)"
-        (click)="selectView(2)">
-        Neck label inner
-        <span class="content-dot" *ngIf="viewHasContent(2) && activeView() !== 2"></span>
-      </button>
-    </div>
+      <!-- Bottom Controls -->
+      <div class="bottom-controls">
+        <button 
+          class="view-btn" 
+          [class.inactive]="activeView() !== 0"
+          [class.has-content]="viewHasContent(0)"
+          (click)="selectView(0)">
+          Front side
+          <span class="content-dot" *ngIf="viewHasContent(0) && activeView() !== 0"></span>
+        </button>
+        <button 
+          class="view-btn" 
+          [class.inactive]="activeView() !== 1"
+          [class.has-content]="viewHasContent(1)"
+          (click)="selectView(1)">
+          Back side
+          <span class="content-dot" *ngIf="viewHasContent(1) && activeView() !== 1"></span>
+        </button>
+        <button 
+          class="view-btn" 
+          [class.inactive]="activeView() !== 2"
+          [class.has-content]="viewHasContent(2)"
+          (click)="selectView(2)">
+          Neck label inner
+          <span class="content-dot" *ngIf="viewHasContent(2) && activeView() !== 2"></span>
+        </button>
+      </div>
 
-    <!-- Zoom Controls (outside canvas-area to avoid zoom) -->
-    <div class="zoom-controls">
-      <button class="zoom-btn" (click)="zoomOut()">−</button>
-      <span class="zoom-level">{{ zoomLevel() }}%</span>
-      <button class="zoom-btn" (click)="zoomIn()">+</button>
-      <button class="zoom-fit" (click)="zoomFit()">⊡</button>
-    </div>
+      <!-- Zoom Controls -->
+      <div class="zoom-controls">
+        <button class="zoom-btn" (click)="zoomOut()">−</button>
+        <span class="zoom-level">{{ zoomLevel() }}%</span>
+        <button class="zoom-btn" (click)="zoomIn()">+</button>
+        <button class="zoom-fit" (click)="zoomFit()">⊡</button>
+      </div>
 
-    <!-- Save Button (outside canvas-area to avoid zoom) -->
-    <button class="save-btn" (click)="saveProduct()">Save product</button>
+      <!-- Save Button -->
+      <button class="save-btn" (click)="saveProduct()">Save product</button>
+    </div>
   </div>
 </div>
 <!-- Upload Modal Overlay -->

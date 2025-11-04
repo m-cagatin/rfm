@@ -58,6 +58,8 @@ export class App {
   }
 
   isDesigningRoute(): boolean {
-    return this.router.url.includes('/designing');
+    // Hide global sidebar on both designing routes
+    const url = this.router.url;
+    return url.includes('/designing') || url.includes('/canvas');
   }
 }

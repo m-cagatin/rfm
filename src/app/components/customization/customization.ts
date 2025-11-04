@@ -24,6 +24,7 @@ export class CustomizationComponent implements AfterViewInit, OnDestroy {
   protected isPanelVisible = signal(true);
   protected showToolsPanel = signal(false);
   protected zoomLevel = signal(17);
+  protected canvasScale = signal(1.0); // CSS transform scale for Figma-style zoom
   protected activeView = signal(0); // 0: front, 1: back, 2: neck label
   protected showUpload = signal(false);
   protected showTextPanel = signal(false);
@@ -118,6 +119,9 @@ export class CustomizationComponent implements AfterViewInit, OnDestroy {
       if (this.canvasElement) {
         this.canvasService.initializeCanvas(this.canvasElement.nativeElement, 400, 500);
         
+        // Enable pan feature (zoom handled by template (wheel) event)
+        this.canvasService.enablePanning();
+        
         // Subscribe to selection changes with NgZone to ensure change detection
         this.canvasService.selectedObject$.subscribe((obj) => {
           this.ngZone.run(() => {
@@ -125,11 +129,23 @@ export class CustomizationComponent implements AfterViewInit, OnDestroy {
             this.updateToolbarFromSelection(obj);
           });
         });
+        
+        // Subscribe to canvas scale changes (mouse wheel zoom)
+        this.canvasService.canvasScale$.subscribe((scale) => {
+          this.ngZone.run(() => {
+            this.canvasScale.set(scale);
+            this.zoomLevel.set(Math.round(scale * 100));
+          });
+        });
       }
     }, 100);
   }
 
   ngOnDestroy(): void {
+    // Save current view state before destroying
+    const currentViewName = this.getViewName(this.activeView());
+    this.canvasService.saveViewState(currentViewName);
+    
     this.canvasService.dispose();
     
     // Clean up resize event listeners
@@ -185,25 +201,73 @@ export class CustomizationComponent implements AfterViewInit, OnDestroy {
   }
 
   zoomIn(): void {
-    const current = this.zoomLevel();
-    if (current < 200) {
-      this.zoomLevel.set(current + 5);
-    }
+    // Use service method (will emit scale change via observable)
+    this.canvasService.zoomIn();
   }
 
   zoomOut(): void {
-    const current = this.zoomLevel();
-    if (current > 10) {
-      this.zoomLevel.set(current - 5);
-    }
+    // Use service method (will emit scale change via observable)
+    this.canvasService.zoomOut();
   }
 
   zoomFit(): void {
-    this.zoomLevel.set(100);
+    // Reset to 100% scale
+    this.canvasService.setScale(1.0);
+  }
+
+  /**
+   * Handle mouse wheel / trackpad scroll for zoom
+   * Works on both desktop mice and laptop trackpads
+   */
+  onCanvasWheel(event: WheelEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const delta = event.deltaY;
+    let scale = this.canvasScale();
+    
+    // Calculate new scale (0.999 ** delta for smooth zoom)
+    // Works with both mouse wheel and trackpad two-finger scroll
+    scale *= 0.999 ** delta;
+    scale = Math.max(0.1, Math.min(4, scale)); // Clamp between 10% and 400%
+    
+    // Update via service (maintains single source of truth)
+    this.canvasService.setScale(scale);
   }
 
   selectView(index: number): void {
+    // Save current view state before switching
+    const currentViewName = this.getViewName(this.activeView());
+    this.canvasService.saveViewState(currentViewName);
+    
+    // Switch to new view
     this.activeView.set(index);
+    
+    // Load new view state
+    const newViewName = this.getViewName(index);
+    this.canvasService.loadViewState(newViewName);
+    
+    console.log(`📐 Switched from ${currentViewName} to ${newViewName}`);
+  }
+
+  /**
+   * Helper to get view name from index
+   */
+  private getViewName(index: number): string {
+    switch (index) {
+      case 0: return 'front';
+      case 1: return 'back';
+      case 2: return 'neck';
+      default: return 'front';
+    }
+  }
+
+  /**
+   * Check if a view has content (for visual indicators)
+   */
+  viewHasContent(index: number): boolean {
+    const viewName = this.getViewName(index);
+    return this.canvasService.hasViewContent(viewName);
   }
 
   goBack(): void {
@@ -286,10 +350,20 @@ export class CustomizationComponent implements AfterViewInit, OnDestroy {
   }
 
   onFileSelected(file: File): void {
-    // TODO: integrate with canvas/print area
-    console.log('Selected file:', file?.name, file?.size);
-    // Close after selection for now
-    this.closeUpload();
+    if (!file) return;
+    
+    console.log('📁 File selected:', file.name, file.size);
+    
+    // Add image to canvas
+    this.canvasService.addImageFromFile(file)
+      .then(() => {
+        console.log('✓ Image added to canvas successfully');
+        this.closeUpload();
+      })
+      .catch((error) => {
+        console.error('❌ Failed to add image:', error);
+        alert('Failed to add image: ' + error.message);
+      });
   }
 
   // Text panel controls

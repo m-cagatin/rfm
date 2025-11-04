@@ -61,19 +61,19 @@ export class UploadPanelComponent {
     this.fileName.set(file.name);
     this.fileSize.set(file.size);
 
+    // Show preview for images
     if (file.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onload = () => {
         this.previewUrl.set(reader.result as string);
-        this.uploading.set(false);
+        // Keep uploading state true - parent will handle it
       };
       reader.readAsDataURL(file);
     } else {
       this.previewUrl.set(null);
-      this.uploading.set(false);
     }
 
-    // Emit to parent for integration
+    // Emit to parent immediately for integration
     this.fileSelected.emit(file);
   }
 

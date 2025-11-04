@@ -25,6 +25,10 @@ export class CanvasService {
   private selectedObjectSubject = new BehaviorSubject<any>(null);
   public selectedObject$ = this.selectedObjectSubject.asObservable();
   
+  // Observable for canvas scale (CSS transform zoom)
+  private canvasScaleSubject = new BehaviorSubject<number>(1.0);
+  public canvasScale$ = this.canvasScaleSubject.asObservable();
+  
   // Signal for reactive UI updates
   public hasSelection = signal(false);
   public isTextSelected = signal(false);
@@ -1367,6 +1371,17 @@ export class CanvasService {
       this.keyboardHandler = undefined;
     }
     
+    // Clean up panning listeners
+    if (this.panKeyDownHandler) {
+      document.removeEventListener('keydown', this.panKeyDownHandler);
+      this.panKeyDownHandler = undefined;
+    }
+    
+    if (this.panKeyUpHandler) {
+      document.removeEventListener('keyup', this.panKeyUpHandler);
+      this.panKeyUpHandler = undefined;
+    }
+    
     if (this.fabricCanvas) {
       this.fabricCanvas.dispose();
       this.fabricCanvas = null;
@@ -1389,5 +1404,375 @@ export class CanvasService {
    */
   getCanvas(): any {
     return this.fabricCanvas;
+  }
+
+  // ============================================================================
+  // IMAGE UPLOAD METHODS
+  // ============================================================================
+
+  /**
+   * Add image from File object (uploaded by user)
+   * Auto-scales to fit print area while maintaining aspect ratio
+   */
+  async addImageFromFile(file: File): Promise<void> {
+    if (!this.fabric || !this.fabricCanvas) {
+      throw new Error('Canvas not initialized');
+    }
+
+    return new Promise((resolve, reject) => {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        reject(new Error('File must be an image'));
+        return;
+      }
+
+      // Create FileReader to load image
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string;
+        this.addImageFromURL(dataUrl)
+          .then(resolve)
+          .catch(reject);
+      };
+
+      reader.onerror = () => {
+        reject(new Error('Failed to read file'));
+      };
+
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /**
+   * Add image from URL or data URL
+   * Auto-scales to fit print area while maintaining aspect ratio
+   */
+  async addImageFromURL(url: string): Promise<void> {
+    if (!this.fabric || !this.fabricCanvas) {
+      throw new Error('Canvas not initialized');
+    }
+
+    return new Promise((resolve, reject) => {
+      this.fabric.Image.fromURL(url, (img: any) => {
+        if (!img || !img.width || !img.height) {
+          reject(new Error('Failed to load image'));
+          return;
+        }
+
+        // Calculate scaling to fit 80% of canvas while maintaining aspect ratio
+        const maxWidth = this.fabricCanvas.width * 0.8;
+        const maxHeight = this.fabricCanvas.height * 0.8;
+        const scale = this._calculateScaleToFit(img.width, img.height, maxWidth, maxHeight);
+
+        // Configure image
+        img.set({
+          left: this.fabricCanvas.width / 2,
+          top: this.fabricCanvas.height / 2,
+          originX: 'center',
+          originY: 'center',
+          scaleX: scale,
+          scaleY: scale,
+          selectable: true,
+          hasControls: true,
+          hasBorders: true,
+          lockUniScaling: false
+        });
+
+        // Add to canvas
+        this.fabricCanvas.add(img);
+        this.fabricCanvas.setActiveObject(img);
+        this.fabricCanvas.renderAll();
+
+        console.log('✓ Image added to canvas', { 
+          originalSize: `${img.width}x${img.height}`,
+          scale: scale.toFixed(2)
+        });
+
+        resolve();
+      }, {
+        crossOrigin: 'anonymous' // Handle CORS for external URLs
+      });
+    });
+  }
+
+  /**
+   * Helper: Calculate scale to fit dimensions within max width/height
+   */
+  private _calculateScaleToFit(width: number, height: number, maxWidth: number, maxHeight: number): number {
+    const widthScale = maxWidth / width;
+    const heightScale = maxHeight / height;
+    return Math.min(widthScale, heightScale, 1); // Never scale up beyond 100%
+  }
+
+  // ============================================================================
+  // ZOOM & PAN METHODS
+  // ============================================================================
+
+  private currentZoom: number = 1;
+  private isPanning: boolean = false;
+  private lastPosX: number = 0;
+  private lastPosY: number = 0;
+  private panKeyDownHandler?: (e: KeyboardEvent) => void;
+  private panKeyUpHandler?: (e: KeyboardEvent) => void;
+
+  /**
+   * Set zoom level (0.1 = 10%, 1 = 100%, 4 = 400%)
+   */
+  setZoom(zoom: number): void {
+    if (!this.fabricCanvas) return;
+
+    // Clamp zoom between 10% and 400%
+    const clampedZoom = Math.max(0.1, Math.min(4, zoom));
+    
+    // Get canvas center point
+    const center = {
+      x: this.fabricCanvas.width / 2,
+      y: this.fabricCanvas.height / 2
+    };
+
+    // Set zoom with center point
+    this.fabricCanvas.zoomToPoint(
+      new this.fabric.Point(center.x, center.y),
+      clampedZoom
+    );
+
+    this.currentZoom = clampedZoom;
+    this.fabricCanvas.requestRenderAll();
+    
+    console.log('Zoom set to:', Math.round(clampedZoom * 100) + '%');
+  }
+
+  /**
+   * Get current zoom level
+   */
+  getZoom(): number {
+    return this.fabricCanvas?.getZoom() || 1;
+  }
+
+  /**
+   * Reset zoom to 100% (fit)
+   */
+  resetZoom(): void {
+    this.setZoom(1);
+    
+    // Reset viewport transform to center
+    if (this.fabricCanvas) {
+      this.fabricCanvas.viewportTransform = [1, 0, 0, 1, 0, 0];
+      this.fabricCanvas.requestRenderAll();
+    }
+  }
+
+  /**
+   * Zoom in by 10%
+   */
+  zoomIn(): void {
+    const currentScale = this.canvasScaleSubject.value;
+    const newScale = Math.min(currentScale + 0.1, 4.0); // Max 400%
+    this.canvasScaleSubject.next(newScale);
+  }
+
+  /**
+   * Zoom out by 10%
+   */
+  zoomOut(): void {
+    const currentScale = this.canvasScaleSubject.value;
+    const newScale = Math.max(currentScale - 0.1, 0.1); // Min 10%
+    this.canvasScaleSubject.next(newScale);
+  }
+
+  /**
+   * Get current canvas scale
+   */
+  getScale(): number {
+    return this.canvasScaleSubject.value;
+  }
+
+  /**
+   * Set canvas scale
+   */
+  setScale(scale: number): void {
+    const clampedScale = Math.max(0.1, Math.min(4, scale));
+    this.canvasScaleSubject.next(clampedScale);
+  }
+
+  /**
+   * Enable panning with Space+drag or middle mouse button
+   */
+  enablePanning(): void {
+    if (!this.fabricCanvas) return;
+
+    let spacePressed = false;
+
+    // Store handler references for cleanup
+    this.panKeyDownHandler = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && !e.repeat) {
+        spacePressed = true;
+        if (this.fabricCanvas) {
+          this.fabricCanvas.selection = false; // Disable selection while panning
+          this.fabricCanvas.defaultCursor = 'grab';
+        }
+      }
+    };
+
+    this.panKeyUpHandler = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        spacePressed = false;
+        if (this.fabricCanvas) {
+          this.fabricCanvas.selection = true;
+          this.fabricCanvas.defaultCursor = 'default';
+        }
+      }
+    };
+
+    // Track spacebar
+    document.addEventListener('keydown', this.panKeyDownHandler);
+    document.addEventListener('keyup', this.panKeyUpHandler);
+
+    // Pan on mouse drag while space is held
+    this.fabricCanvas.on('mouse:down', (opt: any) => {
+      const evt = opt.e;
+      
+      if (spacePressed || evt.button === 1) { // Space or middle mouse
+        this.isPanning = true;
+        this.fabricCanvas.selection = false;
+        this.fabricCanvas.defaultCursor = 'grabbing';
+        this.lastPosX = evt.clientX;
+        this.lastPosY = evt.clientY;
+      }
+    });
+
+    this.fabricCanvas.on('mouse:move', (opt: any) => {
+      if (this.isPanning) {
+        const evt = opt.e;
+        const vpt = this.fabricCanvas.viewportTransform;
+        
+        if (vpt) {
+          vpt[4] += evt.clientX - this.lastPosX;
+          vpt[5] += evt.clientY - this.lastPosY;
+          
+          this.fabricCanvas.requestRenderAll();
+          this.lastPosX = evt.clientX;
+          this.lastPosY = evt.clientY;
+        }
+      }
+    });
+
+    this.fabricCanvas.on('mouse:up', () => {
+      if (this.isPanning) {
+        this.isPanning = false;
+        this.fabricCanvas.selection = !spacePressed;
+        this.fabricCanvas.defaultCursor = spacePressed ? 'grab' : 'default';
+      }
+    });
+
+    console.log('✓ Panning enabled (Space+drag or middle mouse)');
+  }
+
+  // ============================================================================
+  // MULTI-VIEW STATE MANAGEMENT
+  // ============================================================================
+
+  private viewStates: Map<string, string> = new Map(); // Store JSON for each view
+
+  /**
+   * Save current canvas state to a named view
+   */
+  saveViewState(viewName: string): void {
+    if (!this.fabricCanvas) return;
+
+    const json = JSON.stringify(this.fabricCanvas.toJSON([
+      'selectable',
+      'hasControls',
+      'hasBorders',
+      'lockMovementX',
+      'lockMovementY',
+      'lockRotation',
+      'lockScalingX',
+      'lockScalingY',
+      'customType'
+    ]));
+
+    this.viewStates.set(viewName, json);
+    console.log(`✓ Saved view state: ${viewName}`, {
+      objects: this.fabricCanvas.getObjects().length
+    });
+  }
+
+  /**
+   * Load canvas state from a named view
+   */
+  async loadViewState(viewName: string): Promise<void> {
+    if (!this.fabricCanvas) return;
+
+    const json = this.viewStates.get(viewName);
+    
+    if (!json) {
+      // No saved state for this view - clear canvas
+      this.clearCanvas();
+      console.log(`✓ Loaded empty view: ${viewName}`);
+      return;
+    }
+
+    return new Promise((resolve, reject) => {
+      try {
+        const data = JSON.parse(json);
+        
+        this.fabricCanvas.loadFromJSON(data, () => {
+          // Re-setup event listeners after loading
+          this.setupEventListeners();
+          this.fabricCanvas.renderAll();
+          
+          console.log(`✓ Loaded view state: ${viewName}`, {
+            objects: this.fabricCanvas.getObjects().length
+          });
+          
+          resolve();
+        });
+      } catch (error) {
+        console.error(`Failed to load view ${viewName}:`, error);
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Check if a view has saved content
+   */
+  hasViewContent(viewName: string): boolean {
+    const json = this.viewStates.get(viewName);
+    if (!json) return false;
+
+    try {
+      const data = JSON.parse(json);
+      return data.objects && data.objects.length > 0;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Get all view states (for save/export)
+   */
+  getAllViewStates(): Record<string, any> {
+    const states: Record<string, any> = {};
+    
+    this.viewStates.forEach((json, viewName) => {
+      try {
+        states[viewName] = JSON.parse(json);
+      } catch (error) {
+        console.error(`Failed to parse view ${viewName}:`, error);
+      }
+    });
+
+    return states;
+  }
+
+  /**
+   * Clear all view states
+   */
+  clearAllViews(): void {
+    this.viewStates.clear();
+    console.log('✓ Cleared all view states');
   }
 }
