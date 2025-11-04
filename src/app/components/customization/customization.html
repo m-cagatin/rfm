@@ -410,34 +410,109 @@
     </div>
 
     <!-- Product Info Panel (outside canvas-area to avoid zoom) -->
-    <div class="product-info-panel" [style.display]="isPanelVisible() ? 'block' : 'none'">
+    <div class="product-info-panel" [style.display]="isPanelVisible() ? 'flex' : 'none'">
       <div class="panel-header">
         <span class="panel-title">Important product information</span>
         <button class="panel-close" (click)="closePanel()">✕</button>
       </div>
-      <div class="panel-content">
-        <div class="product-preview">
-          <img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=500&fit=crop" alt="T-shirt">
+      
+      <!-- Scrollable content wrapper -->
+      <div class="panel-scroll-content">
+        <div class="panel-content">
+          <div class="product-preview">
+            <img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=500&fit=crop" alt="T-shirt">
+          </div>
+          <div class="product-name">Unisex Softstyle T-Shirt</div>
+          <div class="product-meta">
+            Gildan - 64000<br>
+            Fulfilled by Printify Choice<br>
+            3 of 427 out of stock<br>
+            <span class="product-link">See details</span>
+          </div>
         </div>
-        <div class="product-name">Unisex Softstyle T-Shirt</div>
-        <div class="product-meta">
-          Gildan - 64000<br>
-          Fulfilled by Printify Choice<br>
-          3 of 427 out of stock<br>
-          <span class="product-link">See details</span>
+        
+        <!-- Print Area Configuration Section -->
+        <div class="expandable-section print-area-section">
+          <div class="section-header">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <path d="M9 9h6M9 15h6"/>
+            </svg>
+            <span>Print Area Configuration</span>
+          </div>
+          
+          <div class="print-area-config">
+            <!-- Current Dimensions Display -->
+            <div class="dimensions-display">
+              <span class="dimension-label">Current Size:</span>
+              <span class="dimension-value">{{ canvasWidth() }} × {{ canvasHeight() }} px</span>
+            </div>
+            
+            <!-- Preset Sizes -->
+            <div class="preset-section">
+              <h4>Recommended Sizes</h4>
+              <div class="preset-grid">
+                <button 
+                  *ngFor="let preset of printAreaPresets"
+                  class="preset-btn"
+                  [class.active]="printAreaMode() === 'preset' && selectedPreset() === preset.id"
+                  (click)="selectPrintAreaPreset(preset.id)">
+                  <span class="preset-label">{{ preset.label }}</span>
+                  <span class="preset-desc">{{ preset.description }}</span>
+                </button>
+              </div>
+            </div>
+            
+            <!-- Custom Size Option -->
+            <div class="custom-section">
+              <button 
+                class="custom-toggle-btn"
+                [class.active]="printAreaMode() === 'custom'"
+                (click)="enableCustomPrintArea()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 5v14M5 12h14"/>
+                </svg>
+                Custom Size
+              </button>
+              
+              <!-- Custom Input Fields (only shown when custom mode active) -->
+              <div class="custom-inputs" *ngIf="printAreaMode() === 'custom'">
+                <div class="input-row">
+                  <label>Width (px)</label>
+                  <input 
+                    type="number" 
+                    class="dimension-input"
+                    [value]="canvasWidth()"
+                    (input)="updateCanvasWidth(+$any($event.target).value)"
+                    min="200"
+                    max="800"
+                    placeholder="400">
+                </div>
+                <div class="input-row">
+                  <label>Height (px)</label>
+                  <input 
+                    type="number" 
+                    class="dimension-input"
+                    [value]="canvasHeight()"
+                    (input)="updateCanvasHeight(+$any($event.target).value)"
+                    min="200"
+                    max="800"
+                    placeholder="500">
+                </div>
+                <p class="help-text">💡 Or drag the resize handles on the print area</p>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="expandable-section">
-        <span>Production cost: USD 9.88–15.02</span>
-        <span>⌄</span>
-      </div>
-      <div class="expandable-section">
-        <span>Print area size: 3852 × 4398 px</span>
-        <span>⌄</span>
-      </div>
-      <div class="checkbox-container">
-        <input type="checkbox" id="hideInfo">
-        <label for="hideInfo">Hide this info in the future.</label>
+        
+        <div class="expandable-section">
+          <span>Production cost: USD 9.88–15.02</span>
+          <span>⌄</span>
+        </div>
+        <div class="checkbox-container">
+          <input type="checkbox" id="hideInfo">
+          <label for="hideInfo">Hide this info in the future.</label>
+        </div>
       </div>
     </div>
 
@@ -450,14 +525,17 @@
              [style.height.px]="canvasHeight()">
           <canvas #fabricCanvas></canvas>
           
-          <!-- Resize handles -->
-          <div class="resize-handle resize-handle-e" 
+          <!-- Resize handles (only visible in custom mode) -->
+          <div *ngIf="isResizeHandlesEnabled()" 
+               class="resize-handle resize-handle-e" 
                (mousedown)="startResize($event, 'e')"
                title="Resize width"></div>
-          <div class="resize-handle resize-handle-s" 
+          <div *ngIf="isResizeHandlesEnabled()" 
+               class="resize-handle resize-handle-s" 
                (mousedown)="startResize($event, 's')"
                title="Resize height"></div>
-          <div class="resize-handle resize-handle-se" 
+          <div *ngIf="isResizeHandlesEnabled()" 
+               class="resize-handle resize-handle-se" 
                (mousedown)="startResize($event, 'se')"
                title="Resize"></div>
         </div>

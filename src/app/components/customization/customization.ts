@@ -92,6 +92,16 @@ export class CustomizationComponent implements AfterViewInit, OnDestroy {
   protected canvasWidth = signal(400);
   protected canvasHeight = signal(500);
   
+  // Print area configuration
+  protected printAreaMode = signal<'preset' | 'custom'>('preset');
+  protected selectedPreset = signal<string>('medium');
+  protected printAreaPresets = [
+    { id: 'small', label: 'Small (12" × 16")', width: 300, height: 400, description: 'Chest print' },
+    { id: 'medium', label: 'Medium (16" × 20")', width: 400, height: 500, description: 'Standard' },
+    { id: 'large', label: 'Large (18" × 24")', width: 450, height: 600, description: 'Full front' },
+    { id: 'oversized', label: 'Oversized (20" × 28")', width: 500, height: 700, description: 'All-over' },
+  ];
+  
   // Resize state
   private isResizing = false;
   private resizeDirection: 'e' | 's' | 'se' | null = null;
@@ -233,6 +243,48 @@ export class CustomizationComponent implements AfterViewInit, OnDestroy {
     
     // Update via service (maintains single source of truth)
     this.canvasService.setScale(scale);
+  }
+
+  /**
+   * Print Area Configuration Methods
+   */
+  
+  selectPrintAreaPreset(presetId: string): void {
+    const preset = this.printAreaPresets.find(p => p.id === presetId);
+    if (!preset) return;
+    
+    this.selectedPreset.set(presetId);
+    this.printAreaMode.set('preset');
+    
+    // Update canvas size to preset dimensions
+    this.canvasWidth.set(preset.width);
+    this.canvasHeight.set(preset.height);
+    this.canvasService.resizeCanvas(preset.width, preset.height);
+  }
+  
+  enableCustomPrintArea(): void {
+    this.printAreaMode.set('custom');
+    this.selectedPreset.set('');
+  }
+  
+  isResizeHandlesEnabled(): boolean {
+    return this.printAreaMode() === 'custom';
+  }
+  
+  updateCanvasWidth(width: number): void {
+    if (this.printAreaMode() !== 'custom') return;
+    
+    const newWidth = Math.max(200, Math.min(800, width));
+    this.canvasWidth.set(newWidth);
+    this.canvasService.resizeCanvas(newWidth, this.canvasHeight());
+  }
+  
+  updateCanvasHeight(height: number): void {
+    if (this.printAreaMode() !== 'custom') return;
+    
+    const newHeight = Math.max(200, Math.min(800, height));
+    this.canvasHeight.set(newHeight);
+    this.canvasService.resizeCanvas(this.canvasWidth(), newHeight);
   }
 
   selectView(index: number): void {
@@ -495,6 +547,11 @@ export class CustomizationComponent implements AfterViewInit, OnDestroy {
    * Start canvas resize
    */
   startResize(event: MouseEvent, direction: 'e' | 's' | 'se'): void {
+    // Only allow resize in custom mode
+    if (!this.isResizeHandlesEnabled()) {
+      return;
+    }
+    
     event.preventDefault();
     event.stopPropagation();
     
@@ -515,8 +572,10 @@ export class CustomizationComponent implements AfterViewInit, OnDestroy {
   private onResizeMove(event: MouseEvent): void {
     if (!this.isResizing || !this.resizeDirection) return;
     
-    const deltaX = event.clientX - this.resizeStartX;
-    const deltaY = event.clientY - this.resizeStartY;
+    // Adjust mouse delta for zoom scale (viewport space → canvas space)
+    const scale = this.canvasScale();
+    const deltaX = (event.clientX - this.resizeStartX) / scale;
+    const deltaY = (event.clientY - this.resizeStartY) / scale;
     
     let newWidth = this.resizeStartWidth;
     let newHeight = this.resizeStartHeight;

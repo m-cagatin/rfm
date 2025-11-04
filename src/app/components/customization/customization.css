@@ -279,11 +279,14 @@
   top: 80px;
   left: 100px;
   width: 340px;
+  max-height: calc(100vh - 100px);  /* Fixed height: viewport minus top offset and margin */
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  overflow: hidden;
+  overflow: hidden;  /* Clip children */
   z-index: 100;
+  display: flex;
+  flex-direction: column;  /* Stack header and content */
 }
 
 .panel-header {
@@ -292,6 +295,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0;  /* Header stays fixed height */
 }
 
 .panel-title {
@@ -308,6 +312,31 @@
   color: #999;
   padding: 0;
   line-height: 1;
+}
+
+/* Scrollable content wrapper */
+.panel-scroll-content {
+  flex: 1;  /* Take remaining space */
+  overflow-y: auto;  /* Enable vertical scrolling */
+  overflow-x: hidden;  /* Hide horizontal overflow */
+}
+
+/* Custom scrollbar styling (optional, for better UX) */
+.panel-scroll-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.panel-scroll-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.panel-scroll-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.panel-scroll-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 .panel-content {
@@ -378,6 +407,187 @@
   color: #666;
   cursor: pointer;
   margin: 0;
+}
+
+/* Print Area Configuration Styles */
+.print-area-section {
+  flex-direction: column;
+  align-items: stretch;
+  padding: 16px;
+  background: #f8f9fa;
+  border-top: 1px solid #e5e5e5;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.print-area-section .section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.print-area-section svg {
+  flex-shrink: 0;
+}
+
+.print-area-config {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dimensions-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: #fff;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+
+.dimension-label {
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+}
+
+.dimension-value {
+  font-size: 13px;
+  color: #333;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+.preset-section h4 {
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.preset-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.preset-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 10px 12px;
+  background: #fff;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.preset-btn:hover {
+  border-color: #999;
+  background: #f9f9f9;
+}
+
+.preset-btn.active {
+  border-color: #007bff;
+  background: #e7f3ff;
+}
+
+.preset-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.preset-desc {
+  font-size: 11px;
+  color: #666;
+}
+
+.custom-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.custom-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #fff;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  transition: all 0.2s ease;
+}
+
+.custom-toggle-btn:hover {
+  border-color: #999;
+  background: #f9f9f9;
+}
+
+.custom-toggle-btn.active {
+  border-color: #28a745;
+  background: #e8f5e9;
+  color: #28a745;
+}
+
+.custom-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: #fff;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+
+.input-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.input-row label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #666;
+}
+
+.dimension-input {
+  width: 100px;
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: 'Courier New', monospace;
+  text-align: right;
+}
+
+.dimension-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+.help-text {
+  font-size: 11px;
+  color: #666;
+  margin: 4px 0 0 0;
+  font-style: italic;
 }
 
 /* Tools Panel - positioned relative to main-content */
