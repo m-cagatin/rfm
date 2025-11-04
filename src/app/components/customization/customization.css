@@ -279,7 +279,7 @@
   top: 80px;
   left: 100px;
   width: 340px;
-  max-height: calc(100vh - 100px);  /* Fixed height: viewport minus top offset and margin */
+  max-height: calc(100vh - 180px);  /* Viewport minus top (80px) and bottom space for zoom controls (100px) */
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
