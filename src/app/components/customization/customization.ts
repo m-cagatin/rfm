@@ -25,6 +25,7 @@ export class CustomizationComponent implements AfterViewInit, OnDestroy {
   protected showToolsPanel = signal(false);
   protected zoomLevel = signal(17);
   protected canvasScale = signal(1.0); // CSS transform scale for Figma-style zoom
+  protected isZoomExpanded = signal(false); // Collapsible zoom presets
   
   // Pan state for Figma-style navigation
   protected panOffsetX = signal(0);
@@ -297,6 +298,13 @@ export class CustomizationComponent implements AfterViewInit, OnDestroy {
     this.canvasService.setScale(1.0);
     this.panOffsetX.set(0);
     this.panOffsetY.set(0);
+  }
+
+  /**
+   * Toggle zoom presets visibility
+   */
+  toggleZoomPresets(): void {
+    this.isZoomExpanded.set(!this.isZoomExpanded());
   }
 
   /**

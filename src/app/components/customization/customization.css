@@ -1085,6 +1085,146 @@
 }
 
 /* Enhanced Zoom Controls */
+/* Compact Collapsible Zoom Controls */
+.zoom-controls-compact {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 50;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.zoom-presets-compact {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 4px;
+  background: #fafafa;
+  border-radius: 8px 8px 0 0;
+}
+
+.zoom-preset-btn-compact {
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  color: #333;
+  text-align: left;
+  transition: all 0.15s;
+  border-radius: 4px;
+}
+
+.zoom-preset-btn-compact:hover {
+  background: #e8f4ff;
+  color: #007bff;
+}
+
+.zoom-preset-btn-compact.active {
+  background: #007bff;
+  color: white;
+  font-weight: 600;
+}
+
+.zoom-preset-btn-compact.fit-btn {
+  border-top: 1px solid #e0e0e0;
+  margin-top: 4px;
+  padding-top: 12px;
+}
+
+.zoom-main-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+}
+
+.zoom-btn-compact {
+  width: 32px;
+  height: 32px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 18px;
+  color: #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.15s;
+}
+
+.zoom-btn-compact:hover {
+  background: #f5f5f5;
+  border-color: #999;
+}
+
+.zoom-btn-compact:active {
+  transform: scale(0.95);
+}
+
+.zoom-display {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 2px solid #007bff;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  min-width: 70px;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.zoom-display:hover {
+  background: #f0f8ff;
+  border-color: #0056b3;
+}
+
+.zoom-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+}
+
+.zoom-arrow {
+  font-size: 10px;
+  color: #007bff;
+}
+
+.zoom-reset-btn-compact {
+  width: 32px;
+  height: 32px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: #666;
+  transition: all 0.15s;
+}
+
+.zoom-reset-btn-compact:hover {
+  background: #28a745;
+  border-color: #28a745;
+  color: white;
+}
+
+.zoom-reset-btn-compact:active {
+  transform: scale(0.95);
+}
+
+/* Old zoom controls - keep for backwards compatibility but can be removed */
 .zoom-controls-enhanced {
   position: fixed;
   bottom: 20px;
