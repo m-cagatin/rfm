@@ -1,4 +1,4 @@
-import { Component, signal, ViewChild, ElementRef, AfterViewInit, OnDestroy, NgZone } from '@angular/core';
+import { Component, signal, ViewChild, ElementRef, AfterViewInit, OnDestroy, NgZone, HostListener } from '@angular/core';
 import { CommonModule, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -25,6 +25,22 @@ export class CustomizationComponent implements AfterViewInit, OnDestroy {
   protected showToolsPanel = signal(false);
   protected zoomLevel = signal(17);
   protected canvasScale = signal(1.0); // CSS transform scale for Figma-style zoom
+  
+  // Pan state for Figma-style navigation
+  protected panOffsetX = signal(0);
+  protected panOffsetY = signal(0);
+  protected isPanning = signal(false);
+  protected spaceKeyPressed = signal(false);
+  private panStartX = 0;
+  private panStartY = 0;
+  private panStartOffsetX = 0;
+  private panStartOffsetY = 0;
+  
+  // Throttling for smooth wheel events
+  private wheelUpdateQueued = false;
+  private pendingDeltaX = 0;
+  private pendingDeltaY = 0;
+  
   protected activeView = signal(0); // 0: front, 1: back, 2: neck label
   protected showUpload = signal(false);
   protected showTextPanel = signal(false);
@@ -166,6 +182,62 @@ export class CustomizationComponent implements AfterViewInit, OnDestroy {
   }
 
   /**
+   * Keyboard shortcuts for zoom and canvas operations
+   */
+  @HostListener('window:keydown', ['$event'])
+  handleKeyboardShortcut(event: KeyboardEvent): void {
+    // Space key for panning (only if not typing in input)
+    if (event.code === 'Space' && 
+        !this.spaceKeyPressed() && 
+        event.target instanceof HTMLElement &&
+        event.target.tagName !== 'INPUT' &&
+        event.target.tagName !== 'TEXTAREA' &&
+        event.target.tagName !== 'SELECT') {
+      event.preventDefault();
+      this.spaceKeyPressed.set(true);
+    }
+    
+    // Zoom shortcuts (Ctrl/Cmd + key)
+    if (event.ctrlKey || event.metaKey) {
+      switch(event.key) {
+        case '+':
+        case '=': // Plus key without shift
+          event.preventDefault();
+          this.zoomIn();
+          break;
+        case '-':
+        case '_': // Minus key
+          event.preventDefault();
+          this.zoomOut();
+          break;
+        case '0':
+          event.preventDefault();
+          this.zoomFit();
+          break;
+        case '1':
+          event.preventDefault();
+          this.setPresetZoom(100);
+          break;
+        case '2':
+          event.preventDefault();
+          this.setPresetZoom(200);
+          break;
+      }
+    }
+  }
+
+  /**
+   * Handle key up events (Space key release)
+   */
+  @HostListener('window:keyup', ['$event'])
+  handleKeyUp(event: KeyboardEvent): void {
+    if (event.code === 'Space') {
+      this.spaceKeyPressed.set(false);
+      this.isPanning.set(false);
+    }
+  }
+
+  /**
    * Update toolbar state based on selected object
    */
   private updateToolbarFromSelection(obj: any): void {
@@ -221,28 +293,172 @@ export class CustomizationComponent implements AfterViewInit, OnDestroy {
   }
 
   zoomFit(): void {
-    // Reset to 100% scale
+    // Reset to 100% scale and center canvas
     this.canvasService.setScale(1.0);
+    this.panOffsetX.set(0);
+    this.panOffsetY.set(0);
   }
 
   /**
-   * Handle mouse wheel / trackpad scroll for zoom
-   * Works on both desktop mice and laptop trackpads
+   * Set zoom to specific percentage preset
+   */
+  setPresetZoom(percentage: number): void {
+    const scale = percentage / 100;
+    this.canvasService.setScale(scale);
+  }
+
+  /**
+   * Handle manual zoom percentage input
+   */
+  onZoomInputChange(value: string): void {
+    // Remove % sign if present and parse
+    const cleanValue = value.replace('%', '').trim();
+    const num = parseInt(cleanValue);
+    
+    // Validate range 10-400
+    if (!isNaN(num) && num >= 10 && num <= 400) {
+      this.setPresetZoom(num);
+    } else {
+      // Reset input to current value if invalid
+      const currentZoom = Math.round(this.canvasScale() * 100);
+      // Input will automatically show current value via binding
+    }
+  }
+
+  /**
+   * Handle mouse wheel / trackpad scroll for Figma-style zoom and pan
+   * - Ctrl + Scroll: Zoom to cursor (trackpad pinch or mouse with Ctrl)
+   * - Shift + Scroll: Pan left/right
+   * - Alt + Scroll: Pan up/down
+   * - Plain Scroll: Pan up/down (trackpad two-finger swipe)
    */
   onCanvasWheel(event: WheelEvent): void {
     event.preventDefault();
     event.stopPropagation();
+
+    if (event.ctrlKey) {
+      // ZOOM TO CURSOR (Trackpad pinch or Ctrl+Mouse wheel)
+      this.handleZoomToPoint(event);
+    } else if (event.shiftKey) {
+      // PAN LEFT/RIGHT (Shift + Mouse wheel)
+      this.handleHorizontalPan(event);
+    } else if (event.altKey) {
+      // PAN UP/DOWN (Alt + Mouse wheel)
+      this.handleVerticalPan(event);
+    } else if (Math.abs(event.deltaX) > 0) {
+      // TRACKPAD HORIZONTAL SWIPE
+      this.handleTrackpadPan(event);
+    } else {
+      // TRACKPAD VERTICAL SWIPE or plain mouse wheel
+      this.handleTrackpadPan(event);
+    }
+  }
+
+  /**
+   * Zoom to cursor position
+   */
+  private handleZoomToPoint(event: WheelEvent): void {
+    const canvasArea = event.currentTarget as HTMLElement;
+    const rect = canvasArea.getBoundingClientRect();
     
+    // Get mouse position relative to canvas center
+    const mouseX = event.clientX - rect.left - rect.width / 2;
+    const mouseY = event.clientY - rect.top - rect.height / 2;
+    
+    // Calculate new scale
+    const oldScale = this.canvasScale();
     const delta = event.deltaY;
-    let scale = this.canvasScale();
+    let newScale = oldScale * (0.999 ** delta);
+    newScale = Math.max(0.1, Math.min(4, newScale));
     
-    // Calculate new scale (0.999 ** delta for smooth zoom)
-    // Works with both mouse wheel and trackpad two-finger scroll
-    scale *= 0.999 ** delta;
-    scale = Math.max(0.1, Math.min(4, scale)); // Clamp between 10% and 400%
+    // Calculate canvas point under cursor (before zoom)
+    const canvasPointX = (mouseX - this.panOffsetX()) / oldScale;
+    const canvasPointY = (mouseY - this.panOffsetY()) / oldScale;
     
-    // Update via service (maintains single source of truth)
-    this.canvasService.setScale(scale);
+    // Calculate pan adjustment to keep cursor on same point (after zoom)
+    const panAdjustX = canvasPointX * (newScale - oldScale);
+    const panAdjustY = canvasPointY * (newScale - oldScale);
+    
+    // Update pan offset before applying scale
+    this.panOffsetX.update(x => x - panAdjustX);
+    this.panOffsetY.update(y => y - panAdjustY);
+    
+    // Apply scale
+    this.canvasService.setScale(newScale);
+  }
+
+  /**
+   * Pan horizontally (Shift + Mouse wheel)
+   */
+  private handleHorizontalPan(event: WheelEvent): void {
+    const panAmount = event.deltaY; // Use vertical scroll for horizontal pan
+    this.panOffsetX.update(x => x - panAmount);
+  }
+
+  /**
+   * Pan vertically (Alt + Mouse wheel)
+   */
+  private handleVerticalPan(event: WheelEvent): void {
+    const panAmount = event.deltaY;
+    this.panOffsetY.update(y => y - panAmount);
+  }
+
+  /**
+   * Handle trackpad two-finger swipe (pan in both directions)
+   */
+  private handleTrackpadPan(event: WheelEvent): void {
+    // Accumulate deltas for smooth panning
+    this.pendingDeltaX += event.deltaX;
+    this.pendingDeltaY += event.deltaY;
+
+    // Throttle with requestAnimationFrame for smooth performance
+    if (!this.wheelUpdateQueued) {
+      this.wheelUpdateQueued = true;
+      requestAnimationFrame(() => {
+        this.panOffsetX.update(x => x - this.pendingDeltaX);
+        this.panOffsetY.update(y => y - this.pendingDeltaY);
+        this.pendingDeltaX = 0;
+        this.pendingDeltaY = 0;
+        this.wheelUpdateQueued = false;
+      });
+    }
+  }
+
+  /**
+   * Pan Methods - Space + Drag to navigate canvas
+   */
+  
+  /**
+   * Start panning when Space + Mouse down
+   */
+  startPan(event: MouseEvent): void {
+    if (!this.spaceKeyPressed()) return;
+    
+    this.isPanning.set(true);
+    this.panStartX = event.clientX;
+    this.panStartY = event.clientY;
+    this.panStartOffsetX = this.panOffsetX();
+    this.panStartOffsetY = this.panOffsetY();
+  }
+
+  /**
+   * Update pan offset while dragging
+   */
+  onPanMove(event: MouseEvent): void {
+    if (!this.isPanning()) return;
+    
+    const deltaX = event.clientX - this.panStartX;
+    const deltaY = event.clientY - this.panStartY;
+    
+    this.panOffsetX.set(this.panStartOffsetX + deltaX);
+    this.panOffsetY.set(this.panStartOffsetY + deltaY);
+  }
+
+  /**
+   * End panning
+   */
+  endPan(): void {
+    this.isPanning.set(false);
   }
 
   /**

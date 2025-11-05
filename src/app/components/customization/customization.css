@@ -205,6 +205,23 @@
   z-index: 102;
 }
 
+.btn-save {
+  padding: 8px 24px;
+  background: #28a745;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 14px;
+  line-height: normal;
+}
+
+.btn-save:hover {
+  background: #218838;
+}
+
 .btn-edit {
   padding: 8px 24px;
   background: #6b6b5f;
@@ -271,6 +288,23 @@
   justify-content: center;
   position: relative;
   overflow: hidden;
+}
+
+/* Pan Overlay - Space + Drag Navigation */
+.pan-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  pointer-events: none;
+}
+
+.pan-overlay.active {
+  pointer-events: auto;
+  cursor: grab;
+}
+
+.pan-overlay.panning {
+  cursor: grabbing;
 }
 
 /* Product Info Panel - positioned relative to main-content */
@@ -1049,6 +1083,104 @@
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
   z-index: 50;
 }
+
+/* Enhanced Zoom Controls */
+.zoom-controls-enhanced {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 50;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 300px;
+  max-width: 320px;
+}
+
+.zoom-presets {
+  display: flex;
+  gap: 6px;
+  justify-content: space-between;
+}
+
+.zoom-preset-btn {
+  flex: 1;
+  padding: 6px 8px;
+  border: 2px solid #e0e0e0;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  transition: all 0.2s;
+}
+
+.zoom-preset-btn:hover {
+  border-color: #007bff;
+  color: #007bff;
+  background: #f0f8ff;
+}
+
+.zoom-preset-btn.active {
+  border-color: #007bff;
+  background: #007bff;
+  color: white;
+}
+
+.zoom-main-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+.zoom-input {
+  width: 50px;
+  text-align: center;
+  padding: 6px 4px;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.zoom-input:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+.zoom-percent {
+  font-size: 14px;
+  color: #666;
+  font-weight: 600;
+  margin-left: -4px;
+}
+
+.zoom-reset-btn {
+  padding: 6px 12px;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.zoom-reset-btn:hover {
+  background: #218838;
+}
+
+.tshirt-canvas {
+  transition: transform 0.2s ease-out;
+}
+
 
 .zoom-btn {
   width: 28px;

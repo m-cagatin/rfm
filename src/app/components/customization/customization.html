@@ -247,6 +247,7 @@
       </div>
 
       <div class="top-bar-right">
+        <button class="btn-save" (click)="saveProduct()">Save Product</button>
         <button class="btn-edit">Edit</button>
         <button class="btn-preview">Preview</button>
         <button class="tools-btn" (click)="toggleToolsPanel()">
@@ -519,7 +520,7 @@
     <!-- Canvas Area (only contains the actual canvas) -->
     <div class="canvas-area" (click)="onCanvasAreaClick($event)" (wheel)="onCanvasWheel($event)">
       <!-- T-shirt Canvas -->
-      <div class="tshirt-canvas" [style.transform]="'scale(' + canvasScale() + ')'">>
+      <div class="tshirt-canvas" [style.transform]="'translate(' + panOffsetX() + 'px, ' + panOffsetY() + 'px) scale(' + canvasScale() + ')'">
         <div class="print-area-box" 
              [style.width.px]="canvasWidth()"
              [style.height.px]="canvasHeight()">
@@ -540,6 +541,15 @@
                title="Resize"></div>
         </div>
       </div>
+
+      <!-- Pan Overlay (Space + Drag navigation) -->
+      <div class="pan-overlay" 
+           [class.active]="spaceKeyPressed()"
+           [class.panning]="isPanning()"
+           (mousedown)="startPan($event)"
+           (mousemove)="onPanMove($event)"
+           (mouseup)="endPan()"
+           (mouseleave)="endPan()"></div>
     </div>
 
     <!-- Bottom Controls (outside canvas-area to avoid zoom) -->
@@ -570,16 +580,72 @@
       </button>
     </div>
 
-    <!-- Zoom Controls (outside canvas-area to avoid zoom) -->
-    <div class="zoom-controls">
-      <button class="zoom-btn" (click)="zoomOut()">−</button>
-      <span class="zoom-level">{{ zoomLevel() }}%</span>
-      <button class="zoom-btn" (click)="zoomIn()">+</button>
-      <button class="zoom-fit" (click)="zoomFit()">⊡</button>
-    </div>
+    <!-- Enhanced Zoom Controls (outside canvas-area to avoid zoom) -->
+    <div class="zoom-controls-enhanced">
+      <!-- Preset Buttons Row -->
+      <div class="zoom-presets">
+        <button 
+          class="zoom-preset-btn"
+          [class.active]="zoomLevel() === 25"
+          (click)="setPresetZoom(25)"
+          title="Zoom to 25%">
+          25%
+        </button>
+        <button 
+          class="zoom-preset-btn"
+          [class.active]="zoomLevel() === 50"
+          (click)="setPresetZoom(50)"
+          title="Zoom to 50%">
+          50%
+        </button>
+        <button 
+          class="zoom-preset-btn"
+          [class.active]="zoomLevel() === 100"
+          (click)="setPresetZoom(100)"
+          title="Zoom to 100%">
+          100%
+        </button>
+        <button 
+          class="zoom-preset-btn"
+          [class.active]="zoomLevel() === 200"
+          (click)="setPresetZoom(200)"
+          title="Zoom to 200%">
+          200%
+        </button>
+        <button 
+          class="zoom-preset-btn"
+          (click)="zoomFit()"
+          title="Fit to screen">
+          Fit
+        </button>
+      </div>
 
-    <!-- Save Button (outside canvas-area to avoid zoom) -->
-    <button class="save-btn" (click)="saveProduct()">Save product</button>
+      <!-- Main Controls Row -->
+      <div class="zoom-main-controls">
+        <button class="zoom-btn" (click)="zoomOut()" title="Zoom out (Ctrl + -)">
+          −
+        </button>
+        
+        <input 
+          type="text" 
+          class="zoom-input"
+          [value]="zoomLevel()"
+          (keydown.enter)="onZoomInputChange($any($event.target).value)"
+          (blur)="onZoomInputChange($any($event.target).value)"
+          title="Enter zoom percentage (10-400)"
+          maxlength="3"
+        />
+        <span class="zoom-percent">%</span>
+        
+        <button class="zoom-btn" (click)="zoomIn()" title="Zoom in (Ctrl + +)">
+          +
+        </button>
+        
+        <button class="zoom-reset-btn" (click)="zoomFit()" title="Reset to fit (Ctrl + 0)">
+          Reset
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 <!-- Upload Modal Overlay -->
