@@ -2,6 +2,7 @@ import { Component, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { switchMap } from 'rxjs/operators';
 import { CustomizableProductFormComponent } from './customizable-product-form';
 import { ApiService } from '../../../services/api';
 import { CloudinaryService } from '../../../services/cloudinary.service';
@@ -28,7 +29,8 @@ interface CustomizableProduct {
   size_chart_url?: string;
   fit_description?: string;
   size_pricing?: any;
-  available_colors: any[];
+  color_name?: string;
+  color_hex?: string;
   variants?: Array<{ name: string; image_url: string }>;
   print_method?: string;
   print_areas?: string[];
@@ -63,8 +65,8 @@ export class AdminCustomizableProductsComponent implements OnInit {
   selectedProducts = signal<number[]>([]);
   selectAll = signal(false);
   
-  // Filter
-  filterStatus = signal<'all' | 'active' | 'inactive'>('all');
+  // Filter - default to 'active'
+  filterStatus = signal<'all' | 'active' | 'inactive'>('active');
   
   constructor(
     private apiService: ApiService, 
@@ -185,14 +187,40 @@ export class AdminCustomizableProductsComponent implements OnInit {
       return;
     }
     
-    this.apiService.updateCustomizableProduct(String(product.id), { is_active: false }).subscribe({
-      next: () => {
-        product.is_active = false;
-        alert('Product archived successfully!');
+    // Fetch full product data first, then update with is_active change
+    this.apiService.getCustomizableProductById(String(product.id)).subscribe({
+      next: (response: any) => {
+        const fullProduct = response.data;
+        // Update the is_active field
+        fullProduct.is_active = false;
+        
+        // Transform images array to match backend expectation (camelCase)
+        if (fullProduct.images && Array.isArray(fullProduct.images)) {
+          fullProduct.images = fullProduct.images.map((img: any) => ({
+            url: img.url,
+            publicId: img.publicId,
+            imageType: img.image_type || img.imageType, // Handle both formats
+            displayOrder: img.displayOrder
+          }));
+        }
+        
+        // Send full product data with updated status
+        this.apiService.updateCustomizableProduct(String(product.id), fullProduct).subscribe({
+          next: () => {
+            product.is_active = false;
+            alert('Product archived successfully!');
+            // Reload products to update the filtered list
+            this.loadProducts();
+          },
+          error: (error: any) => {
+            console.error('Error archiving product:', error);
+            alert('Failed to archive product');
+          }
+        });
       },
-      error: (error) => {
-        console.error('Error archiving product:', error);
-        alert('Failed to archive product');
+      error: (error: any) => {
+        console.error('Error fetching product:', error);
+        alert('Failed to fetch product data');
       }
     });
   }
@@ -209,8 +237,26 @@ export class AdminCustomizableProductsComponent implements OnInit {
       return;
     }
     
+    // Fetch each product, update is_active, then save
     const updates = this.selectedProducts().map(id => 
-      this.apiService.updateCustomizableProduct(String(id), { is_active: false })
+      this.apiService.getCustomizableProductById(String(id)).pipe(
+        switchMap((response: any) => {
+          const fullProduct = response.data;
+          fullProduct.is_active = false;
+          
+          // Transform images array to match backend expectation (camelCase)
+          if (fullProduct.images && Array.isArray(fullProduct.images)) {
+            fullProduct.images = fullProduct.images.map((img: any) => ({
+              url: img.url,
+              publicId: img.publicId,
+              imageType: img.image_type || img.imageType,
+              displayOrder: img.displayOrder
+            }));
+          }
+          
+          return this.apiService.updateCustomizableProduct(String(id), fullProduct);
+        })
+      )
     );
     
     Promise.all(updates.map(obs => obs.toPromise())).then(() => {
@@ -221,7 +267,7 @@ export class AdminCustomizableProductsComponent implements OnInit {
       this.selectedProducts.set([]);
       this.selectAll.set(false);
       alert(`${count} product(s) archived successfully!`);
-    }).catch(error => {
+    }).catch((error: any) => {
       console.error('Error archiving products:', error);
       alert('Failed to archive some products');
     });
@@ -357,14 +403,40 @@ export class AdminCustomizableProductsComponent implements OnInit {
       return;
     }
     
-    this.apiService.updateCustomizableProduct(String(product.id), { is_active: newStatus }).subscribe({
-      next: () => {
-        product.is_active = newStatus;
-        alert(`Product ${action}ed successfully!`);
+    // Fetch full product data first, then update with is_active change
+    this.apiService.getCustomizableProductById(String(product.id)).subscribe({
+      next: (response: any) => {
+        const fullProduct = response.data;
+        // Update the is_active field
+        fullProduct.is_active = newStatus;
+        
+        // Transform images array to match backend expectation (camelCase)
+        if (fullProduct.images && Array.isArray(fullProduct.images)) {
+          fullProduct.images = fullProduct.images.map((img: any) => ({
+            url: img.url,
+            publicId: img.publicId,
+            imageType: img.image_type || img.imageType,
+            displayOrder: img.displayOrder
+          }));
+        }
+        
+        // Send full product data with updated status
+        this.apiService.updateCustomizableProduct(String(product.id), fullProduct).subscribe({
+          next: () => {
+            product.is_active = newStatus;
+            alert(`Product ${action}ed successfully!`);
+            // Reload products to update the filtered list
+            this.loadProducts();
+          },
+          error: (error: any) => {
+            console.error('Error updating product:', error);
+            alert(`Failed to ${action} product`);
+          }
+        });
       },
-      error: (error) => {
-        console.error('Error updating product:', error);
-        alert(`Failed to ${action} product`);
+      error: (error: any) => {
+        console.error('Error fetching product:', error);
+        alert('Failed to fetch product data');
       }
     });
   }

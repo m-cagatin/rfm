@@ -390,7 +390,7 @@
         <!-- Left Side: Search Colors -->
         <div>
           <label style="font-weight: 600; margin-bottom: 4px; display: block; font-size: 15px;">Search colors</label>
-          <p *ngIf="form.availableColors.length === 0" style="margin: 0 0 12px 0; color: #6c757d; font-size: 13px; font-style: italic;">
+          <p *ngIf="!form.selectedColor" style="margin: 0 0 12px 0; color: #6c757d; font-size: 13px; font-style: italic;">
             ℹ️ You can only add 1 color per product.
           </p>
           <div style="display: flex; gap: 8px; margin-bottom: 20px;">
@@ -409,20 +409,20 @@
           </div>
           
           <!-- Selected Colors List -->
-          <ul style="list-style: none; padding: 0; margin: 0; min-height: 100px;" [ngClass]="{'border-danger': errors?.availableColors}">
-            <li *ngFor="let color of getActiveColors(); let i = index" 
+          <ul style="list-style: none; padding: 0; margin: 0; min-height: 100px;" [ngClass]="{'border-danger': errors?.selectedColor}">
+            <li *ngIf="form.selectedColor" 
                 style="display: flex; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid #e8e8e8;">
               <span style="width: 10px; height: 10px; background: #bbb; border-radius: 50%; flex-shrink: 0;"></span>
-              <div [style.background-color]="color.hex" 
+              <div [style.background-color]="form.selectedColor.hex" 
                    style="width: 64px; height: 64px; border-radius: 8px; border: 3px solid #e0e0e0; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></div>
-              <span style="flex: 1; font-size: 15px; color: #333; font-weight: 400;">{{ color.name }} | {{ color.hex }}</span>
-              <button type="button" (click)="removeColor(form.availableColors.indexOf(color))" 
+              <span style="flex: 1; font-size: 15px; color: #333; font-weight: 400;">{{ form.selectedColor.name }} | {{ form.selectedColor.hex }}</span>
+              <button type="button" (click)="removeColor()" 
                       style="background: none; border: none; color: #999; font-size: 28px; cursor: pointer; padding: 0; width: 28px; height: 28px; line-height: 1; transition: color 0.2s;"
                       onmouseover="this.style.color='#333'" onmouseout="this.style.color='#999'"
                       title="Remove">×</button>
             </li>
           </ul>
-          <div *ngIf="errors?.availableColors" class="invalid-feedback" style="display:block; margin-top: 8px;">{{ errors.availableColors }}</div>
+          <div *ngIf="errors?.selectedColor" class="invalid-feedback" style="display:block; margin-top: 8px;">{{ errors.selectedColor }}</div>
         </div>
 
         <!-- Divider -->

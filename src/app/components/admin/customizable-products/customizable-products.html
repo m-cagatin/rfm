@@ -30,12 +30,6 @@
         <!-- Filter Tabs -->
         <div class="filter-tabs">
           <button 
-            [class.active]="filterStatus() === 'all'" 
-            (click)="filterStatus.set('all')"
-            class="filter-tab">
-            All ({{ products().length }})
-          </button>
-          <button 
             [class.active]="filterStatus() === 'active'" 
             (click)="filterStatus.set('active')"
             class="filter-tab">
@@ -46,6 +40,12 @@
             (click)="filterStatus.set('inactive')"
             class="filter-tab">
             Inactive ({{ archivedCount }})
+          </button>
+          <button 
+            [class.active]="filterStatus() === 'all'" 
+            (click)="filterStatus.set('all')"
+            class="filter-tab">
+            All ({{ products().length }})
           </button>
         </div>
       </div>
@@ -138,8 +138,8 @@
             </div>
             <div class="detail-divider"></div>
             <div class="detail-item">
-              <span class="detail-label">Colors</span>
-              <span class="detail-value">{{ product.available_colors.length || 0 }}</span>
+              <span class="detail-label">Color</span>
+              <span class="detail-value">{{ product.color_name ? 1 : 0 }}</span>
             </div>
           </div>
 
@@ -311,13 +311,13 @@
           </div>
         </section>
 
-        <!-- Colors -->
-        <section class="detail-section" *ngIf="selectedProduct()!.available_colors && selectedProduct()!.available_colors.length > 0">
-          <h4>Available Colors</h4>
+        <!-- Color -->
+        <section class="detail-section" *ngIf="selectedProduct()!.color_name">
+          <h4>Product Color</h4>
           <div class="colors-list-grid">
-            <div class="color-item-card" *ngFor="let color of selectedProduct()!.available_colors">
-              <div class="color-swatch-large" [style.background-color]="color.hex"></div>
-              <span class="color-name">{{ color.name }}</span>
+            <div class="color-item-card">
+              <div class="color-swatch-large" [style.background-color]="selectedProduct()!.color_hex"></div>
+              <span class="color-name">{{ selectedProduct()!.color_name }}</span>
             </div>
           </div>
         </section>

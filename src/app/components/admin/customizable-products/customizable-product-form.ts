@@ -48,7 +48,7 @@ interface CustomizableProductForm {
   availableSizes: string[];
   fitDescription: string;
   // 5. Colors & Variants
-  availableColors: ColorVariant[];
+  selectedColor: ColorVariant | null;
   // 6. Print & Customization
   printMethod: 'DTG' | 'Screen Print' | 'Embroidery';
   printAreas: string[]; // Front, Back, Sleeve
@@ -132,7 +132,7 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
       texture: '',
       availableSizes: [],
       fitDescription: '',
-      availableColors: [],
+      selectedColor: null,
       printMethod: 'DTG',
       printAreas: [],
       designRequirements: '300 DPI PNG with transparent background',
@@ -240,7 +240,7 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
     texture: '',
     availableSizes: [],
     fitDescription: '',
-    availableColors: [],
+    selectedColor: null,
     printMethod: 'DTG',
     printAreas: [],
     designRequirements: '300 DPI PNG with transparent background',
@@ -350,13 +350,10 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
     this.form.fitDescription = product.fit_description || '';
     this.sizePricing = product.size_pricing ? { ...product.size_pricing } : {};
     
-    // Colors - deep clone
-    this.form.availableColors = Array.isArray(product.available_colors) 
-      ? product.available_colors.map((c: any) => ({ 
-          name: c.name,
-          hex: c.hex
-        })) 
-      : [];
+    // Color - single object from database fields
+    this.form.selectedColor = (product.color_name && product.color_hex)
+      ? { name: product.color_name, hex: product.color_hex }
+      : null;
     
     // Variants - deep clone with proper structure
     if (Array.isArray(product.variants)) {
@@ -590,47 +587,43 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
       colorName = query.charAt(0).toUpperCase() + query.slice(1);
     }
 
-    // Check if already have 1 color (limit to 1 only)
-    if (this.form.availableColors.length >= 1) {
+    // Check if already have a color (limit to 1 only)
+    if (this.form.selectedColor !== null) {
       this.setMessage('Only 1 color allowed. Remove the existing color first.', 'error');
       return;
     }
 
-    // Check if color already exists
-    const exists = this.form.availableColors.some(c => c.hex === hexCode);
-    if (exists) {
-      this.setMessage('Color already added', 'info');
-      return;
-    }
-
-    this.form.availableColors.push({ name: colorName, hex: hexCode });
+    // Assign the color
+    this.form.selectedColor = { name: colorName, hex: hexCode };
     this.hasUnsavedChanges = true;
     this.colorSearchQuery = '';
     this.setMessage(`Color "${colorName}" added successfully`, 'success');
   }
 
-  removeColor(index: number): void {
-    const color = this.form.availableColors[index];
+  removeColor(): void {
+    if (!this.form.selectedColor) return;
     
-    if (!confirm(`🗑️ Remove color "${color.name}"?\n\nThis will be removed when you save the form.`)) {
+    const colorName = this.form.selectedColor.name;
+    
+    if (!confirm(`🗑️ Remove color "${colorName}"?\n\nThis will be removed when you save the form.`)) {
       return;
     }
     
     // If it has imageUrl, it exists in database - track for deletion
     // For colors, we check if they exist by checking if we're in edit mode
     if (this.isEditMode) {
-      this.colorsToDeleteOnSave.push({...color});
+      this.colorsToDeleteOnSave.push({...this.form.selectedColor});
     }
     
     // Remove from display immediately
-    this.form.availableColors.splice(index, 1);
+    this.form.selectedColor = null;
     this.hasUnsavedChanges = true;
-    this.setMessage(`ℹ️ Color "${color.name}" will be removed when you save.`, 'info');
+    this.setMessage(`ℹ️ Color "${colorName}" will be removed when you save.`, 'info');
   }
 
-  // Helper method - no longer needed since we splice directly
+  // Helper method - returns array with single color if exists
   getActiveColors(): ColorVariant[] {
-    return this.form.availableColors; // Return all, since removed ones are spliced
+    return this.form.selectedColor ? [this.form.selectedColor] : [];
   }
 
   getColorNameFromHex(hex: string): string {
@@ -758,9 +751,9 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
 
   regenerateStockGrid() {
     const wanted: StockEntry[] = [];
-    for (const size of this.form.availableSizes) {
-      for (const color of this.form.availableColors) {
-        wanted.push({ size, color: color.name, quantity: 0 });
+    if (this.form.selectedColor) {
+      for (const size of this.form.availableSizes) {
+        wanted.push({ size, color: this.form.selectedColor.name, quantity: 0 });
       }
     }
 
@@ -847,9 +840,9 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
     }
 
     // 5. Colors
-    if (this.form.availableColors.length === 0) {
-      errors.push('Please add at least one color');
-      this.errors['availableColors'] = 'Please add at least one color';
+    if (!this.form.selectedColor) {
+      errors.push('Please add a color');
+      this.errors['selectedColor'] = 'Please add a color';
     }
 
     // 6. Print Areas
@@ -1023,11 +1016,6 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
 
       console.log('📤 Sending images array to backend:', images); // Debug log
 
-      // All colors/variants in arrays are active (removed ones are spliced)
-      // Just send what's in the arrays
-      const activeColors = this.form.availableColors;
-      const activeVariants = this.variants;
-
       // Prepare data for API
       const productData = {
         name: this.form.name, // Product name from separate input field
@@ -1042,8 +1030,13 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
         available_sizes: this.form.availableSizes,
         fit_description: this.form.fitDescription,
         size_pricing: this.sizePricing, // Size-based pricing
-        available_colors: activeColors.map(c => ({ name: c.name, hex: c.hex })), // Remove markedForDeletion flag
-        variants: activeVariants.map(v => ({ name: v.name, image_url: v.imageUrl })),
+        // Send single color fields
+        color_name: this.form.selectedColor?.name || null,
+        color_hex: this.form.selectedColor?.hex || null,
+        // Send single variant fields (extract first variant if exists)
+        variant_name: this.variants.length > 0 ? this.variants[0].name : null,
+        variant_image_url: this.variants.length > 0 ? this.variants[0].imageUrl : null,
+        variant_image_public_id: null, // Will be set during image upload
         print_method: this.form.printMethod,
         print_areas: this.form.printAreas,
         design_requirements: this.form.designRequirements,
