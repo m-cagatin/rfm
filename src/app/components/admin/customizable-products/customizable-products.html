@@ -39,13 +39,13 @@
             [class.active]="filterStatus() === 'active'" 
             (click)="filterStatus.set('active')"
             class="filter-tab">
-            Published ({{ activeCount }})
+            Active ({{ activeCount }})
           </button>
           <button 
             [class.active]="filterStatus() === 'inactive'" 
             (click)="filterStatus.set('inactive')"
             class="filter-tab">
-            Archived ({{ archivedCount }})
+            Inactive ({{ archivedCount }})
           </button>
         </div>
       </div>
@@ -54,9 +54,9 @@
       <div class="toolbar-right" *ngIf="selectedProducts().length > 0">
         <span class="selected-count">{{ selectedProducts().length }} selected</span>
         <button class="btn btn-sm btn-warning" (click)="bulkArchive()">
-          📦 Archive Selected
+          ⊗ Deactivate Selected
         </button>
-        <!-- Delete button only shows when viewing archived products and all selected are archived -->
+        <!-- Delete button only shows when viewing inactive products and all selected are inactive -->
         <button 
           *ngIf="filterStatus() === 'inactive' && areAllSelectedArchived()" 
           class="btn btn-sm btn-danger" 
@@ -104,33 +104,46 @@
         <div class="product-image-container">
           <img [src]="getFrontImage(product)" [alt]="product.name" class="product-image">
           <div class="status-badge" [class.active]="product.is_active" [class.inactive]="!product.is_active">
-            {{ product.is_active ? '✓ Published' : '📦 Archived' }}
+            {{ product.is_active ? '✓ Active' : '⊗ Inactive' }}
           </div>
         </div>
 
         <!-- Product Info -->
         <div class="product-info">
-          <h3 class="product-name">{{ product.name }}</h3>
-          <div class="product-meta">
-            <span class="category-badge">{{ product.category }}</span>
-          </div>
-          
-          <div class="product-details">
-            <div class="detail-item">
-              <strong>₱{{ product.retail_price }}</strong>
-              <span class="text-muted">Base Price</span>
+          <!-- Name and Category Row -->
+          <div class="product-header-row">
+            <div class="product-name-section">
+              <h3 class="product-name">{{ product.name }}</h3>
             </div>
-            <div class="detail-item">
-              <strong>{{ product.available_sizes.length || 0 }}</strong>
-              <span class="text-muted">Sizes</span>
-            </div>
-            <div class="detail-item">
-              <strong>{{ product.available_colors.length || 0 }}</strong>
-              <span class="text-muted">Colors</span>
+            <div class="product-category-section">
+              <span class="category-badge">{{ product.category }}</span>
             </div>
           </div>
 
-          <!-- Actions -->
+          <!-- Details Row -->
+          <div class="product-details-row">
+            <div class="detail-item">
+              <span class="detail-label">Base Cost</span>
+              <span class="detail-value">₱{{ product.base_cost }}</span>
+            </div>
+            <div class="detail-divider"></div>
+            <div class="detail-item">
+              <span class="detail-label">Retail Price</span>
+              <span class="detail-value">₱{{ product.retail_price }}</span>
+            </div>
+            <div class="detail-divider"></div>
+            <div class="detail-item">
+              <span class="detail-label">Sizes</span>
+              <span class="detail-value">{{ product.available_sizes.length || 0 }}</span>
+            </div>
+            <div class="detail-divider"></div>
+            <div class="detail-item">
+              <span class="detail-label">Colors</span>
+              <span class="detail-value">{{ product.available_colors.length || 0 }}</span>
+            </div>
+          </div>
+
+          <!-- Actions Row -->
           <div class="product-actions">
             <button class="btn btn-sm btn-outline-primary" (click)="viewDetails(product)" title="View Details">
               👁️ View
@@ -139,23 +152,23 @@
               ✏️ Edit
             </button>
             
-            <!-- Archive/Publish Toggle -->
+            <!-- Active/Inactive Toggle -->
             <button 
               *ngIf="product.is_active" 
               class="btn btn-sm btn-outline-warning" 
               (click)="archiveProduct(product)" 
-              title="Archive Product">
-              📦 Archive
+              title="Deactivate Product">
+              ⊗ Deactivate
             </button>
             <button 
               *ngIf="!product.is_active" 
               class="btn btn-sm btn-outline-success" 
               (click)="toggleActive(product)" 
-              title="Publish Product">
-              ✓ Publish
+              title="Activate Product">
+              ✓ Activate
             </button>
             
-            <!-- Delete (only for archived products) -->
+            <!-- Delete (only for inactive products) -->
             <button 
               *ngIf="!product.is_active"
               class="btn btn-sm btn-outline-danger" 
@@ -208,6 +221,10 @@
           <h4>Basic Information</h4>
           <div class="info-grid">
             <div class="info-item">
+              <label>Product Name:</label>
+              <span>{{ selectedProduct()!.name }}</span>
+            </div>
+            <div class="info-item">
               <label>Category:</label>
               <span>{{ selectedProduct()!.category }}</span>
             </div>
@@ -230,7 +247,7 @@
             <div class="info-item">
               <label>Status:</label>
               <span [class.text-success]="selectedProduct()!.is_active" [class.text-danger]="!selectedProduct()!.is_active">
-                {{ selectedProduct()!.is_active ? '✓ Published' : '⊘ Unpublished' }}
+                {{ selectedProduct()!.is_active ? '✓ Active' : '⊗ Inactive' }}
               </span>
             </div>
           </div>

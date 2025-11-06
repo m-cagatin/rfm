@@ -24,25 +24,22 @@
     <section class="card-section">
       <h3>1. Basic Info <span class="required-indicator">* Required</span></h3>
       
+      <!-- Row 1: Product Category - Product Name - Fit Type -->
       <div class="row">
         <div class="col">
-          <label>Product Category / Name <span class="text-danger">*</span></label>
+          <label>Product Category <span class="text-danger">*</span></label>
           <select class="form-select" [(ngModel)]="form.category" name="category" required (change)="onCategoryChange()" [ngClass]="{'is-invalid': errors?.category}">
-            <option value="">Select product type</option>
+            <option value="">Select product category</option>
             <option *ngFor="let c of categories" [value]="c">{{c}}</option>
           </select>
           <div *ngIf="errors?.category" class="invalid-feedback" style="display:block">{{ errors.category }}</div>
-          <small class="form-text text-muted">Choose the type of garment. This will be displayed as the product name.</small>
+          <small class="form-text text-muted">Choose the type of garment (e.g., T-Shirt, Polo Shirt).</small>
         </div>
         <div class="col">
-          <label>Product Type <span class="text-danger">*</span></label>
-          <select class="form-select" [(ngModel)]="form.gender" name="gender" (change)="onProductTypeChange()">
-            <option>Unisex</option>
-            <option>Men</option>
-            <option>Women</option>
-            <option>Kids</option>
-          </select>
-          <small class="form-text text-muted">Target audience. This determines available size ranges (Kids sizes are different from Adult).</small>
+          <label>Product Name <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" [(ngModel)]="form.name" name="name" required placeholder="e.g., Premium Cotton Tee" [ngClass]="{'is-invalid': errors?.name}">
+          <div *ngIf="errors?.name" class="invalid-feedback" style="display:block">{{ errors.name }}</div>
+          <small class="form-text text-muted">Give your product a unique name.</small>
         </div>
         <div class="col">
           <label>Fit Type</label>
@@ -60,52 +57,51 @@
         </div>
       </div>
 
-      <!-- Sizes & Fit (Moved here from section 5) -->
-      <div style="margin-top: 20px; padding: 16px; background: #f8f9fa; border-radius: 8px;">
-        <!-- Available Sizes & Fit Description in two columns -->
-
-
-        <div class="row">
-          <div class="col">
-            <label style="font-weight: 600; margin-bottom: 12px; display: block;">Available Sizes <span class="text-danger">*</span></label>
-            
-            <!-- Dynamic Sizes based on Category and Product Type -->
-            <div *ngIf="availableSizes.length > 0">
-              <small class="form-text text-muted" style="display: block; margin-bottom: 8px;">
-                <span *ngIf="form.category.includes('Pants') || form.category.includes('Shorts')">Waist Sizes (inches) - Select all sizes you can produce</span>
-                <span *ngIf="!(form.category.includes('Pants') || form.category.includes('Shorts'))">
-                  {{ form.gender === 'Kids' ? 'Kids Sizes - Select all available' : 'Standard Sizes - Select all available' }}
-                </span>
-              </small>
-              <div class="chips" [ngClass]="{'is-invalid': errors?.availableSizes}">
-                <label *ngFor="let s of availableSizes" class="chip">
-                  <input type="checkbox" (change)="toggleSize(s, $any($event.target).checked)"> {{s}}
-                </label>
-              </div>
-              <div *ngIf="errors?.availableSizes" class="invalid-feedback" style="display:block">{{ errors.availableSizes }}</div>
+      <!-- Row 2: Product Type - Available Sizes - Fit Description -->
+      <div class="row" style="margin-top: 16px;">
+        <div class="col">
+          <label>Product Type <span class="text-danger">*</span></label>
+          <select class="form-select" [(ngModel)]="form.gender" name="gender" (change)="onProductTypeChange()">
+            <option>Unisex</option>
+            <option>Men</option>
+            <option>Women</option>
+            <option>Kids</option>
+          </select>
+          <small class="form-text text-muted">Target audience. This determines available size ranges (Kids sizes are different from Adult).</small>
+        </div>
+        <div class="col">
+          <label style="font-weight: 600;">Available Sizes <span class="text-danger">*</span></label>
+          
+          <!-- Dynamic Sizes based on Category and Product Type -->
+          <div *ngIf="availableSizes.length > 0">
+            <small class="form-text text-muted" style="display: block; margin-bottom: 8px;">
+              <span *ngIf="form.category.includes('Pants') || form.category.includes('Shorts')">Waist Sizes (inches) - Select all sizes you can produce</span>
+              <span *ngIf="!(form.category.includes('Pants') || form.category.includes('Shorts'))">
+                {{ form.gender === 'Kids' ? 'Kids Sizes - Select all available' : 'Standard Sizes - Select all available' }}
+              </span>
+            </small>
+            <div class="chips" [ngClass]="{'is-invalid': errors?.availableSizes}">
+              <label *ngFor="let s of availableSizes" class="chip">
+                <input type="checkbox" (change)="toggleSize(s, $any($event.target).checked)"> {{s}}
+              </label>
             </div>
-            
-            <!-- Prompt to select category and product type first -->
-            <div *ngIf="availableSizes.length === 0" style="padding: 20px; text-align: center; color: #6c757d;">
-              <p>👆 Please select <strong>Product Category</strong> and <strong>Product Type</strong> first to see available sizes.</p>
-            </div>
+            <div *ngIf="errors?.availableSizes" class="invalid-feedback" style="display:block">{{ errors.availableSizes }}</div>
           </div>
-
-          <div class="col">
-            <label>Fit Description</label>
-            <input class="form-control form-control-sm" [(ngModel)]="form.fitDescription" name="fitDescription" placeholder="e.g., Runs true to size, Slightly oversized">
-            <small class="form-text text-muted">Brief note on how the product fits (e.g., "Runs true to size", "Order one size up for relaxed fit")</small>
+          
+          <!-- Prompt to select category and product type first -->
+          <div *ngIf="availableSizes.length === 0" style="padding: 20px; text-align: center; color: #6c757d;">
+            <p>👆 Please select <strong>Product Category</strong> and <strong>Product Type</strong> first to see available sizes.</p>
           </div>
         </div>
+        <div class="col">
+          <label>Fit Description</label>
+          <input class="form-control" [(ngModel)]="form.fitDescription" name="fitDescription" placeholder="e.g., Runs true to size, Slightly oversized">
+          <small class="form-text text-muted">Brief note on how the product fits (e.g., "Runs true to size", "Order one size up for relaxed fit")</small>
+        </div>
+      </div>
 
-
-
-
-
-
-        
-        <!-- Size Pricing -->
-        <div *ngIf="form.availableSizes.length > 0" style="margin-top: 16px; padding: 16px; background: white; border-radius: 8px; border: 1px solid #dee2e6;">
+      <!-- Sizes & Fit Section -->
+      <div *ngIf="form.availableSizes.length > 0" style="margin-top: 20px; padding: 16px; background: #f8f9fa; border-radius: 8px;">
           <label style="font-size: 14px; font-weight: 600; color: #0066cc; margin-bottom: 8px;">💰 Size Pricing (Optional Add-ons)</label>
           <small class="form-text" style="display: block; margin-bottom: 12px; color: #6c757d;">
             Add extra charges for larger sizes (e.g., XL, 2XL typically cost more to produce). <strong>Leave blank or enter 0 for standard sizes with no extra charge.</strong>
@@ -137,7 +133,6 @@
               💡 <strong>Example:</strong> If retail price is ₱500 and XL has +₱50, customer pays ₱550 for XL size.
             </small>
           </div>
-        </div>
       </div>
 
       <div style="margin-top: 20px;">
@@ -223,7 +218,7 @@
             <img [src]="frontPreview" 
                  style="max-width: 200px; max-height: 200px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: block; margin-bottom: 10px;">
             <button type="button" class="btn btn-warning btn-sm" (click)="cancelFrontImage()">
-              ✖️ Cancel New Upload
+              🔄 Choose again
             </button>
             <div *ngIf="errors?.images_front" class="invalid-feedback" style="display:block; margin-top: 8px;">{{ errors.images_front }}</div>
           </div>
@@ -271,7 +266,7 @@
             <img [src]="backPreview" 
                  style="max-width: 200px; max-height: 200px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: block; margin-bottom: 10px;">
             <button type="button" class="btn btn-warning btn-sm" (click)="cancelBackImage()">
-              ✖️ Cancel New Upload
+              🔄 Choose again
             </button>
             <div *ngIf="errors?.images_back" class="invalid-feedback" style="display:block; margin-top: 8px;">{{ errors.images_back }}</div>
           </div>
@@ -394,7 +389,10 @@
       <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 32px; margin-top: 20px;">
         <!-- Left Side: Search Colors -->
         <div>
-          <label style="font-weight: 600; margin-bottom: 12px; display: block; font-size: 15px;">Search colors</label>
+          <label style="font-weight: 600; margin-bottom: 4px; display: block; font-size: 15px;">Search colors</label>
+          <p *ngIf="form.availableColors.length === 0" style="margin: 0 0 12px 0; color: #6c757d; font-size: 13px; font-style: italic;">
+            ℹ️ You can only add 1 color per product.
+          </p>
           <div style="display: flex; gap: 8px; margin-bottom: 20px;">
             <input 
               type="text" 
@@ -432,7 +430,10 @@
 
         <!-- Right Side: Upload Variants -->
         <div>
-          <label style="font-weight: 600; margin-bottom: 12px; display: block; font-size: 15px;">Upload sample variant image (Optional)</label>
+          <label style="font-weight: 600; margin-bottom: 4px; display: block; font-size: 15px;">Upload sample variant image (Optional)</label>
+          <p *ngIf="variants.length === 0" style="margin: 0 0 12px 0; color: #6c757d; font-size: 13px; font-style: italic;">
+            ℹ️ You can only add 1 variant per product.
+          </p>
           
           <!-- Single Row: File Upload + Variant Name + Add Button -->
           <div style="display: flex; gap: 8px; margin-bottom: 20px; align-items: center;">
@@ -482,7 +483,7 @@
                 <button type="button" (click)="removeVariant(getVariantIndex(variant))" 
                         class="btn btn-danger btn-sm" 
                         style="width: 100%; font-size: 12px; padding: 6px;">
-                  🗑️ Remove
+                  � Choose again
                 </button>
               </div>
             </div>
@@ -509,7 +510,7 @@
                 <button type="button" (click)="removeVariant(getVariantIndex(variant))" 
                         class="btn btn-warning btn-sm" 
                         style="width: 100%; font-size: 12px; padding: 6px;">
-                  ✖️ Remove
+                  🔄 Choose again
                 </button>
               </div>
             </div>

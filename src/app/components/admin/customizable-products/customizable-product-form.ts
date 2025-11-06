@@ -451,16 +451,30 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
 
   // Cancel new front image upload (revert to existing)
   cancelFrontImage() {
-    this.form.frontImageFile = null;
-    this.frontPreview = '';
-    // If there was an old image, it will show again
+    const hasExistingImage = !!this.form.frontImageUrl;
+    const message = hasExistingImage 
+      ? 'Are you sure you want to choose a different front image? This will discard your current selection.'
+      : 'Are you sure you want to choose a different front image? Your current upload will be discarded.';
+    
+    if (confirm(message)) {
+      this.form.frontImageFile = null;
+      this.frontPreview = '';
+      // If there was an old image, it will show again
+    }
   }
 
   // Cancel new back image upload (revert to existing)
   cancelBackImage() {
-    this.form.backImageFile = null;
-    this.backPreview = '';
-    // If there was an old image, it will show again
+    const hasExistingImage = !!this.form.backImageUrl;
+    const message = hasExistingImage 
+      ? 'Are you sure you want to choose a different back image? This will discard your current selection.'
+      : 'Are you sure you want to choose a different back image? Your current upload will be discarded.';
+    
+    if (confirm(message)) {
+      this.form.backImageFile = null;
+      this.backPreview = '';
+      // If there was an old image, it will show again
+    }
   }
 
   // Remove existing additional image (marks for deletion on save)
@@ -576,6 +590,12 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
       colorName = query.charAt(0).toUpperCase() + query.slice(1);
     }
 
+    // Check if already have 1 color (limit to 1 only)
+    if (this.form.availableColors.length >= 1) {
+      this.setMessage('Only 1 color allowed. Remove the existing color first.', 'error');
+      return;
+    }
+
     // Check if color already exists
     const exists = this.form.availableColors.some(c => c.hex === hexCode);
     if (exists) {
@@ -676,6 +696,12 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
       return;
     }
 
+    // Check if already have 1 variant (limit to 1 only)
+    if (this.variants.length >= 1) {
+      this.setMessage('Only 1 variant allowed. Remove the existing variant first.', 'error');
+      return;
+    }
+
     const variant: TextureVariant = {
       name,
       imageUrl: this.variantImagePreview || undefined,
@@ -696,8 +722,13 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
 
   removeVariant(index: number): void {
     const variant = this.variants[index];
+    const hasExistingVariant = !!variant.imageUrl;
     
-    if (!confirm(`🗑️ Remove variant "${variant.name}"?\n\nThis will be removed when you save the form.`)) {
+    const message = hasExistingVariant
+      ? `Are you sure you want to choose a different variant? This will replace "${variant.name}".`
+      : `Are you sure you want to choose a different variant? Your current selection "${variant.name}" will be discarded.`;
+    
+    if (!confirm(message)) {
       return;
     }
     
@@ -999,8 +1030,8 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
 
       // Prepare data for API
       const productData = {
-        name: this.form.category, // Use category as product name (e.g., "T-Shirt", "Hoodie")
-        category: this.form.category,
+        name: this.form.name, // Product name from separate input field
+        category: this.form.category, // Product category from dropdown
         gender: this.form.gender,
         fit_type: this.form.fitType,
         description: this.form.description,

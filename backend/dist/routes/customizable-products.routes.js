@@ -10,7 +10,7 @@ router.post('/', async (req, res) => {
     let connection;
     try {
         connection = await database_1.pool.getConnection();
-        const { name, category, gender, fit_type, description, images, fabric_composition, fabric_weight, texture, available_sizes, fit_description, size_pricing, available_colors, variants, print_method, print_areas, design_requirements, base_cost, retail_price, is_active, turnaround_time, minimum_order_qty } = req.body;
+        const { name, category, gender, fit_type, description, images, fabric_composition, fabric_weight, texture, available_sizes, fit_description, size_pricing, color_name, color_hex, variant_name, variant_image_url, variant_image_public_id, print_method, print_areas, design_requirements, base_cost, retail_price, is_active, turnaround_time, minimum_order_qty } = req.body;
         console.log('📥 POST /customizable-products:', { name, category, images: images?.length });
         const errors = {};
         if (!name)
@@ -45,11 +45,12 @@ router.post('/', async (req, res) => {
         product_code, name, category, gender, fit_type, description,
         fabric_composition, fabric_weight, texture,
         available_sizes, fit_description, size_pricing,
-        available_colors,
+        color_name, color_hex,
+        variant_name, variant_image_url, variant_image_public_id,
         print_method, print_areas, design_requirements,
         base_cost, retail_price, is_active,
         turnaround_time, minimum_order_qty
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
         const productValues = [
             product_code, name, category,
@@ -57,7 +58,8 @@ router.post('/', async (req, res) => {
             fabric_composition || null, fabric_weight || null, texture || null,
             JSON.stringify(available_sizes || []),
             fit_description || null, JSON.stringify(size_pricing || {}),
-            JSON.stringify(available_colors || []),
+            color_name || null, color_hex || null,
+            variant_name || null, variant_image_url || null, variant_image_public_id || null,
             print_method || 'DTG', JSON.stringify(print_areas || []),
             design_requirements || null,
             base_cost || 0, retail_price || 0,
@@ -79,18 +81,6 @@ router.post('/', async (req, res) => {
             ]);
         }
         console.log(`✅ Inserted ${images.length} images`);
-        if (variants && variants.length > 0) {
-            const variantQuery = `
-        INSERT INTO texture_variants (product_id, name, image_url)
-        VALUES (?, ?, ?)
-      `;
-            for (const variant of variants) {
-                await connection.execute(variantQuery, [
-                    productId, variant.name, variant.image_url || null
-                ]);
-            }
-            console.log(`✅ Inserted ${variants.length} variants`);
-        }
         await connection.commit();
         connection.release();
         res.status(201).json({
@@ -165,7 +155,11 @@ router.get('/', async (req, res) => {
                 available_sizes: row.available_sizes,
                 fit_description: row.fit_description,
                 size_pricing: row.size_pricing,
-                available_colors: row.available_colors,
+                color_name: row.color_name,
+                color_hex: row.color_hex,
+                variant_name: row.variant_name,
+                variant_image_url: row.variant_image_url,
+                variant_image_public_id: row.variant_image_public_id,
                 print_method: row.print_method,
                 print_areas: row.print_areas,
                 design_requirements: row.design_requirements,
@@ -236,7 +230,6 @@ router.get('/:id', async (req, res) => {
                 images = [];
             }
         }
-        const [variants] = await connection.execute('SELECT * FROM texture_variants WHERE product_id = ?', [id]);
         connection.release();
         const product = {
             id: row.id,
@@ -253,7 +246,11 @@ router.get('/:id', async (req, res) => {
             available_sizes: row.available_sizes,
             fit_description: row.fit_description,
             size_pricing: row.size_pricing,
-            available_colors: row.available_colors,
+            color_name: row.color_name,
+            color_hex: row.color_hex,
+            variant_name: row.variant_name,
+            variant_image_url: row.variant_image_url,
+            variant_image_public_id: row.variant_image_public_id,
             print_method: row.print_method,
             print_areas: row.print_areas,
             design_requirements: row.design_requirements,
@@ -263,8 +260,7 @@ router.get('/:id', async (req, res) => {
             minimum_order_qty: row.minimum_order_qty,
             created_at: row.created_at,
             updated_at: row.updated_at,
-            images: images,
-            variants: variants
+            images: images
         };
         res.json({
             success: true,
@@ -287,7 +283,7 @@ router.put('/:id', async (req, res) => {
     try {
         const { id } = req.params;
         connection = await database_1.pool.getConnection();
-        const { name, category, gender, fit_type, description, images, fabric_composition, fabric_weight, texture, available_sizes, fit_description, size_pricing, available_colors, variants, print_method, print_areas, design_requirements, base_cost, retail_price, is_active, turnaround_time, minimum_order_qty } = req.body;
+        const { name, category, gender, fit_type, description, images, fabric_composition, fabric_weight, texture, available_sizes, fit_description, size_pricing, color_name, color_hex, variant_name, variant_image_url, variant_image_public_id, print_method, print_areas, design_requirements, base_cost, retail_price, is_active, turnaround_time, minimum_order_qty } = req.body;
         console.log('📝 PUT /customizable-products/:id', id);
         const errors = {};
         if (!name)
@@ -319,7 +315,9 @@ router.put('/:id', async (req, res) => {
         name = ?, category = ?, gender = ?, fit_type = ?, description = ?,
         fabric_composition = ?, fabric_weight = ?, texture = ?,
         available_sizes = ?, fit_description = ?, size_pricing = ?,
-        available_colors = ?, print_method = ?, print_areas = ?, design_requirements = ?,
+        color_name = ?, color_hex = ?,
+        variant_name = ?, variant_image_url = ?, variant_image_public_id = ?,
+        print_method = ?, print_areas = ?, design_requirements = ?,
         base_cost = ?, retail_price = ?, is_active = ?,
         turnaround_time = ?, minimum_order_qty = ?
       WHERE id = ?
@@ -329,7 +327,9 @@ router.put('/:id', async (req, res) => {
             fabric_composition, fabric_weight, texture,
             JSON.stringify(available_sizes || []),
             fit_description, JSON.stringify(size_pricing || {}),
-            JSON.stringify(available_colors || []), print_method,
+            color_name || null, color_hex || null,
+            variant_name || null, variant_image_url || null, variant_image_public_id || null,
+            print_method,
             JSON.stringify(print_areas || []), design_requirements,
             base_cost, retail_price,
             is_active !== undefined ? (is_active ? 1 : 0) : 1,
@@ -347,20 +347,6 @@ router.put('/:id', async (req, res) => {
                     await connection.execute(imageQuery, [
                         id, img.url, img.publicId || null,
                         img.imageType, img.displayOrder || 1
-                    ]);
-                }
-            }
-        }
-        if (variants && Array.isArray(variants)) {
-            await connection.execute('DELETE FROM texture_variants WHERE product_id = ?', [id]);
-            if (variants.length > 0) {
-                const variantQuery = `
-          INSERT INTO texture_variants (product_id, name, image_url)
-          VALUES (?, ?, ?)
-        `;
-                for (const variant of variants) {
-                    await connection.execute(variantQuery, [
-                        id, variant.name, variant.image_url || null
                     ]);
                 }
             }
