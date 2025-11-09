@@ -49,8 +49,8 @@ API_BASE_URL=http://localhost:3001/api
 JWT_SECRET=rfm_custom_apparel_super_secret_key_2025
 
 # PayMongo
-PAYMONGO_TEST_PUBLIC_KEY=pk_test_audkMFM3pnGwLBbGz6HpQHfD
-PAYMONGO_TEST_SECRET_KEY=sk_test_Z8qnVvJSzPkawgA4BLhGbhLj
+PAYMONGO_TEST_PUBLIC_KEY=placeholder
+PAYMONGO_TEST_SECRET_KEY=placeholder
 PAYMENT_MODE=test
 
 # Cloudinary
