@@ -36,6 +36,7 @@
     "@types/fabric": "^5.3.10",
     "body-parser": "^2.2.0",
     "bootstrap": "^5.3.8",
+    "bootstrap-icons": "^1.13.1",
     "cloudinary-angular": "^1.0.1",
     "cloudinary-core": "^2.14.0",
     "cors": "^2.8.5",

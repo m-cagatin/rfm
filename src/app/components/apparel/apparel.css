@@ -1,3 +1,227 @@
+/* ============================================
+   CAROUSEL STYLES - Product Catalog
+   ============================================ */
+
+/* Carousel Wrapper */
+.carousel-wrapper {
+  position: relative;
+  padding: 60px 80px;
+  max-width: 1260px; /* 90% of 1400px */
+  margin: 0 auto;
+  transform: scale(0.9);
+  transform-origin: center top;
+}
+
+/* Carousel Container */
+.carousel-container {
+  display: flex;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  gap: 24px;
+  padding: 20px 0;
+  
+  /* Hide scrollbar but keep functionality */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.carousel-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* Carousel Cards */
+.carousel-card {
+  flex: 0 0 calc(33.333% - 16px); /* 3 cards visible */
+  min-width: 288px; /* 90% of 320px */
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.carousel-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* Product Image Area - Square (1:1 aspect ratio) */
+.carousel-card-image {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Placeholder Colors for Each Product */
+.placeholder-1 {
+  background: linear-gradient(135deg, #B5C4A6 0%, #9DAE88 100%);
+}
+
+.placeholder-2 {
+  background: linear-gradient(135deg, #F4C2C2 0%, #E8A7A7 100%);
+}
+
+.placeholder-3 {
+  background: linear-gradient(135deg, #A8C5DD 0%, #8FACC7 100%);
+}
+
+.placeholder-4 {
+  background: linear-gradient(135deg, #E8D5B7 0%, #D4BFA0 100%);
+}
+
+.placeholder-5 {
+  background: linear-gradient(135deg, #C5B8D9 0%, #B0A3C4 100%);
+}
+
+.placeholder-6 {
+  background: linear-gradient(135deg, #FFE4B5 0%, #FFDAA0 100%);
+}
+
+/* Product Info Area */
+.carousel-card-info {
+  padding: 24px 20px;
+  text-align: left;
+  background: white;
+}
+
+.product-category {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 8px 0;
+  letter-spacing: 0.3px;
+}
+
+.product-price {
+  font-size: 20px;
+  font-weight: 600;
+  color: #9DAE88;
+  margin: 0;
+}
+
+/* Navigation Arrows */
+.carousel-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 50px;
+  height: 50px;
+  background: rgba(255, 255, 255, 0.95);
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.carousel-arrow:hover:not(.disabled) {
+  background: white;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.carousel-arrow-left {
+  left: 20px;
+}
+
+.carousel-arrow-right {
+  right: 20px;
+}
+
+.carousel-arrow i {
+  font-size: 24px;
+  color: #333;
+  font-weight: bold;
+}
+
+.carousel-arrow.disabled,
+.carousel-arrow:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+/* Tablet - 2 cards visible */
+@media (max-width: 992px) {
+  .carousel-card {
+    flex: 0 0 calc(50% - 12px);
+    min-width: 280px;
+  }
+  
+  .carousel-wrapper {
+    padding: 50px 60px;
+  }
+  
+  .carousel-arrow {
+    width: 45px;
+    height: 45px;
+  }
+  
+  .carousel-arrow i {
+    font-size: 22px;
+  }
+}
+
+/* Mobile - 1 card visible with peek */
+@media (max-width: 768px) {
+  .carousel-card {
+    flex: 0 0 calc(85% - 12px);
+    min-width: 260px;
+  }
+  
+  .carousel-wrapper {
+    padding: 40px 40px;
+  }
+  
+  .carousel-arrow {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .carousel-arrow i {
+    font-size: 20px;
+  }
+  
+  .carousel-arrow-left {
+    left: 10px;
+  }
+  
+  .carousel-arrow-right {
+    right: 10px;
+  }
+}
+
+@media (max-width: 576px) {
+  .carousel-wrapper {
+    padding: 30px 20px;
+  }
+  
+  .product-category {
+    font-size: 16px;
+  }
+  
+  .product-price {
+    font-size: 18px;
+  }
+}
+
+/* ============================================
+   OLD STYLES (Kept for compatibility)
+   ============================================ */
+
 /* Apparel Component Styles */
 
 /* Product Image Hover Effect */

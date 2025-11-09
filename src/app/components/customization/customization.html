@@ -247,10 +247,9 @@
       </div>
 
       <div class="top-bar-right">
-        <button class="btn-save" (click)="saveProduct()">Save Product</button>
         <button class="btn-edit">Edit</button>
         <button class="btn-preview">Preview</button>
-        <button class="tools-btn" (click)="toggleToolsPanel()">
+        <button class="tools-btn">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"/>
             <path d="M12 1v6m0 6v6M5.6 5.6l4.2 4.2m4.2 4.2l4.2 4.2M1 12h6m6 0h6M5.6 18.4l4.2-4.2m4.2-4.2l4.2-4.2"/>
@@ -259,176 +258,67 @@
       </div>
     </div>
 
-    <!-- Tools Panel (outside canvas-area to avoid zoom) -->
-    <div class="tools-panel" *ngIf="showToolsPanel()">
-      <div class="panel-header">
-        <span class="panel-title">Variants and tools</span>
-        <button class="panel-close" (click)="closeToolsPanel()">✕</button>
-      </div>
-      <div class="panel-content">
-        
-        <!-- Product Type Selection -->
-        <div class="tools-section">
-          <h3>Product Type</h3>
-          <select class="variant-select" [(ngModel)]="selectedProductType" (change)="onProductTypeChange()">
-            <option value="tshirt">T-Shirt</option>
-            <option value="jogging-pants">Jogging Pants</option>
-            <option value="polo-shirt">Polo Shirt</option>
-            <option value="sando">Sando (Jersey)</option>
-            <option value="shorts">Shorts</option>
-            <option value="warmers">Warmers</option>
-            <option value="varsity-jacket">Varsity Jacket</option>
-          </select>
-        </div>
-
-        <!-- Neckline Selection (for T-Shirt and Sando) -->
-        <div class="tools-section" *ngIf="showNecklineOptions()">
-          <h3>Neckline</h3>
-          <select class="variant-select" [(ngModel)]="selectedNeckline">
-            <option *ngFor="let neckline of getNecklineOptions()" [value]="neckline">
-              {{ neckline }}
-            </option>
-          </select>
-        </div>
-
-        <!-- Sando Special Options -->
-        <div class="tools-section" *ngIf="selectedProductType() === 'sando'">
-          <h3>Style</h3>
-          <div class="checkbox-group">
-            <label class="checkbox-label">
-              <input type="checkbox" [(ngModel)]="isNBACut">
-              NBA Cut
-            </label>
-          </div>
-        </div>
-
-        <!-- Size Selection -->
-        <div class="tools-section">
-          <h3>Size Category</h3>
-          <div class="size-category-tabs">
-            <button 
-              class="size-tab" 
-              [class.active]="selectedSizeCategory() === 'regular'"
-              (click)="selectSizeCategory('regular')">
-              Regular
-            </button>
-            <button 
-              class="size-tab" 
-              [class.active]="selectedSizeCategory() === 'kids'"
-              (click)="selectSizeCategory('kids')">
-              Kids
-            </button>
-            <button 
-              class="size-tab" 
-              [class.active]="selectedSizeCategory() === 'custom'"
-              (click)="selectSizeCategory('custom')">
-              Custom
-            </button>
-          </div>
-        </div>
-
-        <!-- Regular Sizes -->
-        <div class="tools-section" *ngIf="selectedSizeCategory() === 'regular'">
-          <h3>Size</h3>
-          <div class="size-grid">
-            <button 
-              *ngFor="let size of regularSizes" 
-              class="size-btn"
-              [class.selected]="selectedSize() === size.value"
-              (click)="selectSize(size.value, size.priceAdd)">
-              {{ size.label }}
-              <span class="size-price" *ngIf="size.priceAdd > 0">+₱{{ size.priceAdd }}</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Kids Sizes -->
-        <div class="tools-section" *ngIf="selectedSizeCategory() === 'kids'">
-          <h3>Kids Size</h3>
-          <div class="size-grid">
-            <button 
-              *ngFor="let size of kidsSizes" 
-              class="size-btn"
-              [class.selected]="selectedSize() === size"
-              (click)="selectSize(size, 0)">
-              {{ size }}
-            </button>
-          </div>
-        </div>
-
-        <!-- Custom Size -->
-        <div class="tools-section" *ngIf="selectedSizeCategory() === 'custom'">
-          <h3>Custom Size</h3>
-          <p class="custom-size-note">Enter custom measurements for plus size or super small</p>
-          <div class="custom-size-inputs">
-            <div class="input-group">
-              <label>Chest (inches)</label>
-              <input type="number" class="size-input" [(ngModel)]="customChest" placeholder="e.g., 42">
-            </div>
-            <div class="input-group">
-              <label>Length (inches)</label>
-              <input type="number" class="size-input" [(ngModel)]="customLength" placeholder="e.g., 28">
-            </div>
-            <div class="input-group" *ngIf="selectedProductType() !== 'tshirt' && selectedProductType() !== 'polo-shirt'">
-              <label>Waist (inches)</label>
-              <input type="number" class="size-input" [(ngModel)]="customWaist" placeholder="e.g., 32">
-            </div>
-          </div>
-        </div>
-
-        <!-- Color Selection -->
-        <div class="tools-section">
-          <h3>Color</h3>
-          <div class="color-grid">
-            <button 
-              *ngFor="let color of colors" 
-              class="color-btn"
-              [class.selected]="selectedColor() === color.value"
-              [style.background-color]="color.value"
-              (click)="selectColor(color.value)"
-              [title]="color.name">
-            </button>
-          </div>
-        </div>
-
-        <!-- Price Display -->
-        <div class="tools-section price-section">
-          <div class="price-row">
-            <span class="price-label">Base Price:</span>
-            <span class="price-value">₱{{ basePrice() }}</span>
-          </div>
-          <div class="price-row" *ngIf="sizePriceAdd() > 0">
-            <span class="price-label">Size Add-on:</span>
-            <span class="price-value">₱{{ sizePriceAdd() }}</span>
-          </div>
-          <div class="price-row total-price">
-            <span class="price-label">Total Price:</span>
-            <span class="price-value">₱{{ getTotalPrice() }}</span>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
     <!-- Product Info Panel (outside canvas-area to avoid zoom) -->
     <div class="product-info-panel" [style.display]="isPanelVisible() ? 'flex' : 'none'">
       <div class="panel-header">
-        <span class="panel-title">Important product information</span>
+        <span class="panel-title">Product Information</span>
         <button class="panel-close" (click)="closePanel()">✕</button>
       </div>
       
       <!-- Scrollable content wrapper -->
       <div class="panel-scroll-content">
         <div class="panel-content">
-          <div class="product-preview">
-            <img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=500&fit=crop" alt="T-shirt">
+          <!-- Product Placeholders -->
+          <div class="product-placeholders">
+            <span class="placeholder-text">|Product Name|</span>
+            <span class="placeholder-text">|Product category|</span>
           </div>
-          <div class="product-name">Unisex Softstyle T-Shirt</div>
-          <div class="product-meta">
-            Gildan - 64000<br>
-            Fulfilled by Printify Choice<br>
-            3 of 427 out of stock<br>
-            <span class="product-link">See details</span>
+
+          <!-- Product Image Placeholder -->
+          <div class="product-image-section">
+            <div class="product-image-placeholder">
+              |Product Image|
+            </div>
+            <div class="product-stock-label">Product In-stock</div>
+          </div>
+        </div>
+
+        <!-- Production Cost Section (Collapsible) -->
+        <div class="collapsible-section production-cost-section">
+          <div class="section-header" (click)="toggleProductionCost()">
+            <h4>Production Cost: PHP {{ totalProductionCost().toFixed(2) }}</h4>
+            <svg 
+              class="chevron-icon" 
+              [class.expanded]="isProductionCostExpanded()"
+              width="20" 
+              height="20" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+          
+          <div class="section-content" [class.expanded]="isProductionCostExpanded()">
+            <div class="cost-breakdown">
+              <div class="cost-item">
+                <span class="cost-label">- Blank product</span>
+                <span class="cost-value">PHP {{ blankProductCost().toFixed(2) }}</span>
+              </div>
+              <div class="cost-item">
+                <span class="cost-label">- Extra Sized cost</span>
+                <span class="cost-value">PHP {{ extraSizedCost().toFixed(2) }}</span>
+              </div>
+              <div class="cost-item">
+                <span class="cost-label">- Print Front side</span>
+                <span class="cost-value">PHP {{ printFrontCost().toFixed(2) }}</span>
+              </div>
+              <div class="cost-item">
+                <span class="cost-label">- Print Back side</span>
+                <span class="cost-value">PHP {{ printBackCost().toFixed(2) }}</span>
+              </div>
+            </div>
           </div>
         </div>
         
@@ -449,70 +339,80 @@
               <span class="dimension-value">{{ canvasWidth() }} × {{ canvasHeight() }} px</span>
             </div>
             
-            <!-- Preset Sizes -->
-            <div class="preset-section">
-              <h4>Recommended Sizes</h4>
-              <div class="preset-grid">
-                <button 
-                  *ngFor="let preset of printAreaPresets"
-                  class="preset-btn"
-                  [class.active]="printAreaMode() === 'preset' && selectedPreset() === preset.id"
-                  (click)="selectPrintAreaPreset(preset.id)">
-                  <span class="preset-label">{{ preset.label }}</span>
-                  <span class="preset-desc">{{ preset.description }}</span>
-                </button>
-              </div>
-            </div>
-            
-            <!-- Custom Size Option -->
-            <div class="custom-section">
-              <button 
-                class="custom-toggle-btn"
-                [class.active]="printAreaMode() === 'custom'"
-                (click)="enableCustomPrintArea()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M12 5v14M5 12h14"/>
+            <!-- Collapsible Recommended Sizes Section -->
+            <div class="collapsible-section">
+              <div class="section-header" (click)="toggleRecommendedSizes()">
+                <h4>Recommended Sizes</h4>
+                <svg 
+                  class="chevron-icon" 
+                  [class.expanded]="isRecommendedSizesExpanded()"
+                  width="20" 
+                  height="20" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  stroke-width="2">
+                  <polyline points="6 9 12 15 18 9"></polyline>
                 </svg>
-                Custom Size
-              </button>
+              </div>
               
-              <!-- Custom Input Fields (only shown when custom mode active) -->
-              <div class="custom-inputs" *ngIf="printAreaMode() === 'custom'">
-                <div class="input-row">
-                  <label>Width (px)</label>
-                  <input 
-                    type="number" 
-                    class="dimension-input"
-                    [value]="canvasWidth()"
-                    (input)="updateCanvasWidth(+$any($event.target).value)"
-                    min="200"
-                    max="800"
-                    placeholder="400">
+              <div class="section-content" [class.expanded]="isRecommendedSizesExpanded()">
+                <!-- Preset Sizes -->
+                <div class="preset-section">
+                  <div class="preset-grid">
+                    <button 
+                      *ngFor="let preset of printAreaPresets"
+                      class="preset-btn"
+                      [class.active]="printAreaMode() === 'preset' && selectedPreset() === preset.id"
+                      (click)="selectPrintAreaPreset(preset.id)">
+                      <span class="preset-label">{{ preset.label }}</span>
+                      <span class="preset-desc">{{ preset.description }}</span>
+                    </button>
+                  </div>
                 </div>
-                <div class="input-row">
-                  <label>Height (px)</label>
-                  <input 
-                    type="number" 
-                    class="dimension-input"
-                    [value]="canvasHeight()"
-                    (input)="updateCanvasHeight(+$any($event.target).value)"
-                    min="200"
-                    max="800"
-                    placeholder="500">
+                
+                <!-- Custom Size Option -->
+                <div class="custom-section">
+                  <button 
+                    class="custom-toggle-btn"
+                    [class.active]="printAreaMode() === 'custom'"
+                    (click)="enableCustomPrintArea()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 5v14M5 12h14"/>
+                    </svg>
+                    Custom Size
+                  </button>
+                  
+                  <!-- Custom Input Fields (only shown when custom mode active) -->
+                  <div class="custom-inputs" *ngIf="printAreaMode() === 'custom'">
+                    <div class="input-row">
+                      <label>Width (px)</label>
+                      <input 
+                        type="number" 
+                        class="dimension-input"
+                        [value]="canvasWidth()"
+                        (input)="updateCanvasWidth(+$any($event.target).value)"
+                        min="200"
+                        max="800"
+                        placeholder="400">
+                    </div>
+                    <div class="input-row">
+                      <label>Height (px)</label>
+                      <input 
+                        type="number" 
+                        class="dimension-input"
+                        [value]="canvasHeight()"
+                        (input)="updateCanvasHeight(+$any($event.target).value)"
+                        min="200"
+                        max="800"
+                        placeholder="500">
+                    </div>
+                    <p class="help-text">💡 Or drag the resize handles on the print area</p>
+                  </div>
                 </div>
-                <p class="help-text">💡 Or drag the resize handles on the print area</p>
               </div>
             </div>
           </div>
-        </div>
-        
-        <div class="expandable-section">
-          <span>Production cost: USD 9.88–15.02</span>
-          <span>⌄</span>
-        </div>
-        <div class="checkbox-container">
-          <input type="checkbox" id="hideInfo">
-          <label for="hideInfo">Hide this info in the future.</label>
         </div>
       </div>
     </div>
@@ -552,28 +452,11 @@
            (mouseleave)="endPan()"></div>
     </div>
 
-    <!-- Bottom Controls (outside canvas-area to avoid zoom) -->
-    <div class="bottom-controls">
-      <button 
-        class="view-btn" 
-        [class.inactive]="activeView() !== 0"
-        [class.has-content]="viewHasContent(0)"
-        (click)="selectView(0)">
-        Front side
-        <span class="content-dot" *ngIf="viewHasContent(0) && activeView() !== 0"></span>
-      </button>
-      <button 
-        class="view-btn" 
-        [class.inactive]="activeView() !== 1"
-        [class.has-content]="viewHasContent(1)"
-        (click)="selectView(1)">
-        Back side
-        <span class="content-dot" *ngIf="viewHasContent(1) && activeView() !== 1"></span>
-      </button>
-    </div>
-
-    <!-- Compact Collapsible Zoom Controls -->
-    <div class="zoom-controls-compact">
+    <!-- Unified Bottom Bar -->
+    <div class="bottom-bar">
+      <!-- Left Section: Zoom Controls -->
+      <div class="bottom-bar-left">
+        <div class="zoom-controls-compact">
       <!-- Preset Buttons (Collapsible) -->
       <div class="zoom-presets-compact" *ngIf="isZoomExpanded()">
         <button 
@@ -640,6 +523,33 @@
             <path d="M21 3v5h-5"/>
           </svg>
         </button>
+      </div>
+    </div>
+      </div>
+
+      <!-- Center Section: View Buttons -->
+      <div class="bottom-bar-center">
+        <button 
+          class="view-btn" 
+          [class.inactive]="activeView() !== 0"
+          [class.has-content]="viewHasContent(0)"
+          (click)="selectView(0)">
+          Front side
+          <span class="content-dot" *ngIf="viewHasContent(0) && activeView() !== 0"></span>
+        </button>
+        <button 
+          class="view-btn" 
+          [class.inactive]="activeView() !== 1"
+          [class.has-content]="viewHasContent(1)"
+          (click)="selectView(1)">
+          Back side
+          <span class="content-dot" *ngIf="viewHasContent(1) && activeView() !== 1"></span>
+        </button>
+      </div>
+
+      <!-- Right Section: Save Button -->
+      <div class="bottom-bar-right">
+        <button class="btn-save" (click)="saveProduct()">Save Product</button>
       </div>
     </div>
   </div>
