@@ -1,0 +1,43 @@
+.dashboard-container {
+  padding: 24px;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+
+.dashboard-header {
+  margin-bottom: 32px;
+}
+
+.dashboard-header h2 {
+  font-size: 28px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 8px 0;
+}
+
+.dashboard-header p {
+  font-size: 16px;
+  color: #7f8c8d;
+  margin: 0;
+}
+
+.dashboard-content {
+  background-color: white;
+  border-radius: 8px;
+  padding: 40px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.placeholder-message h3 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #34495e;
+  margin: 0 0 16px 0;
+}
+
+.placeholder-message p {
+  font-size: 16px;
+  color: #7f8c8d;
+  margin: 0;
+}

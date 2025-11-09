@@ -1,0 +1,234 @@
+================================================================================
+              RFM APPAREL SYSTEM - HOW TO START & STOP GUIDE
+================================================================================
+
+PROJECT LOCATION: C:\xampp\htdocs\rfm
+
+================================================================================
+                         HOW TO START THE SYSTEM
+================================================================================
+
+STEP 1: START BACKEND (Node.js API)
+------------------------------------
+1. Open PowerShell or Command Prompt
+2. Navigate to backend folder:
+   
+   cd C:\xampp\htdocs\rfm\backend
+
+3. Start the backend server:
+   
+   npm run dev
+
+✅ Backend will run on: http://localhost:3001
+✅ You should see: "🚀 RFM Backend API server listening on http://localhost:3001"
+
+
+STEP 2: START FRONTEND (Angular)
+---------------------------------
+1. Open a NEW PowerShell or Command Prompt window (keep backend running)
+2. Navigate to project root:
+   
+   cd C:\xampp\htdocs\rfm
+
+3. Start the frontend:
+   
+   npm start
+
+✅ Frontend will run on: http://localhost:4200
+✅ Browser will automatically open at http://localhost:4200
+
+
+STEP 3: VERIFY SYSTEM IS RUNNING
+---------------------------------
+1. Backend Health Check: http://localhost:3001/api/health
+2. Frontend: http://localhost:4200
+3. Admin Login: http://localhost:4200/login
+   - Email: admin@rfm.com
+   - Password: admin123
+
+
+================================================================================
+                         HOW TO STOP THE SYSTEM
+================================================================================
+
+METHOD 1: STOP INDIVIDUAL TERMINALS
+------------------------------------
+In each terminal window:
+1. Press: Ctrl + C
+2. If asked "Terminate batch job (Y/N)?", type: Y
+3. Press: Enter
+
+
+METHOD 2: KILL ALL NODE PROCESSES (QUICK STOP)
+-----------------------------------------------
+Open PowerShell and run:
+
+Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force
+
+This will stop both frontend and backend immediately.
+
+
+================================================================================
+                         QUICK REFERENCE COMMANDS
+================================================================================
+
+ACTION                  | COMMAND                     | DIRECTORY
+------------------------|-----------------------------|-----------------
+Start Backend           | npm run dev                 | backend/
+Start Frontend          | npm start                   | (root)
+Stop (in terminal)      | Ctrl + C                    | (any)
+Kill All Node           | Get-Process -Name node | Stop-Process -Force
+Check Backend Health    | Open: http://localhost:3001/api/health
+Check Frontend          | Open: http://localhost:4200
+
+
+================================================================================
+                         TROUBLESHOOTING
+================================================================================
+
+PROBLEM: "Port already in use" or "EADDRINUSE"
+SOLUTION: Kill all Node processes and restart:
+   Get-Process -Name node | Stop-Process -Force
+   Then start backend and frontend again
+
+
+PROBLEM: Backend not connecting to database
+SOLUTION: 
+   - Check if using Aiven cloud database
+   - Verify .env file in backend folder has correct credentials
+   - Database: rfmdb-euniquecorn.d.aivencloud.com:28152
+
+
+PROBLEM: Frontend shows "Cannot GET /api/..."
+SOLUTION: Backend is not running. Start backend first!
+
+
+PROBLEM: Changes not showing up
+SOLUTION FOR BACKEND: Stop backend (Ctrl+C) and run npm run dev again
+SOLUTION FOR FRONTEND: Usually auto-reloads. If stuck, Ctrl+C and npm start
+
+
+================================================================================
+                         SYSTEM ARCHITECTURE
+================================================================================
+
+BACKEND (Node.js + Express + TypeScript)
+-----------------------------------------
+Location: C:\xampp\htdocs\rfm\backend
+Port: 3001
+Database: Aiven Cloud MySQL (rfmdb-euniquecorn.d.aivencloud.com:28152)
+
+API Endpoints:
+- POST /api/auth/register - Register customer account
+- POST /api/auth/login - Login (customer or employee)
+- POST /api/auth/logout - Logout
+- GET  /api/auth/me - Get current user profile
+- GET  /api/users - Get all employees
+- GET  /api/canvas/* - Canvas operations
+
+
+FRONTEND (Angular 20)
+---------------------
+Location: C:\xampp\htdocs\rfm
+Port: 4200
+Framework: Angular 20 with Standalone Components
+
+Key Features:
+- Customer Registration & Login
+- Employee/Admin Login (requires "admin" role)
+- Role-based Access Control
+- Admin Panel (employees only)
+- Customer Panel (apparel, cart, customization)
+- Profile Management (admin modal)
+
+
+================================================================================
+                         USER ACCOUNTS & ACCESS
+================================================================================
+
+ADMIN ACCOUNT:
+--------------
+Email: admin@rfm.com
+Password: admin123
+Role: Employee with "admin" role
+Access: Full admin panel + customer panel
+
+
+CUSTOMER ACCOUNT:
+-----------------
+Register at: http://localhost:4200/signup
+Access: Customer panel only (apparel, cart, customization)
+
+
+================================================================================
+                         IMPORTANT NOTES
+================================================================================
+
+1. ALWAYS START BACKEND BEFORE FRONTEND
+   Frontend needs the API to be running.
+
+2. KEEP BOTH TERMINALS OPEN
+   Closing the terminal will stop the server.
+
+3. DATABASE IS CLOUD-BASED (AIVEN)
+   No need to run local MySQL/XAMPP for database.
+   Database credentials are in backend/.env file.
+
+4. AUTO-RELOAD
+   Frontend: Automatically reloads on code changes
+   Backend: Needs manual restart (Ctrl+C then npm run dev)
+
+5. PROFILE ACCESS
+   Customers: No profile page (redirects to apparel)
+   Admins: Profile info in modal (admin panel dropdown)
+
+
+================================================================================
+                         DEVELOPMENT WORKFLOW
+================================================================================
+
+DAILY STARTUP:
+1. Open 2 PowerShell windows
+2. Terminal 1: cd backend → npm run dev
+3. Terminal 2: cd to root → npm start
+4. Open browser: http://localhost:4200
+
+DAILY SHUTDOWN:
+1. Press Ctrl+C in both terminals
+2. Or run: Get-Process -Name node | Stop-Process -Force
+
+
+MAKING CHANGES:
+Backend: Restart required (Ctrl+C, then npm run dev)
+Frontend: Auto-reloads (just save your file)
+
+
+TESTING:
+Backend API: Use http://localhost:3001 in Postman or browser
+Frontend: Use http://localhost:4200 in browser
+
+
+================================================================================
+                         NEED HELP?
+================================================================================
+
+Common Errors:
+- "Cannot find module": Run npm install in that directory
+- "Port in use": Kill all node processes
+- "Database connection failed": Check .env credentials
+- "404 Not Found": Backend might not be running
+
+Files to Check:
+- Backend config: backend/.env
+- Backend server: backend/src/server.ts
+- Frontend config: angular.json
+- Routes: src/app/app.routes.ts
+
+
+================================================================================
+                         END OF GUIDE
+================================================================================
+
+Last Updated: October 9, 2025
+Version: 1.0
+
