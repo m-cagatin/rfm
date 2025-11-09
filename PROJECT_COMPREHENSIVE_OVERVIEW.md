@@ -579,8 +579,8 @@ canvasService.canvasScale$.subscribe(scale => this.canvasScale.set(scale));
 
 ### PayMongo Configuration (Test Mode)
 ```
-Public Key: pk_test_audkMFM3pnGwLBbGz6HpQHfD
-Secret Key: sk_test_Z8qnVvJSzPkawgA4BLhGbhLj
+Public Key: <redacted>
+Secret Key: <redacted>
 Mode: test
 ```
 
