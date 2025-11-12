@@ -366,14 +366,15 @@
                 <!-- Preset Sizes -->
                 <div class="preset-section">
                   <div class="preset-grid">
-                    <button 
-                      *ngFor="let preset of printAreaPresets"
-                      class="preset-btn"
-                      [class.active]="printAreaMode() === 'preset' && selectedPreset() === preset.id"
-                      (click)="selectPrintAreaPreset(preset.id)">
-                      <span class="preset-label">{{ preset.label }}</span>
-                      <span class="preset-desc">{{ preset.description }}</span>
-                    </button>
+                    @for (preset of printAreaPresets; track preset.id) {
+                      <button 
+                        class="preset-btn"
+                        [class.active]="printAreaMode() === 'preset' && selectedPreset() === preset.id"
+                        (click)="selectPrintAreaPreset(preset.id)">
+                        <span class="preset-label">{{ preset.label }}</span>
+                        <span class="preset-desc">{{ preset.description }}</span>
+                      </button>
+                    }
                   </div>
                 </div>
                 
@@ -602,4 +603,10 @@
 <div class="text-dropdown" *ngIf="showPatternsPanel()" (click)="$event.stopPropagation()" [style.top.px]="activePanelPos().top" [style.left.px]="activePanelPos().left">
   <app-patterns-panel (closed)="closePatterns()" (patternSelected)="onPatternSelected($event)"></app-patterns-panel>
   <div class="text-dropdown-arrow"></div>
+</div>
+
+<!-- My Clothing Panel -->
+<div class="panel-catcher" *ngIf="showMyClothingPanel()" (click)="closeMyClothing()"></div>
+<div class="my-clothing-modal" *ngIf="showMyClothingPanel()" (click)="$event.stopPropagation()">
+  <app-my-clothing-panel (closed)="closeMyClothing()"></app-my-clothing-panel>
 </div>

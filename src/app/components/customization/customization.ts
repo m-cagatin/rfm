@@ -1,5 +1,5 @@
 import { Component, signal, computed, ViewChild, ElementRef, AfterViewInit, OnDestroy, NgZone, HostListener } from '@angular/core';
-import { CommonModule, NgIf } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { UploadPanelComponent } from './upload-panel/upload-panel';
@@ -8,13 +8,14 @@ import { LibraryPanelComponent } from './library-panel/library-panel';
 import { GraphicsPanelComponent } from './graphics-panel/graphics-panel';
 import { TemplatesPanelComponent } from './templates-panel/templates-panel';
 import { PatternsPanelComponent } from './patterns-panel/patterns-panel';
+import { MyClothingPanelComponent } from './my-clothing-panel/my-clothing-panel';
 import { CanvasService } from '../../services/canvas.service';
 import { FontLoaderService } from '../../services/font-loader.service';
 
 @Component({
   selector: 'app-customization',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgIf, UploadPanelComponent, TextPanelComponent, LibraryPanelComponent, GraphicsPanelComponent, TemplatesPanelComponent, PatternsPanelComponent],
+  imports: [CommonModule, FormsModule, UploadPanelComponent, TextPanelComponent, LibraryPanelComponent, GraphicsPanelComponent, TemplatesPanelComponent, PatternsPanelComponent, MyClothingPanelComponent],
   templateUrl: './customization.html',
   styleUrl: './customization.css'
 })
@@ -49,6 +50,7 @@ export class CustomizationComponent implements AfterViewInit, OnDestroy {
   protected showGraphicsPanel = signal(false);
   protected showTemplatesPanel = signal(false);
   protected showPatternsPanel = signal(false);
+  protected showMyClothingPanel = signal(false);
   protected activePanelPos = signal<{ top: number; left: number }>({ top: 100, left: 96 });
 
   // Product information fields
@@ -262,7 +264,12 @@ export class CustomizationComponent implements AfterViewInit, OnDestroy {
   }
 
   openMyClothing(): void {
-    console.log('My Clothing button clicked');
+    this.closeAllPanels();
+    this.showMyClothingPanel.set(true);
+  }
+
+  closeMyClothing(): void {
+    this.showMyClothingPanel.set(false);
   }
 
   closePanel(): void {
@@ -855,6 +862,7 @@ export class CustomizationComponent implements AfterViewInit, OnDestroy {
     this.showGraphicsPanel.set(false);
     this.showTemplatesPanel.set(false);
     this.showPatternsPanel.set(false);
+    this.showMyClothingPanel.set(false);
   }
 
   private calculatePanelPosition(ev: MouseEvent): void {

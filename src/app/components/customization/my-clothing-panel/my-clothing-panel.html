@@ -1,0 +1,94 @@
+<div class="my-clothing-panel">
+  <!-- Header -->
+  <div class="panel-header">
+    <h3>My Clothing</h3>
+    <button class="close-btn" (click)="onClose()">✕</button>
+  </div>
+
+  <!-- Main Content -->
+  <div class="panel-content">
+    <!-- Subheader -->
+    <div class="subheader">
+      <span class="subheader-text">Varsity Jacket Variants | <span class="available-text">Available</span></span>
+    </div>
+
+    <!-- Variants Table -->
+    <div class="variants-table-container">
+      <table class="variants-table">
+        <thead>
+          <tr>
+            <th class="col-select">Select</th>
+            <th class="col-color">Color</th>
+            <th class="col-size">Sizes</th>
+            <th class="col-price">No Print</th>
+            <th class="col-price">Front Print</th>
+            <th class="col-price">Back Print</th>
+            <th class="col-details">Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let variant of variants()">
+            <!-- Select Checkbox -->
+            <td class="col-select">
+              <input 
+                type="checkbox" 
+                [checked]="variant.selected"
+                (change)="toggleSelection(variant)"
+                class="variant-checkbox">
+            </td>
+
+            <!-- Color -->
+            <td class="col-color">
+              <div class="color-cell">
+                <span 
+                  class="color-indicator" 
+                  [style.background-color]="variant.colorHex"
+                  [class.white-color]="variant.colorHex === '#FFFFFF'">
+                </span>
+                <span class="color-name">{{ variant.color }}</span>
+              </div>
+            </td>
+
+            <!-- Sizes Dropdown -->
+            <td class="col-size">
+              <select 
+                class="size-dropdown"
+                [value]="variant.size"
+                (change)="onSizeChange(variant, $any($event.target).value)">
+                <option *ngFor="let size of availableSizes" [value]="size">
+                  {{ size }}
+                </option>
+              </select>
+            </td>
+
+            <!-- No Print Price -->
+            <td class="col-price">
+              <span class="price-value">{{ formatPrice(variant.noPrintPrice) }}</span>
+            </td>
+
+            <!-- Front Print Price -->
+            <td class="col-price">
+              <span class="price-value">{{ formatPrice(variant.frontPrintPrice) }}</span>
+            </td>
+
+            <!-- Back Print Price -->
+            <td class="col-price">
+              <span class="price-value">{{ formatPrice(variant.backPrintPrice) }}</span>
+            </td>
+
+            <!-- Details Link -->
+            <td class="col-details">
+              <a 
+                href="#" 
+                class="details-link"
+                (click)="onDetailsClick(variant); $event.preventDefault()">
+                Product details…
+              </a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
