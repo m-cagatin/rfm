@@ -112,15 +112,19 @@ router.get('/', async (req, res) => {
         const query = `
       SELECT 
         p.*,
-        GROUP_CONCAT(
-          JSON_OBJECT(
-            'image_id', i.image_id,
-            'url', i.image_url,
-            'publicId', i.cloudinary_public_id,
-            'image_type', i.image_type,
-            'displayOrder', i.display_order
-          )
-          ORDER BY i.display_order, i.image_id
+        COALESCE(
+          JSON_ARRAYAGG(
+            CASE 
+              WHEN i.image_id IS NOT NULL THEN JSON_OBJECT(
+                'imageId', i.image_id,
+                'url', i.image_url,
+                'publicId', i.cloudinary_public_id,
+                'imageType', i.image_type,
+                'displayOrder', i.display_order
+              )
+            END
+          ),
+          JSON_ARRAY()
         ) as images
       FROM customizable_products p
       LEFT JOIN customizable_product_images i ON p.id = i.product_id
@@ -130,16 +134,8 @@ router.get('/', async (req, res) => {
         const [rows] = await connection.execute(query);
         connection.release();
         const products = rows.map((row) => {
-            let images = [];
-            if (row.images) {
-                try {
-                    images = JSON.parse(`[${row.images}]`);
-                }
-                catch (error) {
-                    console.error('Error parsing images for product:', row.id);
-                    images = [];
-                }
-            }
+            const imagesData = row.images ? (typeof row.images === 'string' ? JSON.parse(row.images) : row.images) : [];
+            const images = Array.isArray(imagesData) ? imagesData.filter(Boolean) : [];
             return {
                 id: row.id,
                 product_code: row.product_code,
@@ -169,7 +165,7 @@ router.get('/', async (req, res) => {
                 minimum_order_qty: row.minimum_order_qty,
                 created_at: row.created_at,
                 updated_at: row.updated_at,
-                images: images
+                images
             };
         });
         res.json({
@@ -196,15 +192,19 @@ router.get('/:id', async (req, res) => {
         const query = `
       SELECT 
         p.*,
-        GROUP_CONCAT(
-          JSON_OBJECT(
-            'image_id', i.image_id,
-            'url', i.image_url,
-            'publicId', i.cloudinary_public_id,
-            'image_type', i.image_type,
-            'displayOrder', i.display_order
-          )
-          ORDER BY i.display_order, i.image_id
+        COALESCE(
+          JSON_ARRAYAGG(
+            CASE 
+              WHEN i.image_id IS NOT NULL THEN JSON_OBJECT(
+                'imageId', i.image_id,
+                'url', i.image_url,
+                'publicId', i.cloudinary_public_id,
+                'imageType', i.image_type,
+                'displayOrder', i.display_order
+              )
+            END
+          ),
+          JSON_ARRAY()
         ) as images
       FROM customizable_products p
       LEFT JOIN customizable_product_images i ON p.id = i.product_id
@@ -220,16 +220,8 @@ router.get('/:id', async (req, res) => {
             });
         }
         const row = rows[0];
-        let images = [];
-        if (row.images) {
-            try {
-                images = JSON.parse(`[${row.images}]`);
-            }
-            catch (error) {
-                console.error('Error parsing images');
-                images = [];
-            }
-        }
+        const imagesData = row.images ? (typeof row.images === 'string' ? JSON.parse(row.images) : row.images) : [];
+        const images = Array.isArray(imagesData) ? imagesData.filter(Boolean) : [];
         connection.release();
         const product = {
             id: row.id,

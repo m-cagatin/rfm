@@ -320,22 +320,22 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
     this.form.description = product.description || '';
     
     // Images - NEW SCHEMA: parse images array and populate form fields
-    if (product.images && Array.isArray(product.images)) {
-      const frontImg = product.images.find((img: any) => img.image_type === 'front');
-      const backImg = product.images.find((img: any) => img.image_type === 'back');
-      const additionalImgs = product.images.filter((img: any) => img.image_type === 'additional');
-      
-      this.form.frontImageUrl = frontImg?.url || '';
-      this.form.frontImagePublicId = frontImg?.publicId || '';
-      this.form.backImageUrl = backImg?.url || '';
-      this.form.backImagePublicId = backImg?.publicId || '';
-      
-      this.form.additionalImages = additionalImgs.map((img: any, index: number) => ({
-        url: img.url,
-        publicId: img.publicId || '',
-        displayOrder: img.displayOrder || index + 1
-      }));
-    }
+    const normalizedImages = this.normalizeImages(product.images);
+    const frontImg = normalizedImages.find(img => img.imageType === 'front');
+    const backImg = normalizedImages.find(img => img.imageType === 'back');
+    const additionalImgs = normalizedImages.filter(img => img.imageType === 'additional');
+    
+    this.form.frontImageUrl = frontImg?.url || '';
+    this.form.frontImagePublicId = frontImg?.publicId || '';
+    this.form.backImageUrl = backImg?.url || '';
+    this.form.backImagePublicId = backImg?.publicId || '';
+    
+    this.form.additionalImages = additionalImgs.map((img, index) => ({
+      url: img.url,
+      publicId: img.publicId || '',
+      displayOrder: img.displayOrder || index + 1
+    }));
+    this.reindexAdditionalImages();
     this.form.frontImageFile = null; // No file selected yet
     this.form.backImageFile = null;
     this.form.additionalImageFiles = [];
@@ -391,6 +391,42 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
     
     this.message.set('📝 Editing: ' + product.name);
     this.messageType.set('info');
+  }
+
+  private normalizeImages(images: any): Array<{ url: string; publicId?: string; imageType?: 'front' | 'back' | 'additional'; displayOrder?: number }> {
+    if (!images) return [];
+
+    const rawImages = Array.isArray(images)
+      ? images
+      : typeof images === 'string'
+        ? this.safeParseImages(images)
+        : [];
+
+    return rawImages
+      .map((img: any) => ({
+        url: img.url,
+        publicId: img.publicId ?? img.cloudinary_public_id,
+        imageType: img.imageType ?? img.image_type,
+        displayOrder: img.displayOrder ?? img.display_order
+      }))
+      .filter(img => !!img.url);
+  }
+
+  private safeParseImages(value: string): any[] {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private reindexAdditionalImages(): void {
+    this.form.additionalImages = this.form.additionalImages
+      .map((img, idx) => ({
+        ...img,
+        displayOrder: idx + 1
+      }));
   }
 
   onFileSelected(event: Event, field: 'front'|'back'|'logo'|'additional') {
@@ -489,6 +525,7 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
     
     // Remove from array
     this.form.additionalImages.splice(index, 1);
+    this.reindexAdditionalImages();
     
     this.setMessage('ℹ️ Additional image will be removed when you save the form.', 'info');
   }
@@ -942,6 +979,7 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
         // Track for rollback
         additionalResults.forEach(r => uploadedImages.push(r.public_id));
         this.form.additionalImages = [...this.form.additionalImages, ...newAdditionalImages];
+        this.reindexAdditionalImages();
       }
 
       // Upload variant images
@@ -987,12 +1025,13 @@ export class CustomizableProductFormComponent implements OnInit, OnChanges {
       }
       
       // Additional images
+      this.reindexAdditionalImages();
       this.form.additionalImages.forEach((img, index) => {
         images.push({
           url: img.url,
           publicId: img.publicId || '',
           imageType: 'additional',
-          displayOrder: img.displayOrder || index + 1
+          displayOrder: index + 1
         });
       });
 

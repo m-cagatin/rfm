@@ -208,7 +208,7 @@
             </div>
             <!-- Additional Images -->
             <div class="image-item" *ngFor="let img of getProductImages(selectedProduct()!); let i = index">
-              <ng-container *ngIf="img.image_type === 'additional'">
+              <ng-container *ngIf="img.imageType === 'additional'">
                 <img [src]="img.url" [alt]="'Additional Image ' + (i + 1)">
                 <p>Additional Image {{ i + 1 }}</p>
               </ng-container>

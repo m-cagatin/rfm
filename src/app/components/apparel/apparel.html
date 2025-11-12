@@ -1,8 +1,9 @@
 <div class="container-fluid px-0">
-  <h1 class="text-center mb-5 font-bold text-4xl">Shop Our Apparel</h1>
-  
   <!-- Carousel Wrapper -->
   <div class="carousel-wrapper">
+    <div class="carousel-header">
+      <h2>Choose &amp; Design your own Clothing</h2>
+    </div>
     <!-- Left Arrow -->
     <button class="carousel-arrow carousel-arrow-left" 
             (click)="scrollCarousel('left')"
@@ -17,9 +18,11 @@
          (scroll)="updateArrowStates()">
       @for (product of products(); track product.id) {
         <div class="carousel-card" (click)="viewProductDetails(product)">
-          <!-- Product Image (Colored Placeholder) -->
-          <div class="carousel-card-image" [class]="product.placeholderClass">
-            <!-- Empty div with colored background -->
+          <!-- Product Image -->
+          <div class="carousel-card-image" [ngClass]="product.placeholderClass">
+            @if (product.imageUrl) {
+              <img [src]="product.imageUrl" [alt]="product.category + ' image'">
+            }
           </div>
           
           <!-- Product Info -->

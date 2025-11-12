@@ -261,6 +261,10 @@ export class CustomizationComponent implements AfterViewInit, OnDestroy {
     this.isPanelVisible.set(!this.isPanelVisible());
   }
 
+  openMyClothing(): void {
+    console.log('My Clothing button clicked');
+  }
+
   closePanel(): void {
     this.isPanelVisible.set(false);
   }

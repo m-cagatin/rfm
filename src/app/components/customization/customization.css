@@ -186,6 +186,27 @@
   background: #f5f5f5;
 }
 
+.my-clothing-btn {
+  height: 32px;
+  padding: 0 18px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #fff;
+  color: #333;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.my-clothing-btn:hover {
+  background: #f5f5f5;
+  border-color: #cfcfcf;
+}
+
 .undo-btn.disabled, .redo-btn.disabled {
   opacity: 0.3;
   cursor: not-allowed;

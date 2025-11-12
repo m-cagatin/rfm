@@ -15,13 +15,7 @@ interface CustomizableProduct {
   gender?: string;
   fit_type?: string;
   description?: string;
-  images?: Array<{
-    image_id?: number;
-    url: string;
-    publicId?: string;
-    image_type?: 'front' | 'back' | 'additional';
-    displayOrder?: number;
-  }> | null;
+  images?: Array<CustomizableProductImage> | null;
   fabric_composition?: string;
   fabric_weight?: string;
   texture?: string;
@@ -43,6 +37,16 @@ interface CustomizableProduct {
   created_at: string;
   updated_at?: string;
   selected?: boolean; // For bulk selection
+}
+
+type ImageType = 'front' | 'back' | 'additional';
+
+interface CustomizableProductImage {
+  url: string;
+  publicId?: string;
+  imageType?: ImageType;
+  displayOrder?: number;
+  imageId?: number;
 }
 
 @Component({
@@ -79,37 +83,50 @@ export class AdminCustomizableProductsComponent implements OnInit {
   }
 
   // Helper method to get product images
-  getProductImages(product: CustomizableProduct): Array<{url: string; publicId?: string; image_type?: string; displayOrder?: number}> {
-    if (!product.images) return [];
-    
-    // If images is already an array, return it
-    if (Array.isArray(product.images)) {
-      return product.images;
+  getProductImages(product: CustomizableProduct): CustomizableProductImage[] {
+    return this.normalizeImages(product.images);
+  }
+
+  private normalizeImages(images: any): CustomizableProductImage[] {
+    if (!images) return [];
+
+    const rawImages = Array.isArray(images)
+      ? images
+      : typeof images === 'string'
+        ? this.safeParseImages(images)
+        : [];
+
+    return rawImages
+      .map((img: any) => ({
+        url: img.url,
+        publicId: img.publicId ?? img.cloudinary_public_id,
+        imageType: (img.imageType ?? img.image_type) as ImageType | undefined,
+        displayOrder: img.displayOrder ?? img.display_order,
+        imageId: img.imageId ?? img.image_id
+      }))
+      .filter(img => !!img.url);
+  }
+
+  private safeParseImages(value: string): any[] {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
     }
-    
-    // If images is a string (shouldn't happen with new schema), try parsing
-    if (typeof product.images === 'string') {
-      try {
-        return JSON.parse(product.images);
-      } catch {
-        return [];
-      }
-    }
-    
-    return [];
   }
 
   // Get front image
   getFrontImage(product: CustomizableProduct): string {
     const images = this.getProductImages(product);
-    const frontImg = images.find(img => img.image_type === 'front');
+    const frontImg = images.find(img => img.imageType === 'front');
     return frontImg?.url || '/assets/placeholder.png';
   }
 
   // Get back image
   getBackImage(product: CustomizableProduct): string {
     const images = this.getProductImages(product);
-    const backImg = images.find(img => img.image_type === 'back');
+    const backImg = images.find(img => img.imageType === 'back');
     return backImg?.url || '';
   }
   
@@ -195,14 +212,7 @@ export class AdminCustomizableProductsComponent implements OnInit {
         fullProduct.is_active = false;
         
         // Transform images array to match backend expectation (camelCase)
-        if (fullProduct.images && Array.isArray(fullProduct.images)) {
-          fullProduct.images = fullProduct.images.map((img: any) => ({
-            url: img.url,
-            publicId: img.publicId,
-            imageType: img.image_type || img.imageType, // Handle both formats
-            displayOrder: img.displayOrder
-          }));
-        }
+        fullProduct.images = this.normalizeImages(fullProduct.images);
         
         // Send full product data with updated status
         this.apiService.updateCustomizableProduct(String(product.id), fullProduct).subscribe({
@@ -245,14 +255,7 @@ export class AdminCustomizableProductsComponent implements OnInit {
           fullProduct.is_active = false;
           
           // Transform images array to match backend expectation (camelCase)
-          if (fullProduct.images && Array.isArray(fullProduct.images)) {
-            fullProduct.images = fullProduct.images.map((img: any) => ({
-              url: img.url,
-              publicId: img.publicId,
-              imageType: img.image_type || img.imageType,
-              displayOrder: img.displayOrder
-            }));
-          }
+          fullProduct.images = this.normalizeImages(fullProduct.images);
           
           return this.apiService.updateCustomizableProduct(String(id), fullProduct);
         })
@@ -286,7 +289,7 @@ export class AdminCustomizableProductsComponent implements OnInit {
     
     try {
       // Step 1: Delete images from Cloudinary first
-      const images = this.getProductImages(product);
+      const images = this.normalizeImages(product.images);
       if (images.length > 0) {
         console.log('🗑️ Deleting images from Cloudinary:', images);
         for (const img of images) {
@@ -323,7 +326,7 @@ export class AdminCustomizableProductsComponent implements OnInit {
   bulkDelete() {
     const selected = this.selectedProducts();
     const archivedSelected = selected.filter(id => {
-      const product = this.products().find(p => p.id === id);
+        const product = this.products().find(p => p.id === id);
       return product && !product.is_active;
     });
     
@@ -411,14 +414,7 @@ export class AdminCustomizableProductsComponent implements OnInit {
         fullProduct.is_active = newStatus;
         
         // Transform images array to match backend expectation (camelCase)
-        if (fullProduct.images && Array.isArray(fullProduct.images)) {
-          fullProduct.images = fullProduct.images.map((img: any) => ({
-            url: img.url,
-            publicId: img.publicId,
-            imageType: img.image_type || img.imageType,
-            displayOrder: img.displayOrder
-          }));
-        }
+        fullProduct.images = this.normalizeImages(fullProduct.images);
         
         // Send full product data with updated status
         this.apiService.updateCustomizableProduct(String(product.id), fullProduct).subscribe({
