@@ -9,13 +9,14 @@ import { GraphicsPanelComponent } from './graphics-panel/graphics-panel';
 import { TemplatesPanelComponent } from './templates-panel/templates-panel';
 import { PatternsPanelComponent } from './patterns-panel/patterns-panel';
 import { MyClothingPanelComponent } from './my-clothing-panel/my-clothing-panel';
+import { LayersPanelComponent } from './layers-panel/layers-panel';
 import { CanvasService } from '../../services/canvas.service';
 import { FontLoaderService } from '../../services/font-loader.service';
 
 @Component({
   selector: 'app-customization',
   standalone: true,
-  imports: [CommonModule, FormsModule, UploadPanelComponent, TextPanelComponent, LibraryPanelComponent, GraphicsPanelComponent, TemplatesPanelComponent, PatternsPanelComponent, MyClothingPanelComponent],
+  imports: [CommonModule, FormsModule, UploadPanelComponent, TextPanelComponent, LibraryPanelComponent, GraphicsPanelComponent, TemplatesPanelComponent, PatternsPanelComponent, MyClothingPanelComponent, LayersPanelComponent],
   templateUrl: './customization.html',
   styleUrl: './customization.css'
 })
@@ -51,6 +52,7 @@ export class CustomizationComponent implements AfterViewInit, OnDestroy {
   protected showTemplatesPanel = signal(false);
   protected showPatternsPanel = signal(false);
   protected showMyClothingPanel = signal(false);
+  protected showLayersPanel = signal(false);
   protected activePanelPos = signal<{ top: number; left: number }>({ top: 100, left: 96 });
 
   // Product information fields
@@ -270,6 +272,14 @@ export class CustomizationComponent implements AfterViewInit, OnDestroy {
 
   closeMyClothing(): void {
     this.showMyClothingPanel.set(false);
+  }
+
+  toggleLayersPanel(): void {
+    this.showLayersPanel.set(!this.showLayersPanel());
+  }
+
+  closeLayersPanel(): void {
+    this.showLayersPanel.set(false);
   }
 
   closePanel(): void {

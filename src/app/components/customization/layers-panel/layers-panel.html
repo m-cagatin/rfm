@@ -1,0 +1,81 @@
+<div class="layers-panel">
+  <!-- Panel Header -->
+  <div class="panel-header">
+    <div class="header-left">
+      <svg class="layers-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="7" height="7"/>
+        <rect x="14" y="3" width="7" height="7"/>
+        <rect x="14" y="14" width="7" height="7"/>
+        <rect x="3" y="14" width="7" height="7"/>
+      </svg>
+      <h3>Layers</h3>
+    </div>
+    <button class="close-btn" (click)="onClose()">✕</button>
+  </div>
+
+  <!-- Panel Content -->
+  <div class="panel-content">
+    <!-- Variants Section -->
+    <div class="variants-section">
+      <div class="section-label">Variants</div>
+      
+      @for (variant of variants(); track variant.color) {
+        <div class="variant-block">
+          <div class="variant-header" (click)="toggleVariantExpanded(variant)">
+            <div class="variant-info">
+              <span class="color-indicator" [style.background-color]="getColorHex(variant.color)"></span>
+              <span class="variant-color">{{ variant.color }}</span>
+              <span class="separator">|</span>
+              <select 
+                class="size-dropdown"
+                [value]="variant.size"
+                (change)="onSizeChange(variant, $any($event.target).value)"
+                (click)="$event.stopPropagation()">
+                @for (size of availableSizes; track size) {
+                  <option [value]="size">{{ size }}</option>
+                }
+              </select>
+            </div>
+            @if (variant.layers.length > 0) {
+              <svg 
+                class="expand-icon" 
+                [class.expanded]="variant.expanded"
+                width="12" 
+                height="12" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                stroke-width="2">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            }
+          </div>
+
+          <!-- Layers (expandable) -->
+          @if (variant.expanded && variant.layers.length > 0) {
+            <div class="layers-list">
+              @for (layer of variant.layers; track layer.name) {
+                <div class="layer-item" (click)="onLayerClick(layer)">
+                  <div class="layer-icon" [class.text-layer]="layer.type === 'text'" [class.image-layer]="layer.type === 'image'">
+                    @if (layer.type === 'text') {
+                      <span class="text-icon">Tt</span>
+                    } @else {
+                      <span class="image-icon">🖼️</span>
+                    }
+                  </div>
+                  <div class="layer-info">
+                    <span class="layer-name">{{ layer.name }}</span>
+                    <div class="layer-coords">
+                      <span>X {{ layer.x }}</span>
+                      <span>Y {{ layer.y }}</span>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+</div>

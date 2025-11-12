@@ -255,6 +255,9 @@
       <div class="top-bar-right">
         <button class="btn-edit">Edit</button>
         <button class="btn-preview">Preview</button>
+        <button class="btn-properties" (click)="toggleLayersPanel()" [class.active]="showLayersPanel()">
+          Properties
+        </button>
         <button class="tools-btn">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"/>
@@ -609,4 +612,9 @@
 <div class="panel-catcher" *ngIf="showMyClothingPanel()" (click)="closeMyClothing()"></div>
 <div class="my-clothing-modal" *ngIf="showMyClothingPanel()" (click)="$event.stopPropagation()">
   <app-my-clothing-panel (closed)="closeMyClothing()"></app-my-clothing-panel>
+</div>
+
+<!-- Layers Panel -->
+<div class="layers-panel-wrapper" [class.visible]="showLayersPanel()">
+  <app-layers-panel (closed)="closeLayersPanel()"></app-layers-panel>
 </div>

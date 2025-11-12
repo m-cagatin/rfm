@@ -1,0 +1,264 @@
+/* Layers Panel - Matching existing panel patterns with dark theme */
+
+.layers-panel {
+  background: #fff;
+  width: 320px;
+  height: calc(100vh - 106px); /* Subtract top bar (56px) and bottom bar (50px) */
+  display: flex;
+  flex-direction: column;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+  margin-top: 56px; /* Top bar height */
+}
+
+/* Panel Header */
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  flex-shrink: 0;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.layers-icon {
+  color: #666;
+  flex-shrink: 0;
+}
+
+.panel-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+
+.close-btn:hover {
+  background: #e9ecef;
+  color: #333;
+}
+
+/* Panel Content */
+.panel-content {
+  flex: 1;
+  overflow-y: auto;
+  background: #2c3e50;
+  padding: 16px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Variants Section */
+.variants-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.section-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #adb5bd;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+/* Variant Block */
+.variant-block {
+  background: #f8f9fa;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e9ecef;
+}
+
+.variant-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.variant-header:hover {
+  background: #f0f0f0;
+}
+
+.variant-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.color-indicator {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.variant-color {
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+  min-width: 50px;
+}
+
+.separator {
+  color: #adb5bd;
+  margin: 0 4px;
+}
+
+.size-dropdown {
+  padding: 4px 8px;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  font-size: 12px;
+  background: #fff;
+  color: #333;
+  cursor: pointer;
+  min-width: 80px;
+}
+
+.size-dropdown:focus {
+  outline: none;
+  border-color: #0066cc;
+  box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+}
+
+.expand-icon {
+  color: #666;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.expand-icon.expanded {
+  transform: rotate(180deg);
+}
+
+/* Layers List */
+.layers-list {
+  padding: 0 14px 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.layer-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid #e9ecef;
+}
+
+.layer-item:hover {
+  background: #f8f9fa;
+  border-color: #dee2e6;
+  transform: translateX(2px);
+}
+
+.layer-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.layer-icon.text-layer {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.layer-icon.image-layer {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.text-icon {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.image-icon {
+  font-size: 16px;
+}
+
+.layer-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.layer-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.layer-coords {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+  color: #666;
+}
+
+.layer-coords span {
+  font-family: 'Courier New', monospace;
+}
+
+
+/* Helper function for color hex mapping */
+.layers-panel {
+  /* Color mapping will be handled in TypeScript */
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .layers-panel {
+    width: 100vw;
+    max-width: 400px;
+  }
+}
